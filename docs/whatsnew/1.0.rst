@@ -1,0 +1,12 @@
+.. _whatsnew-1.0:
+
+**************************************
+What's New in `streamtrack` v1.0.X?
+**************************************
+
+Bug fixes (in X releases) are annotated with `@X`
+
+Overview
+========
+
+Adopted the Astropy-affiliate template.

@@ -1,0 +1,120 @@
+# git-ignore file
+# split into default python and project-specific sections
+
+###############################################################################
+# Project-Specific
+
+## Papers and Presentations
+# ignores all contents except the figures & ABOUT.txt
+/papers_and_presentations/*/*
+!/papers_and_presentations/**/ABOUT.txt
+!/papers_and_presentations/**/figures/
+!/papers_and_presentations/**/figures/*
+# to not ignore a paper, add the path
+# ex: !/papers/_sample/
+
+# scratch folders
+scratch/
+**/_scratch
+
+# scripts
+scripts/**/output
+
+# Environments subfolders
+envs/*/**
+
+# comment when done with public projects
+notebooks/**/*.png
+
+
+###############################################################################
+# Default
+
+# Compiled files
+*.py[cod]
+*.a
+*.o
+*.so
+__pycache__
+
+# Ignore .c files by default to avoid including generated code. If you want to
+# add a non-generated .c extension, use `git add -f filename.c`.
+*.c
+
+# Other generated files
+*/version.py
+*/cython_version.py
+htmlcov
+.coverage
+MANIFEST
+.ipynb_checkpoints
+
+# Sphinx
+docs/api
+docs/_build
+
+# Eclipse editor project files
+.project
+.pydevproject
+.settings
+
+# Pycharm editor project files
+.idea
+
+# Floobits project files
+.floo
+.flooignore
+
+# Packages/installer info
+*.egg
+*.eggs
+*.egg-info
+dist
+build
+eggs
+.eggs
+parts
+bin
+var
+sdist
+develop-eggs
+.installed.cfg
+distribute-*.tar.gz
+
+# Other
+.cache
+.tox
+.*.sw[op]
+*~
+.project
+.pydevproject
+.settings
+.mypy_cache/
+.tmp/
+pip-wheel-metadata/
+
+# Mac OSX
+.DS_Store
+
+# Latex Files
+*.aux
+*.blg
+*.gz
+*.out
+*.fls
+*.fdb_latexmk
+
+# Jupyter Notebook
+**.ipynb_checkpoints
+
+# Sublime Stuff
+*.sublime-workspace
+*.sublime-project
+/sftp-config-alt.json
+/sftp-config.json
+
+# R stuff
+.Rproj.use
+/.Rproj.user
+/.Rhistory
+/.RData
