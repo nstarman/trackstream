@@ -13,12 +13,9 @@
 __credits__ = ["Rodrigo Ibata"]
 
 
-# __all__ = [
-#     # functions
-#     "",
-#     # other
-#     "",
-# ]
+__all__ = [
+    "stream_data",
+]
 
 
 ##############################################################################
@@ -26,7 +23,17 @@ __credits__ = ["Rodrigo Ibata"]
 
 # BUILT-IN
 
+import os.path
+
+
 # THIRD PARTY
+
+from astronat.utils.table import QTableList
+
+import astropy.coordinates as coord
+from astropy.utils.data import get_pkg_data_filename
+from astropy.table import QTable
+
 
 # PROJECT-SPECIFIC
 
@@ -40,24 +47,33 @@ __credits__ = ["Rodrigo Ibata"]
 ##############################################################################
 
 
-class ClassName(object):
-    """Docstring for ClassName."""
+def _load_data() -> QTable:
 
-    def __init__(self, arg):
-        """Initialize class."""
-        super().__init__()
-        self.arg = arg
+    path = get_pkg_data_filename(
+        os.path.join("data", "IbataEtAl2017", "vizier.asdf"),
+        package="streamtrack",
+    )
+
+    data = QTableList.read(path)["table2"]
+
+    return data
 
 
-# /class
+# /def
 
 
 # -------------------------------------------------------------------
 
 
-def function():
-    """Docstring."""
-    pass
+def get_stream_data(threshold: float = 0.7) -> coord.SkyCoord:
+    """Stream data as `~astropy.coordinates.SkyCoord`."""
+    full_data = _load_data()
+
+    sub_data = full_data[["ra", "dec"]][full_data["PMemb"] > threshold]
+
+    data = coord.SkyCoord.guess_from_table(sub_data)
+
+    return data
 
 
 # /def

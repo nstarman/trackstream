@@ -16,7 +16,9 @@ __all__ = [
     "example_coords",
     "example_nbody",
     "example_orbit",
+    "example_data",
     # functions & classes
+    "get_stream_data",
     "get_nbody_array",
     "get_nbody",
     "RotatedICRS",
@@ -33,6 +35,7 @@ __all__ = [
 # PROJECT-SPECIFIC
 
 from .example_coords import RotatedICRS
+from .example_data import get_stream_data
 from .example_nbody import get_nbody, get_nbody_array
 from .example_orbit import (
     get_orbit,
@@ -41,7 +44,7 @@ from .example_orbit import (
     make_noisy_orbit_data,
 )
 
-from . import example_coords, example_orbit, example_nbody
+from . import example_coords, example_orbit, example_nbody, example_data
 
 
 ##############################################################################
