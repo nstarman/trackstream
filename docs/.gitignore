@@ -28,13 +28,6 @@ envs/*/**
 # comment when done with public projects
 notebooks/**/*.png
 
-# un-comment these for projects before committing
-# papers_and_presentations/_sample_paper/*
-# papers_and_presentations/_sample_presentation/*
-# notebooks/_sample/*
-# scripts/_sample/*
-# streamtrack/_sample/*
-
 
 ###############################################################################
 # Default

@@ -95,7 +95,7 @@ except Exception:
 
 setup(
     use_scm_version={
-        'write_to': os.path.join('streamtrack', 'version.py'),
+        'write_to': os.path.join('trackstream', 'version.py'),
         'write_to_template': VERSION_TEMPLATE},
       ext_modules=get_extensions())
 

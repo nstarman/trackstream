@@ -4,7 +4,7 @@ Authors and Credits
 
 Main author:
 
-Nathaniel Starkman (`nstarman/streamtrack <nstarman/streamtrack>`_)
+Nathaniel Starkman (`nstarman/trackstream <nstarman/trackstream>`_)
 
 
 Core Package Contributors
