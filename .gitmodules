@@ -1,0 +1,3 @@
+[submodule "docs/papers_and_presentations/STScI-The-Local-Group"]
+	path = docs/papers_and_presentations/STScI-The-Local-Group
+	url = https://nstarman@github.com/nstarman/TrackStream-STScI-Poster.git
