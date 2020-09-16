@@ -4,10 +4,13 @@
 
 This is the documentation for `trackstream`.
 
+If you are looking for the trackstream paper, a link will be added **here**. For a (hopefully) complete list of all papers and presentations, see :ref:`papers-and-presentations`
+
 The package is being actively developed in a `public repository on GitHub <https://github.com/nstarman/trackstream>`_ so if you have any trouble, `open an issue <https://github.com/nstarman/trackstream/issues>`_ there.
 
-.. image:: https://travis-ci.org/nstarman/trackstream.svg?branch=master
-    :target: https://travis-ci.org/nstarman/trackstream
+.. container::
+
+   |DOI| |PyPI| |Build Status| |Coveralls| |astropy|
 
 
 *************
@@ -17,6 +20,7 @@ Documentation
 .. toctree::
   :maxdepth: 1
 
+  documentation/installation.rst
   trackstream/index.rst
   documentation/testing.rst
 
@@ -51,8 +55,6 @@ If you make use of this code, please consider citing the Zenodo DOI as a softwar
      url          = {}
    }
 
-.. |DOI| replace:: GET FROM ZENODO
-
 
 ***************
 Project details
@@ -63,3 +65,40 @@ Project details
 
    credits
    whatsnew/index.rst
+   papers_and_presentations/README
+
+
+..
+  RST COMMANDS BELOW
+
+
+.. BADGES
+
+.. |astropy| image:: http://img.shields.io/badge/powered%20by-AstroPy-orange.svg?style=flat
+   :target: http://www.astropy.org/
+
+.. |Build Status| image:: https://travis-ci.org/nstarman/trackstream.svg?branch=master
+   :target: https://travis-ci.org/nstarman/trackstream
+
+.. |Documentation Status| image:: https://readthedocs.org/projects/trackstream/badge/?version=latest
+   :target: https://trackstream.readthedocs.io/en/latest/?badge=latest
+
+.. |DOI| replace:: GET FROM ZENODO
+
+.. |License| image:: https://img.shields.io/badge/License-BSD%203--Clause-blue.svg
+   :target: https://opensource.org/licenses/BSD-3-Clause
+
+.. |PyPI| image:: https://badge.fury.io/py/trackstream.svg
+   :target: https://badge.fury.io/py/trackstream
+
+.. |Milestones| image:: https://img.shields.io/github/milestones/open/nstarman/trackstream?style=flat
+   :alt: GitHub milestones
+
+.. |Open Issues| image:: https://img.shields.io/github/issues-raw/nstarman/trackstream?style=flat
+   :alt: GitHub issues
+
+.. |Last Commit| image:: https://img.shields.io/github/last-commit/nstarman/trackstream/master?style=flat
+   :alt: GitHub last commit (branch)
+
+.. |Coveralls| image:: https://coveralls.io/repos/github/nstarman/trackstream/badge.svg?branch=master
+   :target: https://coveralls.io/github/nstarman/trackstream?branch=master
