@@ -21,16 +21,6 @@ Documentation
   documentation/testing.rst
 
 
-***********
-Subpackages
-***********
-
-.. toctree::
-   :maxdepth: 1
-
-   trackstream/data/index
-
-
 *****************
 How to contribute
 *****************
