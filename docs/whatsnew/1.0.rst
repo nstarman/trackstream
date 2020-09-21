@@ -1,8 +1,8 @@
 .. _whatsnew-1.0:
 
-**************************************
-What's New in `streamtrack` v1.0.X?
-**************************************
+***********************************
+What's New in `trackstream` v1.0.X?
+***********************************
 
 Bug fixes (in X releases) are annotated with `@X`
 

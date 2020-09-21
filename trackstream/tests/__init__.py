@@ -1,32 +1,18 @@
 # -*- coding: utf-8 -*-
 # see LICENSE.rst
 
-"""Package Tests.
+"""Tests for :mod:`~trackstream`."""
 
-This module contains package tests.
-
-Routine Listings
-----------------
-
-"""
-
-__author__ = "Nathaniel Starkman"
-# __credits__ = [""]
-
-# __all__ = [
-#     ""
-# ]
+__all__ = [
+    # modules
+    "test_init",
+]
 
 
 ##############################################################################
 # IMPORTS
 
-# GENERAL
-
-# CUSTOM
-
-# PROJECT-SPECIFIC
-
+from . import test_init
 
 ##############################################################################
 # END
