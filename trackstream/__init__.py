@@ -7,6 +7,8 @@ __author__ = "Nathaniel Starkman"
 __copyright__ = "Copyright 2020"
 
 __all__ = [
+    # modules
+    "examples",
 ]
 
 
@@ -20,6 +22,7 @@ from ._astropy_init import *  # noqa  # isort:skip
 
 # ----------------------------------------------------------------------------
 
+from . import example_data as examples
 
 ##############################################################################
 # END
