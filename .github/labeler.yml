@@ -1,0 +1,15 @@
+# General Labels
+GitHub:
+  - .github/**/*
+  
+Notebooks:
+  - notebooks/**/*
+
+# Package Labels
+utils:
+  - starkman_thesis/utils/**/*
+
+
+# Docs Labels
+Docs:
+  - docs/**/*

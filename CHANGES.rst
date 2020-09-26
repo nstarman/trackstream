@@ -29,3 +29,5 @@ Other Changes and Additions
 renamed project `trackstream` from `streamtrack` [#2]
 
 adopt PR template [#7]
+
+add PR/Issue labeler action [#12]
