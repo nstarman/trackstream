@@ -1,22 +1,20 @@
 ==================
-M.m.X (yyyy-mm-dd)
+0.1.0 (2020-09-01)
 ==================
 
 New Features
 ------------
 
-Description
-
 trackstream
 ^^^^^^^^^^^
 
-- Change 1
+- basic version test [#2]
 
 
 API Changes
 -----------
 
-Contents here
+N/A
 
 
 Bug Fixes
@@ -28,4 +26,6 @@ List them
 Other Changes and Additions
 ---------------------------
 
-List them
+renamed project `trackstream` from `streamtrack` [#2]
+
+adopt PR template [#7]
