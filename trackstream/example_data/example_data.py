@@ -29,11 +29,11 @@ from astronat.utils.table import QTableList
 def _load_data() -> QTable:
 
     path = get_pkg_data_filename(
-        os.path.join("data", "IbataEtAl2017", "vizier.asdf"),
+        os.path.join("data", "IbataEtAl2017", "table2.ecsv"),
         package="trackstream",
     )
 
-    data = QTableList.read(path)["table2"]
+    data = QTable.read(path, format="ecsv")
 
     return data
 
