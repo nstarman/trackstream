@@ -36,3 +36,5 @@ Actions
 - Add action greeting [#10]
 
 - Add PR/Issue labeler action [#12]
+
+- Label stale PRs / issues [#14]
