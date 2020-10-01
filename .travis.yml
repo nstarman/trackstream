@@ -177,7 +177,6 @@ before_install:
     - if git show -s HEAD | grep -F -q "[ci skip]" ; then echo "skip travis" && exit 0 ; fi
 
 install:
-
   # We now use the ci-helpers package to set up our Python environment
   # on Windows and MacOS X but we don't set up any other dependencies,
   # instead using tox to do this. See https://github.com/astropy/ci-helpers
