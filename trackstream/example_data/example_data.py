@@ -19,8 +19,6 @@ import astropy.coordinates as coord
 from astropy.table import QTable
 from astropy.utils.data import get_pkg_data_filename
 
-from astronat.utils.table import QTableList
-
 ##############################################################################
 # CODE
 ##############################################################################
@@ -29,8 +27,7 @@ from astronat.utils.table import QTableList
 def _load_data() -> QTable:
 
     path = get_pkg_data_filename(
-        os.path.join("data", "IbataEtAl2017", "table2.ecsv"),
-        package="trackstream",
+        os.path.join("data", "IbataEtAl2017", "table2.ecsv"), package="trackstream",
     )
 
     data = QTable.read(path, format="ecsv")

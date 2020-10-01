@@ -15,9 +15,10 @@
 ##############################################################################
 # IMPORTS
 
-import numpy as np
-import astropy.units as u
 import astropy.coordinates as coord
+import astropy.units as u
+import numpy as np
+
 from trackstream.example_data import example_coords
 
 ##############################################################################

@@ -21,7 +21,6 @@ import astropy.coordinates as coord
 import numpy as np
 from astropy.table import QTable
 from astropy.utils.data import get_pkg_data_filename
-
 from utilipy.utils.typing import CoordinateType, TableType
 
 ##############################################################################
