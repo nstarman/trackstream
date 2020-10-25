@@ -9,6 +9,8 @@ __copyright__ = "Copyright 2020"
 __all__ = [
     # modules
     "examples",
+    # classes
+    "StreamTrack",
 ]
 
 
@@ -23,6 +25,7 @@ from ._astropy_init import *  # noqa  # isort:skip
 # ----------------------------------------------------------------------------
 
 from . import example_data as examples
+from .core import StreamTrack
 
 ##############################################################################
 # END

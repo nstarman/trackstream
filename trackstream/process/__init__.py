@@ -1,0 +1,40 @@
+# -*- coding: utf-8 -*-
+# see LICENSE.rst
+
+"""Processing."""
+
+
+##############################################################################
+# IMPORTS
+
+# PROJECT-SPECIFIC
+
+# module
+from . import core, kalman, plot, processing, utils
+from .core import *
+from .kalman import KalmanFilter
+from .plot import plot_path
+from .processing import batch_predict_with_stepupdate
+from .utils import make_dts, make_F, make_H, make_Q, make_R
+
+__all__ = [
+    # modules
+    "kalman",
+    "processing",
+    "plot",
+    "utils",
+    # functions
+    "KalmanFilter",
+    "batch_predict_with_stepupdate",
+    "make_dts",
+    "make_F",
+    "make_Q",
+    "make_H",
+    "make_R",
+    # plot
+    "plot_path",
+] + core.__all__
+
+
+##############################################################################
+# END

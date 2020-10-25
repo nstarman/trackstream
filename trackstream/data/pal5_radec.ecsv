@@ -1,0 +1,42 @@
+# %ECSV 0.9
+# ---
+# datatype:
+# - {name: ra, unit: deg, datatype: float64}
+# - {name: dec, unit: deg, datatype: float64}
+# - {name: err, unit: deg, datatype: float64}
+# meta: !!omap
+# - __serialized_columns__:
+#     dec:
+#       __class__: astropy.units.quantity.Quantity
+#       unit: &id001 !astropy.units.Unit {unit: deg}
+#       value: !astropy.table.SerializedColumn {name: dec}
+#     err:
+#       __class__: astropy.units.quantity.Quantity
+#       unit: *id001
+#       value: !astropy.table.SerializedColumn {name: err}
+#     ra:
+#       __class__: astropy.units.quantity.Quantity
+#       unit: *id001
+#       value: !astropy.table.SerializedColumn {name: ra}
+# schema: astropy-2.0
+ra dec err
+241.48 6.41 0.09
+240.98 6.15 0.09
+240.48 6.2 0.09
+239.98 5.81 0.09
+239.48 5.64 0.09
+238.48 5.38 0.09
+237.98 5.14 0.09
+233.61 3.17 0.06
+233.11 2.88 0.06
+232.61 2.54 0.06
+232.11 2.23 0.06
+231.61 2.04 0.06
+231.11 1.56 0.06
+230.11 0.85 0.06
+229.61 0.54 0.06
+228.48 -0.77 0.11
+228.11 -1.16 0.14
+227.73 -1.28 0.11
+227.23 -2.03 0.17
+226.55 -2.59 0.14
