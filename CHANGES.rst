@@ -9,6 +9,12 @@ trackstream
 ^^^^^^^^^^^
 
 - basic version test [#2]
+  
+
+teackstream.tests.helper
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Baseclass-dependent test helper class [#23]
 
 
 API Changes
