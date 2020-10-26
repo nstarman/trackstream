@@ -18,10 +18,13 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
+# BUILT-IN
 from pathlib import Path
 
+# THIRD PARTY
 from astropy.tests.runner import TestRunner
 
+# PROJECT-SPECIFIC
 from . import test_example_coords as example_coords_tests
 
 ##############################################################################

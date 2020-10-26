@@ -24,4 +24,3 @@ Fixes #<Issue Number>
 - [ ] Make sure the docs are up to date.
 - [ ] Add yourself to credits.rst file.
 - [ ] Ensure linear history by rebasing.
-

@@ -16,11 +16,13 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
+# THIRD PARTY
 import astropy.coordinates as coord
 import astropy.units as u
 import pytest
 from astropy.tests.helper import assert_quantity_allclose
 
+# PROJECT-SPECIFIC
 from trackstream.example_data import example_coords
 
 ##############################################################################
@@ -111,21 +113,35 @@ def test_transformation_machinery(icrs, ricrs):
 
     new_ricrs = icrs.transform_to(example_coords.RotatedICRS)
 
-    assert_quantity_allclose(new_ricrs.phi1, ricrs.phi1, rtol=1e-10, atol=1e-7 * u.deg)
-    assert_quantity_allclose(new_ricrs.phi2, ricrs.phi2, rtol=1e-10, atol=1e-7 * u.deg)
-    assert_quantity_allclose(new_ricrs.distance, ricrs.distance, rtol=1e-10, atol=1e-7)
+    assert_quantity_allclose(
+        new_ricrs.phi1, ricrs.phi1, rtol=1e-10, atol=1e-7 * u.deg
+    )
+    assert_quantity_allclose(
+        new_ricrs.phi2, ricrs.phi2, rtol=1e-10, atol=1e-7 * u.deg
+    )
+    assert_quantity_allclose(
+        new_ricrs.distance, ricrs.distance, rtol=1e-10, atol=1e-7
+    )
 
     # and check it's close to 0
 
-    assert_quantity_allclose(new_ricrs.phi2, 0 * u.deg, rtol=1e-10, atol=1e-7 * u.deg)
+    assert_quantity_allclose(
+        new_ricrs.phi2, 0 * u.deg, rtol=1e-10, atol=1e-7 * u.deg
+    )
 
     # and back again
 
     new_icrs = new_ricrs.transform_to(coord.ICRS)
 
-    assert_quantity_allclose(new_icrs.ra, icrs.ra, rtol=1e-10, atol=1e-7 * u.deg)
-    assert_quantity_allclose(new_icrs.dec, icrs.dec, rtol=1e-10, atol=1e-7 * u.deg)
-    assert_quantity_allclose(new_icrs.distance, icrs.distance, rtol=1e-10, atol=1e-7)
+    assert_quantity_allclose(
+        new_icrs.ra, icrs.ra, rtol=1e-10, atol=1e-7 * u.deg
+    )
+    assert_quantity_allclose(
+        new_icrs.dec, icrs.dec, rtol=1e-10, atol=1e-7 * u.deg
+    )
+    assert_quantity_allclose(
+        new_icrs.distance, icrs.distance, rtol=1e-10, atol=1e-7
+    )
 
 
 # /def

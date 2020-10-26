@@ -13,8 +13,10 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
+# BUILT-IN
 import os.path
 
+# THIRD PARTY
 import astropy.coordinates as coord
 from astropy.table import QTable
 from astropy.utils.data import get_pkg_data_filename
@@ -27,7 +29,8 @@ from astropy.utils.data import get_pkg_data_filename
 def _load_data() -> QTable:
 
     path = get_pkg_data_filename(
-        os.path.join("data", "IbataEtAl2017", "table2.ecsv"), package="trackstream",
+        os.path.join("data", "IbataEtAl2017", "table2.ecsv"),
+        package="trackstream",
     )
 
     data = QTable.read(path, format="ecsv")

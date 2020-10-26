@@ -1,20 +1,10 @@
 repos:
--   repo: https://github.com/asottile/seed-isort-config
-    rev: v1.9.3
-    hooks:
-    - id: seed-isort-config
--   repo: https://github.com/pre-commit/mirrors-isort
-    rev: v4.3.21
-    hooks:
-    - id: isort
--   repo: https://github.com/ambv/black
-    rev: stable
-    hooks:
-    - id: black
-      language_version: python3.8
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v2.3.0
     hooks:
+    - id: check-yaml
+    - id: end-of-file-fixer
+    - id: trailing-whitespace
     - id: flake8
       args: # arguments to configure flake8
         # making isort line length compatible with black
@@ -25,4 +15,19 @@ repos:
         # these are errors that will be ignored by flake8
         # check out their meaning here
         # https://flake8.pycqa.org/en/latest/user/error-codes.html
-        - "--ignore=F405"
+        - "--ignore=F405,W503"
+        - "--exclude=*/_astropy_init.py docs/conf.py"
+-   repo: https://github.com/asottile/seed-isort-config
+    rev: v1.9.3
+    hooks:
+        - id: seed-isort-config
+-   repo: https://github.com/pre-commit/mirrors-isort
+    rev: v4.3.21
+    hooks:
+        - id: isort
+          additional_dependencies: ["toml"]
+-   repo: https://github.com/psf/black
+    rev: stable
+    hooks:
+        - id: black
+          additional_dependencies: ["toml"]

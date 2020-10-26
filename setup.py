@@ -11,13 +11,13 @@ other information are set in the setup.cfg file.
 ##############################################################################
 # IMPORTS
 
+# BUILT-IN
 import os
 import sys
 
-from setuptools import setup
-
+# THIRD PARTY
 from extension_helpers import get_extensions
-
+from setuptools import setup
 
 ##############################################################################
 # PARAMETERS

@@ -19,11 +19,13 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
+# THIRD PARTY
 import astropy.coordinates as coord
 import astropy.units as u
 from astropy.coordinates.matrix_utilities import matrix_transpose
 from astropy.utils.decorators import format_doc
 
+# PROJECT-SPECIFIC
 from trackstream.utils.coordinates import reference_to_skyoffset_matrix
 
 ##############################################################################

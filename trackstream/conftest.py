@@ -7,9 +7,11 @@ packagename.test
 
 """
 
+# BUILT-IN
 import os
-import pytest
 
+# THIRD PARTY
+import pytest
 from astropy.version import version as astropy_version
 
 # For Astropy 3.0 and later, we can use the standalone pytest plugin
@@ -44,19 +46,22 @@ def pytest_configure(config):
 
         # Customize the following lines to add/remove entries from the list of
         # packages for which version numbers are displayed when running the tests.
-        PYTEST_HEADER_MODULES.pop('Pandas', None)
-        PYTEST_HEADER_MODULES['scikit-image'] = 'skimage'
+        PYTEST_HEADER_MODULES.pop("Pandas", None)
+        PYTEST_HEADER_MODULES["scikit-image"] = "skimage"
 
         from . import __version__
+
         packagename = os.path.basename(os.path.dirname(__file__))
         TESTED_VERSIONS[packagename] = __version__
 
     return
 
+
 # /def
 
 
 # ------------------------------------------------------
+
 
 @pytest.fixture(autouse=True)
 def add_units(doctest_namespace):
@@ -69,6 +74,7 @@ def add_units(doctest_namespace):
     """
     # import
     import astropy.units
+
     # add to namespace
     doctest_namespace["u"] = astropy.units
 

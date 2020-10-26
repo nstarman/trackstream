@@ -33,7 +33,6 @@ __all__ = [
 # IMPORTS
 
 # PROJECT-SPECIFIC
-
 from . import example_coords, example_data, example_nbody, example_orbit
 from .example_coords import RotatedICRS
 from .example_data import get_stream_data
