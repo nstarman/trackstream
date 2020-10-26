@@ -9,7 +9,7 @@ trackstream
 ^^^^^^^^^^^
 
 - basic version test [#2]
-  
+
 
 teackstream.tests.helper
 ^^^^^^^^^^^^^^^^^^^^^^^^
