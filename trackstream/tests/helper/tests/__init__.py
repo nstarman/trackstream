@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # see LICENSE.rst
 
-"""Test for `~starkman_thesis.tests.helper`."""
+"""Test for `~trackstream.tests.helper`."""
 
 __all__ = [
     # modules

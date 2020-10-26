@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Tests for `~starkman_thesis.tests.helper.BaseClassDependentTests`."""
+"""Tests for `~trackstream.tests.helper.BaseClassDependentTests`."""
 
 __all__ = [
     "Test_BaseClassDependentTests",
@@ -15,7 +15,7 @@ import pytest
 
 # FIRST PARTY
 # PROJECT-SPECIFIC
-from starkman_thesis.tests import helper
+from trackstream.tests import helper
 
 ##############################################################################
 # CODE
@@ -23,7 +23,7 @@ from starkman_thesis.tests import helper
 
 
 class Test_BaseClassDependentTests:
-    """Test `~starkman_thesis.tests.helper.BaseClassDependentTests`."""
+    """Test `~trackstream.tests.helper.BaseClassDependentTests`."""
 
     @classmethod
     def setup_class(cls):
