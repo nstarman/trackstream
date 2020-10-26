@@ -28,7 +28,9 @@ Other Changes and Additions
 
 renamed project `trackstream` from `streamtrack` [#2]
 
-adopt PR template [#7]
+- Add PR template [#7]
+
+- Add Issue Templates [#22]
 
 - Adopt pre-commit [#9]
 
