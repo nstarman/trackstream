@@ -9,7 +9,9 @@ trackstream
 Documentation
 -------------
 
-|Documentation Status| 
+.. container::
+
+   |Documentation Status|
 
 The documentation for ``trackstream`` is hosted on `Read the docs <https://readthedocs.org/projects/trackstream/badge/?version=latest>`_.
 
@@ -17,7 +19,9 @@ The documentation for ``trackstream`` is hosted on `Read the docs <https://readt
 Installation and Dependencies
 -----------------------------
 
-|PyPI|
+.. container::
+
+   |PyPI|
 
 
 The easiest way to get trackstream is to install with pip. To install with pip::
@@ -31,7 +35,9 @@ See the `installation instructions <https://readthedocs.org/projects/trackstream
 Attribution
 ***********
 
-|DOI| |License|
+.. container::
+
+   |DOI| |License|
 
 Copyright 2020 - Nathaniel Starkman.
 
@@ -55,7 +61,9 @@ If you make use of this code, consider citing the Zenodo DOI as a software citat
 License
 -------
 
-|License|
+.. container::
+
+   |License|
 
 Copyright 2018- Nathaniel Starkman and contributors.
 

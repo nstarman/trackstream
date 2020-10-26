@@ -13,35 +13,44 @@ The package is being actively developed in a `public repository on GitHub <https
    |DOI| |PyPI| |Build Status| |Coveralls| |astropy|
 
 
-*************
-Documentation
-*************
+******************
+Code Documentation
+******************
 
 .. toctree::
   :maxdepth: 1
 
-  documentation/installation.rst
-  trackstream/index.rst
-  documentation/testing.rst
+  documentation/installation
+  documentation/testing
+  latest version changelog (v0.1) <whatsnew/0.1>
+
+***********
+Subpackages
+***********
+
+.. toctree::
+   :maxdepth: 1
+
+   trackstream/index
 
 
-*****************
-How to contribute
-*****************
+.. toctree::
+   :caption: Preprocessing:
+   :name: preprocessing
+   :maxdepth: 1
 
-We welcome contributions from anyone via pull requests on `GitHub
-<https://github.com/nstarman/trackstream>`_. If you don't feel comfortable modifying or
-adding functionality, we also welcome feature requests and bug reports as
-`GitHub issues <https://github.com/nstarman/trackstream/issues>`_.
+   starkman_thesis/preprocessing/index
 
 
 ***********
 Attribution
 ***********
 
-|DOI|
+.. container::
 
-If you make use of this code, please consider citing the Zenodo DOI as a software citation
+   |DOI| |License|
+
+If you make use of this code, please cite the Zenodo DOI as a software citation
 
 ::
 
@@ -64,7 +73,8 @@ Project details
    :maxdepth: 1
 
    credits
-   whatsnew/index.rst
+   whatsnew/index
+   documentation/code_quality
    papers_and_presentations/README
 
 

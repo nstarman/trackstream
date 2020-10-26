@@ -14,13 +14,18 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
+# BUILT-IN
 import typing as T
 
+# THIRD PARTY
 import astropy.units as u
 import numpy as np
-from astropy.coordinates.matrix_utilities import (matrix_product,
-                                                  rotation_matrix)
+from astropy.coordinates.matrix_utilities import (
+    matrix_product,
+    rotation_matrix,
+)
 
+# FIRST PARTY
 from utilipy.utils.typing import CoordinateRepresentationType, CoordinateType
 
 ##############################################################################

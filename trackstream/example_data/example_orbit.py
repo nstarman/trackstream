@@ -18,12 +18,16 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
+# BUILT-IN
 import typing as T
 
+# THIRD PARTY
 import astropy.units as u
 import numpy as np
 from galpy import potential
 from galpy.orbit import Orbit
+
+# FIRST PARTY
 from utilipy import data_utils
 from utilipy.utils.typing import CoordinateRepresentationType as RepType
 from utilipy.utils.typing import FrameOptionsType, UnitType
@@ -92,7 +96,11 @@ def make_ordered_orbit_data(
         (`num`, 3) array
 
     """
-    o = get_orbit(stop=stop, num=num, unit=unit,)
+    o = get_orbit(
+        stop=stop,
+        num=num,
+        unit=unit,
+    )
 
     # get representation
     sc = o.SkyCoord(o.time())
@@ -208,7 +216,10 @@ def make_noisy_orbit_data(
 
     # make representation with gaussian-convolved values.
     data = X.__class__(
-        **{n: rnd.normal(recarr[n], scale=sigma[n]) for n in recarr.dtype.names}
+        **{
+            n: rnd.normal(recarr[n], scale=sigma[n])
+            for n in recarr.dtype.names
+        }
     )
 
     return data

@@ -15,12 +15,16 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
+# BUILT-IN
 import os.path
 
+# THIRD PARTY
 import astropy.coordinates as coord
 import numpy as np
 from astropy.table import QTable
 from astropy.utils.data import get_pkg_data_filename
+
+# FIRST PARTY
 from utilipy.utils.typing import CoordinateType, TableType
 
 ##############################################################################

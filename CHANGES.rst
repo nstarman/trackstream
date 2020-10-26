@@ -9,7 +9,7 @@ trackstream
 ^^^^^^^^^^^
 
 - basic version test [#2]
-  
+
 
 teackstream.tests.helper
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -32,16 +32,19 @@ List them
 Other Changes and Additions
 ---------------------------
 
-renamed project `trackstream` from `streamtrack` [#2]
+- renamed project `trackstream` from `streamtrack` [#2]
 
-- Add PR template [#7]
+- Reapply Project Template [#21]
+
+    + Add PR template [#7]
 
 - Add Issue Templates [#22]
 
+
 - Adopt pre-commit [#9]
 
-    + `isort <https://pypi.org/project/isort/>`_ 
-    + `black <https://pypi.org/project/black/>`_ 
+    + `isort <https://pypi.org/project/isort/>`_
+    + `black <https://pypi.org/project/black/>`_
     + `flake8 <https://pypi.org/project/flake8/>`_
 
 Actions

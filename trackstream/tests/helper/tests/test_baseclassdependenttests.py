@@ -13,7 +13,6 @@ __all__ = [
 # THIRD PARTY
 import pytest
 
-# FIRST PARTY
 # PROJECT-SPECIFIC
 from trackstream.tests import helper
 
