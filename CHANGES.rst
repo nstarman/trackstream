@@ -30,6 +30,12 @@ renamed project `trackstream` from `streamtrack` [#2]
 
 adopt PR template [#7]
 
+- Adopt pre-commit [#9]
+
+    + `isort <https://pypi.org/project/isort/>`_ 
+    + `black <https://pypi.org/project/black/>`_ 
+    + `flake8 <https://pypi.org/project/flake8/>`_
+
 Actions
 ^^^^^^^
 
