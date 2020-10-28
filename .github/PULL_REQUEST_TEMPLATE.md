@@ -19,7 +19,7 @@ Fixes #<Issue Number>
 - [ ] Check out the [contributing guidelines](https://github.com/astropy/astropy/blob/master/CONTRIBUTING.md) and [code of conduct](https://github.com/astropy/astropy/blob/master/CODE_OF_CONDUCT.md)
 - [ ] Check out the [contributing workflow](http://docs.astropy.org/en/latest/development/workflow/development_workflow.html) ( for a practical example [click here](https://docs.astropy.org/en/latest/development/workflow/git_edit_workflow_examples.html#astropy-fix-example) )
 - [ ] Give a detailed description of the PR above.
-- [ ] Document changes in the `TEMPLATE_CHANGES.md` file. See existing changelog for examples.
+- [ ] Document changes in the `CHANGES.rst` file. See existing changelog for examples.
 - [ ] Add tests, if applicable, to ensure code coverage never decreases.
 - [ ] Make sure the docs are up to date, if applicable, particularly the docstrings and RST files in `docs` folder.
 - [ ] Ensure linear history by rebasing, when requested by the maintainer.

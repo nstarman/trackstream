@@ -11,10 +11,16 @@ trackstream
 - basic version test [#2]
 
 
-teackstream.tests.helper
+trackstream.tests.helper
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Baseclass-dependent test helper class [#23]
+
+
+trackstream.utils
+^^^^^^^^^^^^^^^^^
+
+- splines with units [#24]
 
 
 API Changes
