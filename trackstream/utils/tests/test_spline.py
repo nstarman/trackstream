@@ -80,7 +80,7 @@ class Test_InterpolatedUnivariateSplinewithUnits(
         for name, interp in self.interps.items():
             y = interp(self.x)
 
-            assert_quantity_allclose(y, self.y, atol=1e-16 * y.unit), name
+            assert_quantity_allclose(y, self.y, atol=1e-15 * y.unit), name
 
         # /for
 
