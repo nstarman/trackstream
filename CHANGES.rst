@@ -20,7 +20,8 @@ trackstream.tests.helper
 trackstream.utils
 ^^^^^^^^^^^^^^^^^
 
-- splines with units [#24]
+- Scipy splines with units. [#24]
+  Currently only InterpolatedUnivariateSpline.
 
 
 API Changes
