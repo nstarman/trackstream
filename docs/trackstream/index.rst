@@ -18,6 +18,14 @@ Subpackages
    preprocess/index
 
 
+.. toctree::
+   :caption: Codes and Utilities:
+   :name: code_codes_and_utilities
+   :maxdepth: 1
+
+   utils/index
+
+
 Reference/API
 =============
 

@@ -11,6 +11,8 @@ This sub-module is destined for common non-package specific utility functions.
 __all__ = [
     # modules
     "coordinates",
+    # classes
+    "InterpolatedUnivariateSplinewithUnits",
 ]
 
 
@@ -19,6 +21,7 @@ __all__ = [
 
 # PROJECT-SPECIFIC
 from . import coordinates
+from .spline import InterpolatedUnivariateSplinewithUnits
 
 ##############################################################################
 # END

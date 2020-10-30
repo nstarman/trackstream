@@ -31,6 +31,8 @@ else:
     except ImportError:
         ASTROPY_HEADER = False
 
+# /if
+
 
 def pytest_configure(config):
     """Configure Pytest with Astropy.
@@ -64,21 +66,46 @@ def pytest_configure(config):
 
 
 @pytest.fixture(autouse=True)
-def add_units(doctest_namespace):
-    """Add Imports to Pytest.
+def add_numpy(doctest_namespace):
+    """Add NumPy to Pytest.
 
     Parameters
     ----------
     doctest_namespace : namespace
 
     """
-    # import
+    # THIRD PARTY
+    import numpy
+
+    # add to namespace
+    doctest_namespace["np"] = numpy
+
+
+# def
+
+
+@pytest.fixture(autouse=True)
+def add_astropy(doctest_namespace):
+    """Add Astropy stuff to Pytest.
+
+    Parameters
+    ----------
+    doctest_namespace : namespace
+
+    """
+    # THIRD PARTY
+    import astropy.coordinates as coord
     import astropy.units
 
     # add to namespace
+    doctest_namespace["coord"] = coord
     doctest_namespace["u"] = astropy.units
 
-    return
+    # extras
+    from astropy.visualization import quantity_support, time_support
+
+    quantity_support()
+    time_support()
 
 
 # def
