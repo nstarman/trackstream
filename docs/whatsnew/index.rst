@@ -8,7 +8,7 @@ functionality highlighted in these pages.
 .. toctree::
    :maxdepth: 1
 
-   1.0
+   0.1
 
 
 Full Change-log:

@@ -1,12 +1,12 @@
-###########################
-`trackstream` Documentation
-###########################
+############
+Track-Stream
+############
 
 This is the documentation for `trackstream`.
 
 If you are looking for the trackstream paper, a link will be added **here**. For a (hopefully) complete list of all papers and presentations, see :ref:`papers-and-presentations`
 
-The package is being actively developed in a `public repository on GitHub <https://github.com/nstarman/trackstream>`_ so if you have any trouble, `open an issue <https://github.com/nstarman/trackstream/issues>`_ there.
+The package is being actively developed in a `public repository on GitHub <https://github.com/nstarman/trackstream>`_ so if you have any trouble, `open an issue <https://github.com/nstarman/trackstream/issues>`_, or even better, a `PR <https://github.com/nstarman/trackstream/pulls>`_.
 
 .. container::
 
@@ -24,6 +24,7 @@ Code Documentation
   documentation/testing
   latest version changelog (v0.1) <whatsnew/0.1>
 
+
 ***********
 Subpackages
 ***********
@@ -33,13 +34,12 @@ Subpackages
 
    trackstream/index
 
-
 .. toctree::
    :caption: Preprocessing:
-   :name: preprocessing
+   :name: preprocessing_subpackage
    :maxdepth: 1
 
-   starkman_thesis/preprocessing/index
+   trackstream/preprocess/index
 
 
 ***********
@@ -50,13 +50,17 @@ Attribution
 
    |DOI| |License|
 
+Copyright 2020- Nathaniel Starkman.
+
+``trackstream`` is free software made available under the BSD-3 License. For details see the `LICENSE <https://github.com/nstarman/Thesis/blob/master/LICENSE.rst>`_ file.
+
 If you make use of this code, please cite the Zenodo DOI as a software citation
 
 ::
 
    @software{zenodo,
-     author       = Nathaniel Starkman,
-     title        = trackstream v1.0,
+     author       = {Starkmanm, Nathaniel},
+     title        = trackstream,
      month        = month,
      year         = year,
      publisher    = {Zenodo},

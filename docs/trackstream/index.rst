@@ -15,7 +15,7 @@ Subpackages
    :name: preprocessing
    :maxdepth: 1
 
-   starkman_thesis/preprocessing/index
+   preprocess/index
 
 
 Reference/API
