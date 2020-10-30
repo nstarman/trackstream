@@ -11,10 +11,17 @@ trackstream
 - basic version test [#2]
 
 
-teackstream.tests.helper
+trackstream.tests.helper
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Baseclass-dependent test helper class [#23]
+
+
+trackstream.utils
+^^^^^^^^^^^^^^^^^
+
+- Scipy splines with units. [#24]
+  Currently only InterpolatedUnivariateSpline.
 
 
 API Changes

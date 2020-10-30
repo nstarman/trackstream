@@ -1,18 +1,11 @@
 # -*- coding: utf-8 -*-
 # see LICENSE.rst
 
-"""Utilities.
-
-This sub-module is destined for common non-package specific utility functions.
-
-"""
-
+"""Testing :mod:`~trackstream.utils`."""
 
 __all__ = [
     # modules
-    "coordinates",
-    # classes
-    "InterpolatedUnivariateSplinewithUnits",
+    "spline_tests",
 ]
 
 
@@ -20,8 +13,8 @@ __all__ = [
 # IMPORTS
 
 # PROJECT-SPECIFIC
-from . import coordinates
-from .spline import InterpolatedUnivariateSplinewithUnits
+# PACKAGE-SPECIFIC
+from . import test_spline as spline_tests
 
 ##############################################################################
 # END
