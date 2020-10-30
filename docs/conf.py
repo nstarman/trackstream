@@ -87,8 +87,16 @@ rst_epilog += """
 
 .. ASTROPY
 
-.. |Representation| replace:: :class:`~astropy.coordinates.BaseRepresentation`
 .. |Quantity| replace:: :class:`~astropy.units.Quantity`
+
+.. |CoordinateFrame| replace:: `~astropy.coordinates.BaseCoordinateFrame`
+
+.. |Representation| replace:: :class:`~astropy.coordinates.BaseRepresentation`
+.. |CartesianRep| replace:: :class:`~astropy.coordinates.CartesianRepresentation`
+
+.. |Table| replace:: :class:`~astropy.table.Table`
+.. |QTable| replace:: :class:`~astropy.table.QTable`
+
 
 .. MATPLOTLIB
 

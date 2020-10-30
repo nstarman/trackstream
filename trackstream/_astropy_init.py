@@ -32,6 +32,12 @@ if not _ASTROPY_SETUP_:  # noqa
         ConfigurationDefaultMissingWarning,
     )
 
+    from astropy.config.configuration import (
+        ConfigurationDefaultMissingError,
+        ConfigurationDefaultMissingWarning,
+        update_default_config,
+    )
+
     # Create the test function for self test
     from astropy.tests.runner import TestRunner
 

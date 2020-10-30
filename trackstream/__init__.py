@@ -23,7 +23,12 @@ from ._astropy_init import *  # noqa  # isort:skip
 # ----------------------------------------------------------------------------
 
 # PROJECT-SPECIFIC
+from . import core
 from . import example_data as examples
+from .core import *  # noqa: F401, F403
+
+# ALL
+__all__ += core.__all__
 
 ##############################################################################
 # END
