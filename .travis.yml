@@ -64,9 +64,6 @@ env:
         # to open a GUI window.
         - SETUP_XVFB=True
 
-        # For private codecov
-        - CODECOV_TOKEN="a8a6b19f-7232-424f-8460-b9ee6b3c888e"
-
 stages:
    # Do the style check and a single test job, don't proceed if it fails
    - name: Initial tests
@@ -127,6 +124,7 @@ matrix:
                LC_CTYPE=C.ascii LC_ALL=C
 
         # # Check for sphinx doc build warnings
+        # # Only needed if RTD is not set to build pull requests
         # - os: linux
         #   python: 3.8
         #   name: Documentation build
@@ -222,7 +220,7 @@ matrix:
           env: SETUP_METHOD='apt'
                ASTROPY_USE_SYSTEM_ALL=1
 
-        # Regularly make sure that thesis can be used in application bundles
+        # Regularly make sure that trackstream can be used in application bundles
         - language: python
           python: 3.8
           dist: bionic

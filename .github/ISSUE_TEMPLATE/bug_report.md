@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Create a report describing unexpected or incorrect behavior in `starkman_thesis`.
+about: Create a report describing unexpected or incorrect behavior in `trackstream`.
 title: "[BUG] "
 labels: Bug
 assignees: 'nstarman'

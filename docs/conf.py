@@ -102,10 +102,8 @@ rst_epilog += """
 
 # extensions
 extensions += [
-    "sphinx.ext.todo",
     "nbsphinx",
     "IPython.sphinxext.ipython_console_highlighting",
-    "sphinx_automodapi.smart_resolver",
     "sphinxcontrib.bibtex",
 ]
 
@@ -159,7 +157,7 @@ release = package.__version__
 
 # Prefixes that are ignored for sorting the Python module index
 # Currently only works on the html output
-modindex_common_prefix = ["trackstream."]
+modindex_common_prefix = [setup_cfg["name"] + "."]
 
 # -- Options for HTML output --------------------------------------------------
 
@@ -182,7 +180,7 @@ modindex_common_prefix = ["trackstream."]
 
 
 html_theme_options = {
-    "logotext1": "Nathaniel Starkman's Thesis",  # white,  semi-bold
+    "logotext1": "Track-Stream",  # white,  semi-bold
     "logotext2": "",  # orange, light
     "logotext3": ":docs",  # white,  light
 }
@@ -212,8 +210,8 @@ html_title = "{0} v{1}".format(project, release)
 htmlhelp_basename = project + "doc"
 
 # custom css
-html_static_path = ["_static"]
-html_style = "thesis.css"
+# html_static_path = ["_static"]
+# html_style = "trackstream.css"
 
 
 # -- Options for LaTeX output -------------------------------------------------

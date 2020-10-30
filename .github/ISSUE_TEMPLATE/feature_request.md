@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest an idea to improve ``starkman_thesis``
+about: Suggest an idea to improve ``trackstream``
 title: ''
 labels: enhancement
 assignees: ''

@@ -7,7 +7,7 @@ Notebooks:
 
 # Package Labels
 utils:
-  - starkman_thesis/utils/**/*
+  - trackstream/utils/**/*
 
 
 # Docs Labels

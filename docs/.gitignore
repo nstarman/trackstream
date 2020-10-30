@@ -4,103 +4,14 @@
 ###############################################################################
 # Project-Specific
 
-## Papers and Presentations
-# ignores all contents except the figures & ABOUT.txt
-/papers_and_presentations/*/*
-!/papers_and_presentations/**/ABOUT.txt
-!/papers_and_presentations/**/figures/
-!/papers_and_presentations/**/figures/*
-# to not ignore a paper, add the path
-# ex: !/papers/_sample/
+# WIKI
+# it does its own thing
+wiki/*
 
-# scratch folder
-scratch/
-
-# _old
-**/_old
-
-# scripts
-scripts/**/output
-
-# Environments subfolders
-envs/*/**
-
-# comment when done with public projects
-notebooks/**/*.png
-
+# KEEP
+!conf.py
+!index.rst
+!thesis/index.rst
 
 ###############################################################################
 # Default
-
-# Compiled files
-*.py[cod]
-*.a
-*.o
-*.so
-__pycache__
-
-# Ignore .c files by default to avoid including generated code. If you want to
-# add a non-generated .c extension, use `git add -f filename.c`.
-*.c
-
-# Other generated files
-*/version.py
-*/cython_version.py
-htmlcov
-.coverage
-MANIFEST
-.ipynb_checkpoints
-
-# Sphinx
-docs/api
-docs/_build
-
-# Eclipse editor project files
-.project
-.pydevproject
-.settings
-
-# Pycharm editor project files
-.idea
-
-# Floobits project files
-.floo
-.flooignore
-
-# Packages/installer info
-*.egg
-*.egg-info
-dist
-build
-eggs
-parts
-bin
-var
-sdist
-develop-eggs
-.installed.cfg
-distribute-*.tar.gz
-
-# Other
-.cache
-.tox
-.*.sw[op]
-*~
-.project
-.pydevproject
-.settings
-pip-wheel-metadata/
-
-# Mac OSX
-.DS_Store
-
-# Latex Files
-*.aux
-*.blg
-*.gz
-*.out
-*.fls
-*.fdb_latexmk
-
-# Jupyter Notebook
-**.ipynb_checkpoints

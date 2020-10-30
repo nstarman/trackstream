@@ -3,7 +3,8 @@
 Papers and Presentations
 ========================
 
-.. _pandp-STScI-the-local-group:
+
+.. _poster-STScI-the-local-group:
 
 `STScI The Local Group Poster`_
 -------------------------------
