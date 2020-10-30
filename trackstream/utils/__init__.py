@@ -21,7 +21,7 @@ __all__ = [
 
 # PROJECT-SPECIFIC
 from . import coordinates
-from .spline import InterpolatedUnivariateSplinewithUnits
+from .interpolate import InterpolatedUnivariateSplinewithUnits
 
 ##############################################################################
 # END
