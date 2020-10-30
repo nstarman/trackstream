@@ -341,6 +341,8 @@ class InterpolatedUnivariateSplinewithUnits(InterpolatedUnivariateSpline):
         """
         return super().roots() * self._xunit
 
+    # /def
+
     def derivative(self, n=1):
         r"""Construct a new spline representing the derivative of this spline.
 
@@ -358,11 +360,6 @@ class InterpolatedUnivariateSplinewithUnits(InterpolatedUnivariateSpline):
         See Also
         --------
         splder, antiderivative
-
-        Notes
-        -----
-
-        .. versionadded:: 0.13.0
 
         Examples
         --------
@@ -402,11 +399,6 @@ class InterpolatedUnivariateSplinewithUnits(InterpolatedUnivariateSpline):
             Spline of order k2=k+n representing the antiderivative of this
             spline.
 
-        Notes
-        -----
-
-        .. versionadded:: 0.13.0
-
         See Also
         --------
         splantider, derivative
@@ -421,8 +413,8 @@ class InterpolatedUnivariateSplinewithUnits(InterpolatedUnivariateSpline):
         The derivative is the inverse operation of the antiderivative,
         although some floating point error accumulates:
 
-        >>> spl(1.7), spl.antiderivative().derivative()(1.7)  # doctest: +FLOAT_CMP
-        (array(2.1565429877197317), array(2.1565429877201865))
+        >>> spl(1.7) - spl.antiderivative().derivative()(1.7) != 0
+        True
 
         Antiderivative can be used to evaluate definite integrals:
 
