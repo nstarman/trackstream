@@ -6,8 +6,15 @@ Notebooks:
   - notebooks/**/*
 
 # Package Labels
+Repo:
+  - trackstream/**/*
+
+trackstream:
+  - trackstream/core
+
 utils:
   - trackstream/utils/**/*
+
 
 
 # Docs Labels

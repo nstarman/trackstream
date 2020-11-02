@@ -15,6 +15,7 @@ Subpackages
    :name: preprocessing
    :maxdepth: 1
 
+   streamtrack
    preprocess/index
 
 
