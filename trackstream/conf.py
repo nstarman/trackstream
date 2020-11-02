@@ -12,31 +12,29 @@ __all__ = [
 # IMPORTS
 
 # THIRD PARTY
-from astropy import config as _config
+from astropy import config as mod  # configuration module
 
 ##############################################################################
 # CODE
 ##############################################################################
 
 
-class Conf(_config.ConfigNamespace):
+class Conf(mod.ConfigNamespace):
     """Configuration parameters for `trackstream`."""
 
     # lmfit
-
-    use_lmfit = _config.ConfigItem(
-        False,
-        description="Use lmfit.",
-        cfgtype="boolean(default=False)",
+    use_lmfit = mod.ConfigItem(
+        False, description="Use lmfit.", cfgtype="boolean(default=False)"
     )
 
 
-conf = Conf()
 # /class
 
 
 # -------------------------------------------------------------------
+# configuration instance
 
+conf = Conf()
 
 ##############################################################################
 # END
