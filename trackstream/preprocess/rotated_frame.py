@@ -1,6 +1,13 @@
 # -*- coding: utf-8 -*-
 
-"""Fit a Rotated ICRS reference frame."""
+"""Fit a Rotated ICRS reference frame.
+
+.. todo::
+
+    Use an Astropy Model instead.
+
+
+"""
 
 
 __all__ = [
@@ -67,7 +74,7 @@ def cartesian_model(
 
     Parameters
     ----------
-    data : |CartRep|
+    data : |CartesianRep|
         Cartesian representation of the data.
     lon, lat : float or |AngleType| or |Quantity| instance
         The longitude and latitude origin for the reference frame.
@@ -95,7 +102,7 @@ def cartesian_model(
 
     .. |AngleType| replace:: :class:`~astropy.coordinates.Angle`
     .. |Quantity| replace:: :class:`~astropy.units.Quantity`
-    .. |CartRep| replace:: `~astropy.coordinates.CartesianRepresentation`
+    .. |CartesianRep| replace:: `~astropy.coordinates.CartesianRepresentation`
 
     """
     rot_matrix = reference_to_skyoffset_matrix(lon, lat, rotation)
@@ -133,7 +140,7 @@ def residual(
             In degrees.
         - lon, lat : float
             In degrees. If ICRS, equivalent to ra & dec.
-    data : |CartRep|
+    data : |CartesianRep|
         eg. ``ICRS.cartesian``
 
     Returns
@@ -148,11 +155,6 @@ def residual(
     scalar : bool
         Whether to sum `res` into a float.
         Note that if `res` is also a float, it is unaffected.
-
-    ..
-      RST SUBSTITUTIONS
-
-    .. |CartRep| replace:: :class:`~astropy.coordinates.CartesianRepresentation`
 
     """
     rotation = variables[0]
@@ -188,8 +190,6 @@ def make_bounds(
     origin_lim: u.Quantity = _make_bounds_defaults["origin_lim"],
 ) -> T.Tuple[float, float]:
     """Make bounds on Rotation parameter.
-
-    .. |Quantity| replace:: :class:`~astropy.units.Quantity`
 
     Parameters
     ----------
@@ -741,7 +741,7 @@ class FitResult:
 
     Parameters
     ----------
-    data : :class:`~astropy.coordinates.BaseCoordinateFrame`
+    data : |CoordinateFrame|
         In ICRS coordinates.
     fit_values : Dict[str, Any]
         Has keys "rotation" and "origin".
@@ -749,8 +749,8 @@ class FitResult:
 
     Attributes
     ----------
-    data : :class:`~astropy.coordinates.BaseCoordinateFrame`
-        Transformed to `~astropy.coordinates.SkyOffsetFrame`
+    data : |CoordinateFrame|
+        Transformed to |SkyOffsetFrame|
     fitresult : Any, optional
     fit_values : MappingProxy
         Has keys "rotation" and "origin".
