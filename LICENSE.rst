@@ -5,7 +5,7 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
 * Specific prior written permission is given by Nathaniel Starkman
-  before this work has been published.
+  before the research and code papers have been published.
 * Redistributions of source code must retain the above copyright notice, this
   list of conditions and the following disclaimer.
 * Redistributions in binary form must reproduce the above copyright notice, this
@@ -29,8 +29,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 This project is based upon the Astropy package template
-(https://github.com/astropy/package-template/) which is licensed under the terms
-of the following license.
+(https://github.com/astropy/package-template/) which is licenced under the terms
+of the following licence.
 
 ---
 
