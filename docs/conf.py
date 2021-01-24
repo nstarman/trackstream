@@ -88,6 +88,7 @@ rst_epilog += """
 .. ASTROPY
 
 .. |Quantity| replace:: :class:`~astropy.units.Quantity`
+.. |AngleType| replace:: :class:`~astropy.coordinates.Angle`
 
 .. |CoordinateFrame| replace:: `~astropy.coordinates.BaseCoordinateFrame`
 

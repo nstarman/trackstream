@@ -38,8 +38,6 @@ class RotatedFrame(coord.BaseCoordinateFrame):
 
     Implemented from an Astropy [astropy]_ SkyOffset Frame.
 
-    .. |Quantity| replace:: :class:`~astropy.units.Quantity`
-
     Parameters
     ----------
     representation : `~astropy.coordinates.BaseRepresentation` or None

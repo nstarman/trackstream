@@ -88,9 +88,6 @@ def reference_to_skyoffset_matrix(
 
     Cartesian to Cartesian matrix transform.
 
-    .. |AngleType| replace:: :class:`~astropy.coordinates.Angle`
-    .. |Quantity| replace:: :class:`~astropy.units.Quantity`
-
     Parameters
     ----------
     lon : float or |AngleType| or |Quantity| instance

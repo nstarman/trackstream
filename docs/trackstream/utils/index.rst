@@ -14,7 +14,14 @@ Modules
 Splines, with Units
 -------------------
 
-.. automodule:: trackstream.utils.spline
+.. automodule:: trackstream.utils.interpolate
+   :noindex:
+
+
+Interpolated Coordinates
+------------------------
+
+.. automodule:: trackstream.utils.coordinates
    :noindex:
 
 
@@ -26,7 +33,11 @@ Reference/API
    :no-main-docstr:
    :include-all-objects:
 
-.. automodapi:: trackstream.utils.spline
+.. automodapi:: trackstream.utils.interpolate
+   :no-main-docstr:
+   :include-all-objects:
+
+.. automodapi:: trackstream.utils.coordinates
    :no-main-docstr:
    :include-all-objects:
 
