@@ -34,10 +34,10 @@ from importlib import import_module
 
 try:
     # THIRD PARTY
-    from sphinx_astropy.conf.v1 import *  # noqa
+    from sphinx_astropy.conf.v1 import *  # noqa: F401, F403
 except ImportError:
     print(
-        "ERROR: documentation requires installing the sphinx-astropy package"
+        "ERROR: documentation requires installing the sphinx-astropy package",
     )
     sys.exit(1)
 
@@ -88,6 +88,7 @@ rst_epilog += """
 .. ASTROPY
 
 .. |Quantity| replace:: :class:`~astropy.units.Quantity`
+.. |AngleType| replace:: :class:`~astropy.coordinates.Angle`
 
 .. |CoordinateFrame| replace:: `~astropy.coordinates.BaseCoordinateFrame`
 
@@ -147,7 +148,8 @@ plot_html_show_source_link = True
 project = setup_cfg["name"]
 author = setup_cfg["author"]
 copyright = "{0}, {1}".format(
-    datetime.datetime.now().year, setup_cfg["author"]
+    datetime.datetime.now().year,
+    setup_cfg["author"],
 )
 
 # The version info for the project you're documenting, acts as replacement for
@@ -228,7 +230,7 @@ htmlhelp_basename = project + "doc"
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual])
 latex_documents = [
-    ("index", project + ".tex", project + u" Documentation", author, "manual")
+    ("index", project + ".tex", project + u" Documentation", author, "manual"),
 ]
 
 
@@ -237,7 +239,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ("index", project.lower(), project + u" Documentation", [author], 1)
+    ("index", project.lower(), project + u" Documentation", [author], 1),
 ]
 
 
@@ -256,7 +258,7 @@ if setup_cfg.get("edit_on_github").lower() == "true":
 # -- Resolving issue number to links in changelog -----------------------------
 
 github_issues_url = "https://github.com/{0}/issues/".format(
-    setup_cfg["github_project"]
+    setup_cfg["github_project"],
 )
 
 # -- Turn on nitpicky mode for sphinx (to warn about references not found) ----

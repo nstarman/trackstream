@@ -4,7 +4,8 @@
 Code Overview
 *************
 
-This is the documentation for `trackstream`, the code package accompanying the paper.
+This is the documentation for ``trackstream``, the code package accompanying
+the paper.
 
 
 Subpackages

@@ -34,6 +34,10 @@ trackstream.utils
 - Scipy splines with units. [#24]
   Currently only InterpolatedUnivariateSpline.
 
+- Full implementation of interpolated splines [#30]
+
+- Interpolated Coordinates [#30]
+
 
 API Changes
 -----------
@@ -50,7 +54,7 @@ List them
 Other Changes and Additions
 ---------------------------
 
-- Renamed project `trackstream` from `streamtrack` [#2]
+- renamed project ``trackstream`` from ``streamtrack`` [#2]
 
 - Reapply Project Template [#21]
 

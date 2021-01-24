@@ -6,9 +6,9 @@ Installation
 
 |Code Size|
 
-**********
-With `pip`
-**********
+************
+With ``pip``
+************
 
 .. container::
 

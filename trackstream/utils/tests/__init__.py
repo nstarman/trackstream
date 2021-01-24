@@ -1,20 +1,35 @@
 # -*- coding: utf-8 -*-
 # see LICENSE.rst
 
-"""Testing :mod:`~trackstream.utils`."""
+"""Unit Tests for `~trackstream.utils`."""
+
 
 __all__ = [
-    # modules
-    "spline_tests",
+    "interpolation_tests",
+    "interpolated_coordinates_test",
+    # instance
+    "test",
 ]
 
 
 ##############################################################################
 # IMPORTS
 
+# BUILT-IN
+from pathlib import Path
+
+# THIRD PARTY
+from astropy.tests.runner import TestRunner
+
 # PROJECT-SPECIFIC
-# PACKAGE-SPECIFIC
-from . import test_spline as spline_tests
+from . import test_interpolate as interpolation_tests
+from . import test_interpolated_coordinates as interpolated_coordinates_test
+
+##############################################################################
+# TESTS
+##############################################################################
+
+test = TestRunner.make_test_runner_in(Path(__file__).parent.parent)
 
 ##############################################################################
 # END

@@ -38,8 +38,6 @@ class RotatedFrame(coord.BaseCoordinateFrame):
 
     Implemented from an Astropy [astropy]_ SkyOffset Frame.
 
-    .. |Quantity| replace:: :class:`~astropy.units.Quantity`
-
     Parameters
     ----------
     representation : `~astropy.coordinates.BaseRepresentation` or None
@@ -85,7 +83,7 @@ class RotatedFrame(coord.BaseCoordinateFrame):
             coord.RepresentationMapping("lon", "phi1"),
             coord.RepresentationMapping("lat", "phi2"),
             coord.RepresentationMapping("distance", "distance"),
-        ]
+        ],
     }
 
 
@@ -113,7 +111,9 @@ ICRS_ROT_MATRIX = reference_to_skyoffset_matrix(RA, DEC, ICRS_ROTATION)
 
 
 @coord.frame_transform_graph.transform(
-    coord.StaticMatrixTransform, coord.ICRS, RotatedICRS
+    coord.StaticMatrixTransform,
+    coord.ICRS,
+    RotatedICRS,
 )
 def icrs_to_rotated():
     """Transformation matrix from ICRS Cartesian to rotated coordinates."""
@@ -124,7 +124,9 @@ def icrs_to_rotated():
 
 
 @coord.frame_transform_graph.transform(
-    coord.StaticMatrixTransform, RotatedICRS, coord.ICRS
+    coord.StaticMatrixTransform,
+    RotatedICRS,
+    coord.ICRS,
 )
 def rotated_to_icrs():
     """Transformation matrix from rotated coordinates to ICRS Cartesian."""
@@ -152,12 +154,16 @@ LON = 20 * u.deg
 LAT = 30 * u.deg
 GALACTOCENTRIC_ROTATION = 135.7 * u.deg
 GALACTOCENTRIC_ROT_MATRIX = reference_to_skyoffset_matrix(
-    LON, LAT, GALACTOCENTRIC_ROTATION
+    LON,
+    LAT,
+    GALACTOCENTRIC_ROTATION,
 )
 
 
 @coord.frame_transform_graph.transform(
-    coord.StaticMatrixTransform, coord.Galactocentric, RotatedGalactocentric
+    coord.StaticMatrixTransform,
+    coord.Galactocentric,
+    RotatedGalactocentric,
 )
 def Galactocentric_to_rotated():
     """Transformation matrix from GC Cartesian to rotated coordinates."""
@@ -168,7 +174,9 @@ def Galactocentric_to_rotated():
 
 
 @coord.frame_transform_graph.transform(
-    coord.StaticMatrixTransform, RotatedGalactocentric, coord.Galactocentric
+    coord.StaticMatrixTransform,
+    RotatedGalactocentric,
+    coord.Galactocentric,
 )
 def rotated_to_Galactocentric():
     """Transformation matrix from rotated coordinates to GC Cartesian."""

@@ -18,6 +18,7 @@ __all__ = [
 
 def test_has_version():
     """Test :mod:`~trackstream` has attribute __version__."""
+    # PROJECT-SPECIFIC
     import trackstream
 
     assert hasattr(trackstream, "__version__"), "No version!"

@@ -2,7 +2,7 @@
 Track-Stream
 ############
 
-This is the documentation for `trackstream`.
+This is the documentation for ``trackstream``.
 
 If you are looking for the trackstream paper, a link will be added **here**. For a (hopefully) complete list of all papers and presentations, see :ref:`papers-and-presentations`
 

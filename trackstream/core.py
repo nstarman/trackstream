@@ -98,7 +98,7 @@ class TrackStream:
             # check has correct columns
             if not set(err_colnames).issubset(data_err.colnames):
                 raise ValueError(
-                    f"data_err does not have columns {err_colnames}"
+                    f"data_err does not have columns {err_colnames}",
                 )
 
         self.data_err = data_err
@@ -140,7 +140,9 @@ class TrackStream:
 
         # construct interpolation
         self.track = StreamTrack(
-            interpolation, stream_data=data, origin=self.origin
+            interpolation,
+            stream_data=data,
+            origin=self.origin,
         )
 
         return self.track
@@ -208,7 +210,7 @@ class StreamTrack(object):
             self._data = stream_data
         else:
             raise TypeError(
-                f"`stream_data` type <{type(stream_data)}> is wrong."
+                f"`stream_data` type <{type(stream_data)}> is wrong.",
             )
         # /if
 

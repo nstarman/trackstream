@@ -40,7 +40,10 @@ DataType = T.Union[CoordinateType, CoordinateRepresentationType]
 
 
 def cartesian_to_spherical(
-    x: T.Sequence, y: T.Sequence, z: T.Sequence, deg: bool = False
+    x: T.Sequence,
+    y: T.Sequence,
+    z: T.Sequence,
+    deg: bool = False,
 ) -> T.Tuple[T.Sequence, T.Sequence, T.Sequence]:
     """Cartesian to Spherical.
 
@@ -84,9 +87,6 @@ def reference_to_skyoffset_matrix(
     """Convert a reference coordinate to an sky offset frame [astropy].
 
     Cartesian to Cartesian matrix transform.
-
-    .. |AngleType| replace:: :class:`~astropy.coordinates.Angle`
-    .. |Quantity| replace:: :class:`~astropy.units.Quantity`
 
     Parameters
     ----------
