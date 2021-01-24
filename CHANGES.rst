@@ -22,6 +22,12 @@ trackstream
   The call method returns a CoordinateFrame by evaluating the interpolations.
 
 
+trackstream.preprocess
+^^^^^^^^^^^^^^^^^^^^^^
+
+- fit the rotated frame [#28]
+
+
 trackstream.tests.helper
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
