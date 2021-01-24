@@ -152,7 +152,11 @@ def residual(
     lat = variables[2]
 
     r, lon, lat = cartesian_model(
-        data, lon=lon, lat=lat, rotation=rotation, deg=True
+        data,
+        lon=lon,
+        lat=lat,
+        rotation=rotation,
+        deg=True,
     )
 
     res = np.abs(lat - 0.0)  # phi2 - 0
@@ -168,7 +172,9 @@ def residual(
 # -------------------------------------------------------------------
 
 _make_bounds_defaults = dict(
-    rot_lower=-180.0 * u.deg, rot_upper=180.0 * u.deg, origin_lim=0.005 * u.deg
+    rot_lower=-180.0 * u.deg,
+    rot_upper=180.0 * u.deg,
+    origin_lim=0.005 * u.deg,
 )
 
 
@@ -643,7 +649,7 @@ class RotatedFrameFitter(object):
         if rot0 is None:
             if "rot0" not in self.fitter_kwargs:
                 raise ValueError(
-                    "No prespecified `rot0`; " "Need to provide one."
+                    "No prespecified `rot0`; " "Need to provide one.",
                 )
             rot0 = self.fitter_kwargs["rot0"]
 
@@ -687,13 +693,20 @@ class RotatedFrameFitter(object):
     # /def
 
     def plot_residual(
-        self, fitresult=None, num_rots: int = 3600, scalar: bool = True
+        self,
+        fitresult=None,
+        num_rots: int = 3600,
+        scalar: bool = True,
     ):
         """Plot Residual as a function of rotation angle."""
+        # PROJECT-SPECIFIC
         from .plot import plot_rotation_frame_residual
 
         fig = plot_rotation_frame_residual(
-            self.data, self.origin, num_rots=num_rots, scalar=scalar
+            self.data,
+            self.origin,
+            num_rots=num_rots,
+            scalar=scalar,
         )
 
         if fitresult is not None:
@@ -756,7 +769,7 @@ class FitResult:
     @property
     def fit_values(self):
         return MappingProxyType(
-            dict(origin=self.origin, rotation=self.rotation)
+            dict(origin=self.origin, rotation=self.rotation),
         )
 
     # /def

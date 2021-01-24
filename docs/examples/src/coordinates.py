@@ -21,7 +21,7 @@ import numpy as np
 from astropy.coordinates.matrix_utilities import matrix_product
 
 # PROJECT-SPECIFIC
-from trackstream.common import CoordinateType
+from trackstream.type_hints import CoordinateType
 
 ##############################################################################
 # PARAMETERS
@@ -32,7 +32,8 @@ from trackstream.common import CoordinateType
 
 
 def get_transform_matrix(
-    from_frame: CoordinateType, to_frame: CoordinateType
+    from_frame: CoordinateType,
+    to_frame: CoordinateType,
 ) -> T.Sequence:
     """Get Transformation Matrix from Astropy [astropy]_.
 
@@ -87,7 +88,8 @@ def get_transform_matrix(
         to_frame_cls = to_frame
 
     path, distance = coord.frame_transform_graph.find_shortest_path(
-        from_frame_cls, to_frame_cls
+        from_frame_cls,
+        to_frame_cls,
     )
 
     matrices = []
@@ -112,7 +114,7 @@ def get_transform_matrix(
             raise ValueError(
                 "Transform path contains a '{0}': cannot "
                 "be composed into a single transformation "
-                "matrix.".format(trans.__class__.__name__)
+                "matrix.".format(trans.__class__.__name__),
             )
 
         matrices.append(M)

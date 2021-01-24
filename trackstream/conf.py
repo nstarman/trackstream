@@ -24,7 +24,9 @@ class Conf(mod.ConfigNamespace):
 
     # lmfit
     use_lmfit = mod.ConfigItem(
-        False, description="Use lmfit.", cfgtype="boolean(default=False)"
+        False,
+        description="Use lmfit.",
+        cfgtype="boolean(default=False)",
     )
 
 

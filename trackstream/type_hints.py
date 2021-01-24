@@ -51,7 +51,7 @@ import typing as T
 import astropy.coordinates as coord
 import astropy.units as u
 from astropy.modeling import Model
-from astropy.table import Table, QTable
+from astropy.table import QTable, Table
 
 ##############################################################################
 # TYPES
