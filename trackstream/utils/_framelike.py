@@ -20,8 +20,10 @@ from astropy.coordinates import (
     SkyCoord,
     sky_coordinate_parsers,
 )
-from starkman_thesis.config import conf
-from starkman_thesis.type_hints import FrameLikeType
+
+# PROJECT-SPECIFIC
+from trackstream.config import conf
+from trackstream.type_hints import FrameLikeType
 
 ##############################################################################
 # CODE
