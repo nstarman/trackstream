@@ -51,7 +51,7 @@ import typing as T
 import astropy.coordinates as coord
 import astropy.units as u
 from astropy.modeling import Model
-from astropy.table import Table
+from astropy.table import Table, QTable
 
 ##############################################################################
 # TYPES
@@ -90,6 +90,8 @@ CoordinateType = T.Union[FrameType, SkyCoordType]
 
 FrameLikeType = T.Union[CoordinateType, str]
 
+ICRSType = T.TypeVar("ICRSType", bound=coord.ICRS)
+
 # -----------------
 # modeling
 
@@ -99,6 +101,7 @@ ModelType = T.TypeVar("Model", bound=Model)
 # table
 
 TableType = T.TypeVar("Table", bound=Table)
+QTableType = T.TypeVar("QTableType", bound=QTable)
 
 ##############################################################################
 # END

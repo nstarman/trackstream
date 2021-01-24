@@ -41,7 +41,7 @@ from utilipy.data_utils.fitting import scipy_residual_to_lmfit
 # PROJECT-SPECIFIC
 from .utils import cartesian_to_spherical, reference_to_skyoffset_matrix
 from trackstream import conf
-from trackstream.common import QuantityType
+from trackstream.type_hints import QuantityType
 
 try:
     # THIRD PARTY
