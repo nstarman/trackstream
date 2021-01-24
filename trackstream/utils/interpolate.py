@@ -8,11 +8,12 @@ apply the interpolation, then add the units back.
 
 As an example:
 
+    >>> import numpy as np
+    >>> import astropy.units as u
     >>> from scipy.interpolate import InterpolatedUnivariateSpline
     >>> x = np.linspace(-3, 3, 50) * u.s
     >>> y = 8 * u.m / (x.value**2 + 4)
     >>> xs = np.linspace(-2, 2, 10) * u.s  # for evaluating spline
-
     >>> spl = InterpolatedUnivariateSpline(x.to_value(u.s), y.to_value(u.m))
     >>> y_ntrp = spl(xs.to_value(u.s)) * u.m  # evaluate, adding back units
     >>> y_ntrp
@@ -36,6 +37,7 @@ The same example as above, but with the new class:
    :alt: example spline plot.
 
     from trackstream.utils import InterpolatedUnivariateSplinewithUnits
+    import numpy as np
     import astropy.units as u
     from astropy.visualization import quantity_support; quantity_support()
 
@@ -55,10 +57,7 @@ The same example as above, but with the new class:
     ax.set_xlabel(f"x [{ax.get_xlabel()}]")
     ax.set_ylabel(f"y [{ax.get_ylabel()}]")
     plt.legend()
-    plt.show();
 
-
-All method except ``derivative`` and ``antiderivative`` have been implemented.
 
 References
 ----------
@@ -71,11 +70,12 @@ References
     & SciPy 1.0 Contributors (2020). SciPy 1.0: Fundamental Algorithms for
     Scientific Computing in Python. Nature Methods, 17, 261–272.
 
-
 """
 
 __all__ = [
+    "UnivariateSplinewithUnits",
     "InterpolatedUnivariateSplinewithUnits",
+    "LSQUnivariateSplinewithUnits",
 ]
 
 
@@ -92,11 +92,11 @@ import numpy as np
 import scipy.interpolate as _interp
 from scipy.interpolate.fitpack2 import _curfit_messages, fitpack
 
+# PROJECT-SPECIFIC
+from trackstream.type_hints import QuantityType, UnitType
+
 ##############################################################################
 # PARAMETERS
-
-UnitType = T.TypeVar("UnitType", bound=u.UnitBase)
-QuantityType = T.TypeVar("QuantityType", bound=u.Quantity)
 
 _BBoxType = T.List[T.Optional[QuantityType]]
 
@@ -209,23 +209,47 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
 
     Examples
     --------
-    >>> import matplotlib.pyplot as plt
-    >>> from scipy.interpolate import UnivariateSpline
-    >>> x = np.linspace(-3, 3, 50)
-    >>> y = np.exp(-x**2) + 0.1 * np.random.randn(50)
-    >>> plt.plot(x, y, 'ro', ms=5)
+    .. plot::
+       :context: close-figs
+
+        import numpy as np
+        import matplotlib.pyplot as plt
+        from scipy.interpolate import UnivariateSpline
+
+        x = np.linspace(-3, 3, 50)
+        y = np.exp(-x**2) + 0.1 * np.random.randn(50)
+        plt.plot(x, y, 'ro', ms=5)
 
     Use the default value for the smoothing parameter:
 
-    >>> spl = UnivariateSpline(x, y)
-    >>> xs = np.linspace(-3, 3, 1000)
-    >>> plt.plot(xs, spl(xs), 'g', lw=3)
+    .. plot::
+       :context: close-figs
+
+        import numpy as np
+        import matplotlib.pyplot as plt
+        from scipy.interpolate import UnivariateSpline
+
+        x = np.linspace(-3, 3, 50)
+        y = np.exp(-x**2) + 0.1 * np.random.randn(50)
+        spl = UnivariateSpline(x, y)
+        xs = np.linspace(-3, 3, 1000)
+        plt.plot(xs, spl(xs), 'g', lw=3)
 
     Manually change the amount of smoothing:
 
-    >>> spl.set_smoothing_factor(0.5)
-    >>> plt.plot(xs, spl(xs), 'b', lw=3)
-    >>> plt.show()
+    .. plot::
+       :context: close-figs
+
+        import numpy as np
+        import matplotlib.pyplot as plt
+        from scipy.interpolate import UnivariateSpline
+
+        x = np.linspace(-3, 3, 50)
+        y = np.exp(-x**2) + 0.1 * np.random.randn(50)
+        spl = UnivariateSpline(x, y)
+
+        spl.set_smoothing_factor(0.5)
+        plt.plot(xs, spl(xs), 'b', lw=3)
 
     """
 
@@ -272,8 +296,8 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
 
     # /def
 
-    @staticmethod
     def validate_input(
+        self,
         x: T.Union[QuantityType, np.ndarray],
         y: T.Union[QuantityType, np.ndarray],
         w,
@@ -562,17 +586,17 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
         --------
         This can be used for finding maxima of a curve:
 
-        >>> from scipy.interpolate import UnivariateSpline
-        >>> x = np.linspace(0, 10, 70)
-        >>> y = np.sin(x)
-        >>> spl = UnivariateSpline(x, y, k=4, s=0)
+        >>> from trackstream.utils.interpolate import UnivariateSplinewithUnits
+        >>> x = np.linspace(0, 10, 70) * u.s
+        >>> y = np.sin(x.value) * u.m
+        >>> spl = UnivariateSplinewithUnits(x, y, k=4, s=0)
 
         Now, differentiate the spline and find the zeros of the
         derivative. (NB: `sproot` only works for order 3 splines, so we
         fit an order 4 spline):
 
         >>> spl.derivative().roots() / np.pi  # doctest: +FLOAT_CMP
-        array([ 0.50000001,  1.5       ,  2.49999998])
+        <Quantity [0.50000001, 1.5       , 2.49999998] s>
 
         This agrees well with roots :math:`\\pi/2 + n\\pi` of
         :math:`\\cos(x) = \\sin'(x)`.
@@ -593,7 +617,7 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
     # /def
 
     def antiderivative(self, n=1):
-        r"""Construct a new spline representing the antiderivative of this spline.
+        r"""Construct a new spline representing this spline's antiderivative.
 
         Parameters
         ----------
@@ -694,7 +718,7 @@ class InterpolatedUnivariateSplinewithUnits(UnivariateSplinewithUnits):
         do contain infinities or NaNs.
         Default is False.
 
-    x_unit, y_unit : `~astropy.units.UnitBase`, optionl, keyword only
+    x_unit, y_unit : `~astropy.units.UnitBase`, optionl, keyword-only
         The unit for x and y, respectively. If None (default), gets
         the units from x and y.
 
@@ -713,23 +737,33 @@ class InterpolatedUnivariateSplinewithUnits(UnivariateSplinewithUnits):
 
     Examples
     --------
+    >>> import numpy as np
+    >>> import astropy.units as u
     >>> from trackstream.utils import InterpolatedUnivariateSplinewithUnits
     >>> x = np.linspace(-3, 3, 50) * u.s
     >>> y = 8 * u.m / (x.value**2 + 4)
-    >>> spl = InterpolatedUnivariateSpline(x, y)
+    >>> spl = InterpolatedUnivariateSplinewithUnits(x, y)
 
-    .. code-block:: python
+    .. plot::
+        :context: close-figs
 
+        import numpy as np
+        import astropy.units as u
         import matplotlib.pyplot as plt
+        from trackstream.utils import InterpolatedUnivariateSplinewithUnits
+
+        x = np.linspace(-3, 3, 50) * u.s
+        y = 8 * u.m / (x.value**2 + 4)
+        spl = InterpolatedUnivariateSplinewithUnits(x, y)
+
         plt.plot(x, y, 'ro', ms=5)
-        xs = np.linspace(-3, 3, 1000)
+        xs = np.linspace(-3, 3, 1000) * u.s
         plt.plot(xs, spl(xs), 'g', lw=3, alpha=0.7)
-        plt.show()
 
     Notice that the ``spl(x)`` interpolates `y`:
 
     >>> spl.get_residual()
-    0.0
+    <Quantity 0. m>
 
     """
 
@@ -858,6 +892,8 @@ class LSQUnivariateSplinewithUnits(UnivariateSplinewithUnits):
 
     Examples
     --------
+    >>> import numpy as np
+    >>> import astropy.units as u
     >>> from scipy.interpolate import LSQUnivariateSpline, UnivariateSpline
     >>> import matplotlib.pyplot as plt
     >>> x = np.linspace(-3, 3, 50)
@@ -868,10 +904,16 @@ class LSQUnivariateSplinewithUnits(UnivariateSplinewithUnits):
     >>> t = [-1, 0, 1]
     >>> spl = LSQUnivariateSpline(x, y, t)
 
-    >>> xs = np.linspace(-3, 3, 1000)
-    >>> plt.plot(x, y, 'ro', ms=5)
-    >>> plt.plot(xs, spl(xs), 'g-', lw=3)
-    >>> plt.show()
+    .. plot::
+       :context: close-figs
+
+        import numpy as np
+        import astropy.units as u
+        import matplotlib.pyplot as plt
+
+        xs = np.linspace(-3, 3, 1000) * u.s
+        plt.plot(x, y, 'ro', ms=5)
+        plt.plot(xs, spl(xs), 'g-', lw=3)
 
     Check the knot vector:
 
@@ -883,11 +925,11 @@ class LSQUnivariateSplinewithUnits(UnivariateSplinewithUnits):
     >>> x = np.arange(10)
     >>> s = UnivariateSpline(x, x, s=0)
     >>> s.get_knots()
-    array([ 0.,  2.,  3.,  4.,  5.,  6.,  7.,  9.])
+    array([0., 2., 3., 4., 5., 6., 7., 9.])
     >>> knt = s.get_knots()
     >>> s1 = LSQUnivariateSpline(x, x, knt[1:-1])    # Chop 1st and last knot
     >>> s1.get_knots()
-    array([ 0.,  2.,  3.,  4.,  5.,  6.,  7.,  9.])
+    array([0., 2., 3., 4., 5., 6., 7., 9.])
 
     """
 
@@ -895,7 +937,7 @@ class LSQUnivariateSplinewithUnits(UnivariateSplinewithUnits):
         self,
         x: QuantityType,
         y: QuantityType,
-        t,
+        t: QuantityType,
         w=None,
         bbox=[None] * 2,
         k: int = 3,
