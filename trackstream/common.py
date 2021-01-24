@@ -3,7 +3,7 @@
 """Common code, safe for use in sub-packages."""
 
 __all__ = [
-    # types
+    # hits for types
     "ICRSType",
     "QTableType",
     "CoordinateType",

@@ -45,7 +45,7 @@ class Test_StreamTrack(BaseClassDependentTests, klass=StreamTrack):
         distance = np.linspace(8, 15, num=num) * u.kpc
 
         cls.data = coord.ICRS(
-            coord.SphericalRepresentation(lon=lon, lat=lat, distance=distance)
+            coord.SphericalRepresentation(lon=lon, lat=lat, distance=distance),
         )
         cls.interps = dict(
             lon=IUSU(cls.arclength, lon),
@@ -59,7 +59,9 @@ class Test_StreamTrack(BaseClassDependentTests, klass=StreamTrack):
 
         # track
         cls.track = StreamTrack(
-            cls.interps, stream_data=cls.data, origin=cls.origin
+            cls.interps,
+            stream_data=cls.data,
+            origin=cls.origin,
         )
 
     # /def
@@ -69,7 +71,9 @@ class Test_StreamTrack(BaseClassDependentTests, klass=StreamTrack):
     def test_instantiation(self):
         """Test instantiation."""
         track = StreamTrack(
-            self.interps, stream_data=self.data, origin=self.origin
+            self.interps,
+            stream_data=self.data,
+            origin=self.origin,
         )
 
         assert hasattr(track, "_data")
@@ -104,7 +108,9 @@ class Test_StreamTrack(BaseClassDependentTests, klass=StreamTrack):
         assert_quantity_allclose(data.ra, self.data.ra, atol=1e-15 * u.deg)
         assert_quantity_allclose(data.dec, self.data.dec, atol=1e-15 * u.deg)
         assert_quantity_allclose(
-            data.distance, self.data.distance, atol=1e-15 * u.kpc
+            data.distance,
+            self.data.distance,
+            atol=1e-15 * u.kpc,
         )
 
     # /def

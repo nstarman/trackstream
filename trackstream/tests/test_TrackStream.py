@@ -45,10 +45,11 @@ class Test_TrackStream(BaseClassDependentTests, klass=TrackStream):
         i = num // 2  # index of origin
         cls.origin = coord.ICRS(ra=lon[i], dec=lat[i], distance=distance[i])
         cls.rotframe = coord.SkyOffsetFrame(
-            origin=cls.origin, rotation=-37 * u.deg
+            origin=cls.origin,
+            rotation=-37 * u.deg,
         )
         rotdata = cls.rotframe.realize_frame(
-            coord.SphericalRepresentation(lon=lon, lat=lat, distance=distance)
+            coord.SphericalRepresentation(lon=lon, lat=lat, distance=distance),
         )
 
         # given the construction, the lon variable is a good arclength,
@@ -62,7 +63,8 @@ class Test_TrackStream(BaseClassDependentTests, klass=TrackStream):
         cls.distance = cls.data.distance
 
         cls.data_err = QTable(
-            cls.data.cartesian.xyz.T / 10, names=["x_err", "y_err", "z_err"]
+            cls.data.cartesian.xyz.T / 10,
+            names=["x_err", "y_err", "z_err"],
         )
 
         cls.tracker = cls.klass(
@@ -119,7 +121,8 @@ class Test_TrackStream(BaseClassDependentTests, klass=TrackStream):
                 self.data,
                 self.origin,
                 data_err=QTable(
-                    self.data.cartesian.xyz.T / 10, names=["d_x", "d_y", "d_z"]
+                    self.data.cartesian.xyz.T / 10,
+                    names=["d_x", "d_y", "d_z"],
                 ),
             )
 
