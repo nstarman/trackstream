@@ -13,6 +13,8 @@ __all__ = [
     "coordinates",
     # classes
     "InterpolatedUnivariateSplinewithUnits",
+    # functions
+    "resolve_framelike",
 ]
 
 
@@ -21,6 +23,7 @@ __all__ = [
 
 # PROJECT-SPECIFIC
 from . import coordinates
+from ._framelike import resolve_framelike
 from .interpolate import InterpolatedUnivariateSplinewithUnits
 
 ##############################################################################

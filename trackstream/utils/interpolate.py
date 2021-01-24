@@ -260,7 +260,14 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
 
         # Make spline
         super().__init__(
-            x, y, w=w, bbox=bbox, k=k, s=s, ext=ext, check_finite=check_finite
+            x,
+            y,
+            w=w,
+            bbox=bbox,
+            k=k,
+            s=s,
+            ext=ext,
+            check_finite=check_finite,
         )
 
     # /def
@@ -577,7 +584,10 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
         x_unit = self._xunit
         y_unit = self._yunit / self._xunit ** n
         return UnivariateSplinewithUnits._from_tck(
-            tck, x_unit=x_unit, y_unit=y_unit, ext=ext
+            tck,
+            x_unit=x_unit,
+            y_unit=y_unit,
+            ext=ext,
         )
 
     # /def
@@ -631,7 +641,10 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
         x_unit = self._xunit
         y_unit = self._yunit * self._xunit ** n
         return UnivariateSplinewithUnits._from_tck(
-            tck, x_unit=x_unit, y_unit=y_unit, ext=self.ext
+            tck,
+            x_unit=x_unit,
+            y_unit=y_unit,
+            ext=self.ext,
         )
 
     # /def
@@ -749,7 +762,14 @@ class InterpolatedUnivariateSplinewithUnits(UnivariateSplinewithUnits):
 
         # Make spline
         _interp.InterpolatedUnivariateSpline.__init__(
-            self, x, y, w=w, bbox=bbox, k=k, ext=ext, check_finite=check_finite
+            self,
+            x,
+            y,
+            w=w,
+            bbox=bbox,
+            k=k,
+            ext=ext,
+            check_finite=check_finite,
         )
 
     # /def

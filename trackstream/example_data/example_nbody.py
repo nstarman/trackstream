@@ -45,7 +45,8 @@ def _load_nbody() -> TableType:
 
     """
     fname: str = get_pkg_data_filename(
-        os.path.join("data", "00590_peri.dat"), package="trackstream"
+        os.path.join("data", "00590_peri.dat"),
+        package="trackstream",
     )
 
     data: TableType = QTable.read(fname, format="ascii.ecsv")
@@ -74,7 +75,9 @@ def get_nbody(subsample=slice(100, None, 400)) -> CoordinateType:
     sub_data: TableType = full_data[subsample][["x", "y", "z"]]
 
     data: CoordinateType = coord.Galactocentric(
-        x=sub_data["x"], y=sub_data["y"], z=sub_data["z"]
+        x=sub_data["x"],
+        y=sub_data["y"],
+        z=sub_data["z"],
     )
 
     return data

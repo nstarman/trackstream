@@ -201,7 +201,7 @@ def make_noisy_orbit_data(
                 (
                     "don't have a default sigma for "
                     "representation_type = {}".format(representation_type)
-                )
+                ),
             )
 
     X = make_unordered_orbit_data(

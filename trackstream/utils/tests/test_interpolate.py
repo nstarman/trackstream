@@ -30,7 +30,8 @@ from trackstream.utils import interpolate as interp
     klass="UnivariateSplinewithUnits",
 )
 class Test_UnivariateSplinewithUnits(
-    BaseClassDependentTests, klass=interp.UnivariateSplinewithUnits
+    BaseClassDependentTests,
+    klass=interp.UnivariateSplinewithUnits,
 ):
     """Test :class:`~{package}.{klass}`."""
 
@@ -44,7 +45,10 @@ class Test_UnivariateSplinewithUnits(
         cls.w = np.random.rand(num)
         cls.bbox = [0 * u.deg, 180 * u.deg]
         cls.extra_args = extra_args = dict(
-            s=None, k=3, ext=0, check_finite=False
+            s=None,
+            k=3,
+            ext=0,
+            check_finite=False,
         )
 
         cls.spls = dict(
@@ -173,7 +177,8 @@ class Test_UnivariateSplinewithUnits(
     klass="InterpolatedUnivariateSplinewithUnits",
 )
 class Test_InterpolatedUnivariateSplinewithUnits(
-    BaseClassDependentTests, klass=interp.InterpolatedUnivariateSplinewithUnits
+    BaseClassDependentTests,
+    klass=interp.InterpolatedUnivariateSplinewithUnits,
 ):
     """Test :class:`~{package}.{klass}`."""
 

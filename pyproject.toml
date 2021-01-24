@@ -16,7 +16,7 @@ use_parentheses = "True"
 ensure_newline_before_comments = "True"
 sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
 
-known_third_party = ["astropy", "extension_helpers", "galpy", "matplotlib", "numpy", "pytest", "scipy", "setuptools"]
+known_third_party = ["astropy", "extension_helpers", "galpy", "matplotlib", "numpy", "pytest", "scipy", "setuptools", "starkman_thesis"]
 known_firstparty = ["astronat", "utilipy"]
 known_localfolder = "trackstream"
 

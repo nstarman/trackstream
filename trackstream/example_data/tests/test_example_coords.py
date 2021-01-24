@@ -38,6 +38,7 @@ def icrs():
         properly use pytest fixtures
 
     """
+    # PROJECT-SPECIFIC
     from trackstream.example_data.tests import data
 
     return data.icrs
@@ -55,6 +56,7 @@ def ricrs():
         properly use pytest fixtures
 
     """
+    # PROJECT-SPECIFIC
     from trackstream.example_data.tests import data
 
     return data.ricrs
@@ -114,19 +116,31 @@ def test_transformation_machinery(icrs, ricrs):
     new_ricrs = icrs.transform_to(example_coords.RotatedICRS)
 
     assert_quantity_allclose(
-        new_ricrs.phi1, ricrs.phi1, rtol=1e-10, atol=1e-7 * u.deg
+        new_ricrs.phi1,
+        ricrs.phi1,
+        rtol=1e-10,
+        atol=1e-7 * u.deg,
     )
     assert_quantity_allclose(
-        new_ricrs.phi2, ricrs.phi2, rtol=1e-10, atol=1e-7 * u.deg
+        new_ricrs.phi2,
+        ricrs.phi2,
+        rtol=1e-10,
+        atol=1e-7 * u.deg,
     )
     assert_quantity_allclose(
-        new_ricrs.distance, ricrs.distance, rtol=1e-10, atol=1e-7
+        new_ricrs.distance,
+        ricrs.distance,
+        rtol=1e-10,
+        atol=1e-7,
     )
 
     # and check it's close to 0
 
     assert_quantity_allclose(
-        new_ricrs.phi2, 0 * u.deg, rtol=1e-10, atol=1e-7 * u.deg
+        new_ricrs.phi2,
+        0 * u.deg,
+        rtol=1e-10,
+        atol=1e-7 * u.deg,
     )
 
     # and back again
@@ -134,13 +148,22 @@ def test_transformation_machinery(icrs, ricrs):
     new_icrs = new_ricrs.transform_to(coord.ICRS)
 
     assert_quantity_allclose(
-        new_icrs.ra, icrs.ra, rtol=1e-10, atol=1e-7 * u.deg
+        new_icrs.ra,
+        icrs.ra,
+        rtol=1e-10,
+        atol=1e-7 * u.deg,
     )
     assert_quantity_allclose(
-        new_icrs.dec, icrs.dec, rtol=1e-10, atol=1e-7 * u.deg
+        new_icrs.dec,
+        icrs.dec,
+        rtol=1e-10,
+        atol=1e-7 * u.deg,
     )
     assert_quantity_allclose(
-        new_icrs.distance, icrs.distance, rtol=1e-10, atol=1e-7
+        new_icrs.distance,
+        icrs.distance,
+        rtol=1e-10,
+        atol=1e-7,
     )
 
 

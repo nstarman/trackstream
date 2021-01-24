@@ -13,23 +13,28 @@ __all__ = ["__version__"]
 try:
     _ASTROPY_SETUP_
 except NameError:
+    # BUILT-IN
     import builtins
 
     builtins._ASTROPY_SETUP_ = False
 
 try:
+    # PROJECT-SPECIFIC
     from .version import version as __version__
 except ImportError:
     __version__ = ""
 
 
-if not _ASTROPY_SETUP_:  # noqa
+if not _ASTROPY_SETUP_:
+    # BUILT-IN
     import os
     from warnings import warn
+
+    # THIRD PARTY
     from astropy.config.configuration import (
-        update_default_config,
         ConfigurationDefaultMissingError,
         ConfigurationDefaultMissingWarning,
+        update_default_config,
     )
 
     from astropy.config.configuration import (
@@ -54,7 +59,9 @@ if not _ASTROPY_SETUP_:  # noqa
         if os.path.isfile(config_template):
             try:
                 update_default_config(
-                    __package__, config_dir, version=__version__
+                    __package__,
+                    config_dir,
+                    version=__version__,
                 )
             except TypeError as orig_error:
                 try:

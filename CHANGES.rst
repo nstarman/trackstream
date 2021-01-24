@@ -50,7 +50,7 @@ List them
 Other Changes and Additions
 ---------------------------
 
-- Renamed project `trackstream` from `streamtrack` [#2]
+- renamed project ``trackstream`` from ``streamtrack`` [#2]
 
 - Reapply Project Template [#21]
 

@@ -107,7 +107,7 @@ class Sagittarius(coord.BaseCoordinateFrame):
             coord.RepresentationMapping("lon", "Lambda"),
             coord.RepresentationMapping("lat", "Beta"),
             coord.RepresentationMapping("distance", "distance"),
-        ]
+        ],
     }
 
 
@@ -149,7 +149,9 @@ SGR_MATRIX = matrix_product(A, B, C, D)
 
 
 @frame_transform_graph.transform(
-    coord.StaticMatrixTransform, coord.Galactic, Sagittarius
+    coord.StaticMatrixTransform,
+    coord.Galactic,
+    Sagittarius,
 )
 def galactic_to_sgr():
     """Compute the transformation matrix from Galactic spherical to
@@ -169,7 +171,9 @@ def galactic_to_sgr():
 
 
 @frame_transform_graph.transform(
-    coord.StaticMatrixTransform, Sagittarius, coord.Galactic
+    coord.StaticMatrixTransform,
+    Sagittarius,
+    coord.Galactic,
 )
 def sgr_to_galactic():
     """Compute the transformation matrix from heliocentric Sgr coordinates to
@@ -204,7 +208,10 @@ print(icrs)
 # As an example, we'll now plot the points in both coordinate systems:
 
 fig, axes = plt.subplots(
-    2, 1, figsize=(8, 10), subplot_kw={"projection": "aitoff"}
+    2,
+    1,
+    figsize=(8, 10),
+    subplot_kw={"projection": "aitoff"},
 )
 
 axes[0].set_title("Sagittarius")
@@ -252,25 +259,28 @@ axes[0].plot(
 axes[0].set_xlabel(r"$\Lambda$ [deg]")
 axes[0].set_ylabel(
     r"$\mu_\Lambda \, \cos B$ [{0}]".format(
-        sgr.pm_Lambda_cosBeta.unit.to_string("latex_inline")
-    )
+        sgr.pm_Lambda_cosBeta.unit.to_string("latex_inline"),
+    ),
 )
 
 axes[1].set_title("ICRS")
 axes[1].plot(
-    icrs.ra.degree, icrs.pm_ra_cosdec.value, linestyle="none", marker="."
+    icrs.ra.degree,
+    icrs.pm_ra_cosdec.value,
+    linestyle="none",
+    marker=".",
 )
 axes[1].set_ylabel(
     r"$\mu_\alpha \, \cos\delta$ [{0}]".format(
-        icrs.pm_ra_cosdec.unit.to_string("latex_inline")
-    )
+        icrs.pm_ra_cosdec.unit.to_string("latex_inline"),
+    ),
 )
 
 axes[2].set_title("ICRS")
 axes[2].plot(icrs.ra.degree, icrs.pm_dec.value, linestyle="none", marker=".")
 axes[2].set_xlabel("RA [deg]")
 axes[2].set_ylabel(
-    r"$\mu_\delta$ [{0}]".format(icrs.pm_dec.unit.to_string("latex_inline"))
+    r"$\mu_\delta$ [{0}]".format(icrs.pm_dec.unit.to_string("latex_inline")),
 )
 
 plt.show()
