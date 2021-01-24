@@ -130,26 +130,26 @@ jobs:
           # NOTE: In the build below we also check that tests do not open and
           # leave open any files. This has a performance impact on running the
           # tests, hence why it is not enabled by default.
-          - name: py3.8 - oldest deps | coverage
+          - name: py3.7 - oldest deps | coverage
             os: ubuntu-16.04
-            python: 3.8
-            toxenv: py38-test-oldestdeps-cov
+            python: 3.7
+            toxenv: py37-test-oldestdeps-cov
 
-          - name: py3.8 - all deps, numpy 1.17
+          - name: py3.7 - all deps, numpy 1.17
             os: ubuntu-latest
-            python: 3.8
-            toxenv: py38-test-alldeps-numpy117-clocale
+            python: 3.7
+            toxenv: py37-test-alldeps-numpy117-clocale
             # toxposargs: --remote-data=trackstream
 
-          # - name: py3.8 - all deps (MacOS X)
-          #   os: macos-latest
-          #   python: 3.8
-          #   toxenv: py38-test-alldeps
+          - name: py3.8 - all deps (MacOS X)
+            os: macos-latest
+            python: 3.8
+            toxenv: py38-test-alldeps
 
-          # - name: py3.8 - all deps (Windows)
-          #   os: windows-latest
-          #   python: 3.8
-          #   toxenv: py38-test-alldeps
+          - name: py3.8 - all deps (Windows)
+            os: windows-latest
+            python: 3.8
+            toxenv: py38-test-alldeps
 
     steps:
     - name: Checkout code
@@ -177,29 +177,29 @@ jobs:
   # # ---------------------------------------------
   # # Many Versions
 
-  # versions:
-  #   name: ${{ matrix.os }}, py${{ matrix.python }}
-  #   runs-on: ${{ matrix.os }}
+  versions:
+    name: ${{ matrix.os }}, py${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
 
-  #   strategy:
-  #     fail-fast: false  # run all the tests, even if one fails
+    strategy:
+      fail-fast: false  # run all the tests, even if one fails
 
-  #     matrix:
-  #       os: [ubuntu-latest, macos-latest]  # TODO windows-latest
-  #       python: [3.8, 3.9]
+      matrix:
+        os: [ubuntu-latest, macos-latest]  # TODO windows-latest
+        python: [3.7, 3.8, 3.9]
 
-  #   steps:
-  #   - uses: actions/checkout@v2
-  #     with:
-  #       submodules: true
-  #   - name: Set up Python ${{ matrix.python-version }}
-  #     uses: actions/setup-python@v2
-  #     with:
-  #       python-version: ${{ matrix.python }}
-  #   - name: Setup
-  #     run: |
-  #       python -m pip install --upgrade pip
-  #       python -m pip install --upgrade tox codecov
-  #   - name: Test
-  #     # Run tox using the version of Python in `PATH`
-  #     run: tox -e py
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+    - name: Setup
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install --upgrade tox codecov
+    - name: Test
+      # Run tox using the version of Python in `PATH`
+      run: tox -e py
