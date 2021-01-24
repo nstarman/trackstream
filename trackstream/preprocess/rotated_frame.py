@@ -39,8 +39,9 @@ from astropy.utils.decorators import format_doc, lazyproperty
 from utilipy.data_utils.fitting import scipy_residual_to_lmfit
 
 # PROJECT-SPECIFIC
-from ..conf import conf
 from .utils import cartesian_to_spherical, reference_to_skyoffset_matrix
+from trackstream import conf
+from trackstream.common import QuantityType
 
 try:
     # THIRD PARTY
@@ -49,11 +50,7 @@ except ImportError:
     _HAS_LMFIT = False
 else:
     _HAS_LMFIT = True
-
-
-##############################################################################
-# PARAMETERS
-
+# /try
 
 ##############################################################################
 # CODE
@@ -63,23 +60,23 @@ else:
 def cartesian_model(
     data: coord.CartesianRepresentation,
     *,
-    lon,
-    lat,
-    rotation,
+    lon: T.Union[QuantityType, float],
+    lat: T.Union[QuantityType, float],
+    rotation: T.Union[QuantityType, float],
     deg: bool = True,
 ) -> T.Tuple:
     """Model from Cartesian Coordinates.
 
-    This model is a bit slow since it operates on CoordinateFrames
+    This model is a bit slow since it operates on |Representation| objects.
 
     Parameters
     ----------
     data : |CartesianRep|
         Cartesian representation of the data.
-    lon, lat : float or |AngleType| or |Quantity| instance
+    lon, lat : float or |Angle| or |Quantity| instance
         The longitude and latitude origin for the reference frame.
         If float, assumed degrees.
-    rotation : float or |AngleType| or |Quantity| instance
+    rotation : float or |Angle| or |Quantity| instance
         The final rotation of the frame about the ``origin``. The sign of
         the rotation is the left-hand rule.  That is, an object at a
         particular position angle in the un-rotated system will be sent to
@@ -96,13 +93,6 @@ def cartesian_model(
     deg : bool
         whether to return `lat` and `lon` as degrees
         (default True) or radians.
-
-    ..
-      RST SUBSTITUTIONS
-
-    .. |AngleType| replace:: :class:`~astropy.coordinates.Angle`
-    .. |Quantity| replace:: :class:`~astropy.units.Quantity`
-    .. |CartesianRep| replace:: `~astropy.coordinates.CartesianRepresentation`
 
     """
     rot_matrix = reference_to_skyoffset_matrix(lon, lat, rotation)
@@ -330,8 +320,6 @@ def fit_frame(
     **fit_kwargs,
 ):
     """Find Best-Fit Rotated Frame.
-
-    .. |Quantity| replace:: :class:`~astropy.units.Quantity`
 
     Parameters
     ----------
@@ -587,21 +575,6 @@ class RotatedFrameFitter(object):
         :func:`~scipy.optimize.minimize`
         Default is {leastsquares}
 
-    Attributes
-    ----------
-    data
-    origin
-    bounds
-    fitter_kwargs
-
-    Methods
-    -------
-    make_bounds
-    fit
-    residual
-    plot_data
-    plot_residual
-
     """
 
     def __init__(
@@ -642,8 +615,6 @@ class RotatedFrameFitter(object):
         origin_lim=_make_bounds_defaults["origin_lim"],
     ) -> T.Tuple[float, float]:
         """Make bounds on Rotation parameter.
-
-        .. |Quantity| replace:: :class:`~astropy.units.Quantity`
 
         Parameters
         ----------

@@ -8,8 +8,12 @@
 
 """
 
-# __all__ = [
-# ]
+__all__ = [
+    "test_cartesian_model",
+    "test_residual",
+    "test__make_bounds_defaults",
+    "test_make_bounds",
+]
 
 
 ##############################################################################
@@ -81,8 +85,8 @@ def test_cartesian_model(
     # --------------
     # setup
 
-    angle_unit = u.deg if deg else u.rad
-    # value, key map in expected_data
+    angle_unit = u.deg if deg else u.rad  # get unit
+    # reverse map: value, key map in expected_data
     rev_names = {
         v: k for k, v in expected_data.representation_component_names.items()
     }
@@ -240,181 +244,183 @@ def test__minimize_defaults():
 # /def
 
 
-@pytest.mark.skip(reason="TODO")
 class Test_fit_frame:
     """Test `~trackstream.preprocess.rotated_frame.fit_frame`."""
 
-    assert False
-
-
-# /def
-
-
-# -------------------------------------------------------------------
-
-
-@pytest.mark.skip(reason="TODO")
-def test_align_v_positive_lon():
-    """Test `~trackstream.preprocess.rotated_frame.align_v_positive_lon`."""
-    assert False
-
-
-# /def
-
-
-# -------------------------------------------------------------------
-
-
-@pytest.mark.skip(reason="TODO")
-def test_order_data_from_lon():
-    """Test `~trackstream.preprocess.rotated_frame.order_data_from_lon`."""
-    assert False
-
-
-# /def
-
-
-# -------------------------------------------------------------------
-
-
-@pytest.mark.skip(reason="TODO")
-class Test_RotatedFrameFitter:
-    """Test `~trackstream.preprocess.rotated_frame.RotatedFrameFitter`."""
-
     def setup_class(self):
-        """Setup testing class."""
-        pass
-
-    # /def
-
-    def teardown_class(self):
-        """Setup testing class."""
-        pass
-
-    # /def
-
-    # -------------------------------------------
-
-    @pytest.mark.skip(reason="TODO")
-    def test_make_bounds(self):
-        """Test method ``make_bounds``."""
-        assert False
-
-    # /def
-
-    @pytest.mark.skip(reason="TODO")
-    def test_fit(self):
-        """Test method ``fit``."""
-        assert False
-
-    # /def
-
-    @pytest.mark.skip(reason="TODO")
-    def test_residual(self):
-        """Test method ``residual``."""
-        assert False
-
-    # /def
-
-    # -------------------------------------------
-    # plot test methods
-
-    @pytest.mark.skip(reason="TODO")
-    @pytest.mark.mpl_image_compare(baseline_dir="baseline_images")
-    def test_plot_data(self):
-        """Test method ``plot_data``."""
-        assert False
-
-    # /def
-
-    @pytest.mark.skip(reason="TODO")
-    @pytest.mark.mpl_image_compare(baseline_dir="baseline_images")
-    def test_plot_residual(self):
-        """Test method ``plot_residual``."""
-        assert False
+        """Setup fixture."""
 
     # /def
 
 
 # /def
 
-# -------------------------------------------------------------------
+
+# # -------------------------------------------------------------------
 
 
-@pytest.mark.skip(reason="TODO")
-class Test_FitResult:
-    """Test `~trackstream.preprocess.rotated_frame.RotatedFrameFitter`."""
-
-    def setup_class(self):
-        """Setup testing class."""
-        pass
-
-    # /def
-
-    def teardown_class(self):
-        """Setup testing class."""
-        pass
-
-    # /def
-
-    # -------------------------------------------
-
-    @pytest.mark.skip(reason="TODO")
-    def test_fit_values(self):
-        """Test method ``fit_values``."""
-        assert False
-
-    # /def
-
-    @pytest.mark.skip(reason="TODO")
-    def test_frame(self):
-        """Test method ``frame``."""
-        assert False
-
-    # /def
-
-    @pytest.mark.skip(reason="TODO")
-    def test_residual(self):
-        """Test method ``residual``."""
-        assert False
-
-    # /def
-
-    @pytest.mark.skip(reason="TODO")
-    def test_residual_scalar(self):
-        """Test method ``residual_scalar``."""
-        assert False
-
-    # /def
-
-    @pytest.mark.skip(reason="TODO")
-    def test_lon_order(self):
-        """Test method ``residual_scalar``."""
-        assert False
-
-    # /def
-
-    # -------------------------------------------
-    # test plot methods
-
-    @pytest.mark.skip(reason="TODO")
-    @pytest.mark.mpl_image_compare(baseline_dir="baseline_images")
-    def test_plot_data(self):
-        """Test method ``plot_data``."""
-        assert False
-
-    # /def
-
-    @pytest.mark.skip(reason="TODO")
-    @pytest.mark.mpl_image_compare(baseline_dir="baseline_images")
-    def test_plot_on_residual(self):
-        """Test method ``plot_on_residual``."""
-        assert False
-
-    # /def
+# @pytest.mark.skip(reason="TODO")
+# def test_align_v_positive_lon():
+#     """Test `~trackstream.preprocess.rotated_frame.align_v_positive_lon`."""
+#     assert False
 
 
-# /def
+# # /def
+
+
+# # -------------------------------------------------------------------
+
+
+# @pytest.mark.skip(reason="TODO")
+# def test_order_data_from_lon():
+#     """Test `~trackstream.preprocess.rotated_frame.order_data_from_lon`."""
+#     assert False
+
+
+# # /def
+
+
+# # -------------------------------------------------------------------
+
+
+# @pytest.mark.skip(reason="TODO")
+# class Test_RotatedFrameFitter:
+#     """Test `~trackstream.preprocess.rotated_frame.RotatedFrameFitter`."""
+
+#     def setup_class(self):
+#         """Setup testing class."""
+#         pass
+
+#     # /def
+
+#     def teardown_class(self):
+#         """Setup testing class."""
+#         pass
+
+#     # /def
+
+#     # -------------------------------------------
+
+#     @pytest.mark.skip(reason="TODO")
+#     def test_make_bounds(self):
+#         """Test method ``make_bounds``."""
+#         assert False
+
+#     # /def
+
+#     @pytest.mark.skip(reason="TODO")
+#     def test_fit(self):
+#         """Test method ``fit``."""
+#         assert False
+
+#     # /def
+
+#     @pytest.mark.skip(reason="TODO")
+#     def test_residual(self):
+#         """Test method ``residual``."""
+#         assert False
+
+#     # /def
+
+#     # -------------------------------------------
+#     # plot test methods
+
+#     @pytest.mark.skip(reason="TODO")
+#     @pytest.mark.mpl_image_compare(baseline_dir="baseline_images")
+#     def test_plot_data(self):
+#         """Test method ``plot_data``."""
+#         assert False
+
+#     # /def
+
+#     @pytest.mark.skip(reason="TODO")
+#     @pytest.mark.mpl_image_compare(baseline_dir="baseline_images")
+#     def test_plot_residual(self):
+#         """Test method ``plot_residual``."""
+#         assert False
+
+#     # /def
+
+
+# # /def
+
+# # -------------------------------------------------------------------
+
+
+# @pytest.mark.skip(reason="TODO")
+# class Test_FitResult:
+#     """Test `~trackstream.preprocess.rotated_frame.RotatedFrameFitter`."""
+
+#     def setup_class(self):
+#         """Setup testing class."""
+#         pass
+
+#     # /def
+
+#     def teardown_class(self):
+#         """Setup testing class."""
+#         pass
+
+#     # /def
+
+#     # -------------------------------------------
+
+#     @pytest.mark.skip(reason="TODO")
+#     def test_fit_values(self):
+#         """Test method ``fit_values``."""
+#         assert False
+
+#     # /def
+
+#     @pytest.mark.skip(reason="TODO")
+#     def test_frame(self):
+#         """Test method ``frame``."""
+#         assert False
+
+#     # /def
+
+#     @pytest.mark.skip(reason="TODO")
+#     def test_residual(self):
+#         """Test method ``residual``."""
+#         assert False
+
+#     # /def
+
+#     @pytest.mark.skip(reason="TODO")
+#     def test_residual_scalar(self):
+#         """Test method ``residual_scalar``."""
+#         assert False
+
+#     # /def
+
+#     @pytest.mark.skip(reason="TODO")
+#     def test_lon_order(self):
+#         """Test method ``residual_scalar``."""
+#         assert False
+
+#     # /def
+
+#     # -------------------------------------------
+#     # test plot methods
+
+#     @pytest.mark.skip(reason="TODO")
+#     @pytest.mark.mpl_image_compare(baseline_dir="baseline_images")
+#     def test_plot_data(self):
+#         """Test method ``plot_data``."""
+#         assert False
+
+#     # /def
+
+#     @pytest.mark.skip(reason="TODO")
+#     @pytest.mark.mpl_image_compare(baseline_dir="baseline_images")
+#     def test_plot_on_residual(self):
+#         """Test method ``plot_on_residual``."""
+#         assert False
+
+#     # /def
+
+
+# # /def
 
 
 ##############################################################################

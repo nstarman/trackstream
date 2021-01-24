@@ -4,10 +4,11 @@
 
 __all__ = [
     # hits for types
-    "ICRSType",
-    "QTableType",
-    "CoordinateType",
     "QuantityType",
+    "QTableType",
+    "ICRSType",
+    "CoordinateType",
+    "RepresentationType",
 ]
 
 
@@ -25,10 +26,15 @@ from astropy.table import QTable
 ##############################################################################
 # PARAMETERS
 
-ICRSType = T.TypeVar("ICRSType", bound=coord.ICRS)
-QTableType = T.TypeVar("QTableType", bound=QTable)
-CoordinateType = T.TypeVar("CoordinateType", bound=coord.BaseCoordinateFrame)
 QuantityType = T.TypeVar("QuantityType", bound=u.Quantity)
+QTableType = T.TypeVar("QTableType", bound=QTable)
+ICRSType = T.TypeVar("ICRSType", bound=coord.ICRS)
+CoordinateType = T.TypeVar(
+    "CoordinateFrameType", bound=coord.BaseCoordinateFrame
+)
+RepresentationType = T.TypeVar(
+    "RepresentationType", bound=coord.BaseRepresentation
+)
 
 
 ##############################################################################
