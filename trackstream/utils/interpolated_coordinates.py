@@ -103,7 +103,7 @@ def _infer_derivative_type(rep, dif_unit, n: int = 1):
     """Infer the Differential class used in a derivative wrt time.
 
     If it can't infer the correct differential class, defaults
-    to `~starkman_thesis.utils.generic_coordinates.GenericDifferential`.
+    to `~trackstream.utils.generic_coordinates.GenericDifferential`.
 
     Checks compatible differentials for classes with matching
     names.

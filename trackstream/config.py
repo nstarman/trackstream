@@ -19,7 +19,7 @@ __all__ = [
 
 
 class Conf(_config.ConfigNamespace):
-    """Configuration parameters for :mod:`~starkman_thesis`."""
+    """Configuration parameters for :mod:`~trackstream`."""
 
     default_frame = _config.ConfigItem(
         "icrs",
