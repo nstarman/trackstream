@@ -21,7 +21,7 @@ from astropy.table import QTable
 from astropy.utils.misc import indent
 
 # PROJECT-SPECIFIC
-from .common import CoordinateType, ICRSType, QTableType, QuantityType
+from .type_hints import CoordinateType, ICRSType, QTableType, QuantityType
 
 ##############################################################################
 # PARAMETERS
