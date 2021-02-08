@@ -10,6 +10,7 @@
 from __future__ import absolute_import
 
 try:
+    # THIRD PARTY
     from minisom import MiniSom  # noqa: F401
 except ImportError:
     HAS_MINISOM = False
@@ -18,6 +19,7 @@ else:
 
 
 try:
+    # THIRD PARTY
     from filterpy import kalman  # noqa: F401
 except ImportError:
     HAS_FILTERPY = False
