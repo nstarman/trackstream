@@ -21,6 +21,12 @@ trackstream
   where the data is is a univariate function of the track arc-length.
   The call method returns a CoordinateFrame by evaluating the interpolations.
 
+- config [#32]
+
+- ``setup_package`` for optional dependencies [#32]
+
+- type hints [#32]
+
 
 trackstream.preprocess
 ^^^^^^^^^^^^^^^^^^^^^^
