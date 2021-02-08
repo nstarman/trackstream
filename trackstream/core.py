@@ -24,6 +24,7 @@ from astropy.utils.misc import indent
 from .type_hints import (
     CoordinateType,
     FrameType,
+    QuantityType,
     TableType,
 )
 
