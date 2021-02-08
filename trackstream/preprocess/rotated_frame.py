@@ -36,21 +36,25 @@ import scipy.optimize as opt
 from astropy.utils.decorators import format_doc, lazyproperty
 
 # FIRST PARTY
-from utilipy.data_utils.fitting import scipy_residual_to_lmfit
 
 # PROJECT-SPECIFIC
 from .utils import cartesian_to_spherical, reference_to_skyoffset_matrix
 from trackstream import conf
+from trackstream.setup_package import HAS_LMFIT
 from trackstream.type_hints import QuantityType
 
-try:
-    # THIRD PARTY
-    import lmfit as lf
-except ImportError:
-    _HAS_LMFIT = False
+if HAS_LMFIT:
+    import utilipy as lf
+
+    # FIRST PARTY
+    from utilipy.data_utils.fitting import scipy_residual_to_lmfit
+
+    scipy_residual_to_lmfit_dec = scipy_residual_to_lmfit.decorator
+
 else:
-    _HAS_LMFIT = True
-# /try
+    scipy_residual_to_lmfit_dec = (
+        lambda *args, **kw: lambda x: x
+    )  # noqa: E7301
 
 ##############################################################################
 # CODE

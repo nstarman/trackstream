@@ -26,8 +26,17 @@ except ImportError:
 else:
     HAS_FILTERPY = True
 
+try:
+    # THIRD PARTY
+    import lmfit as lf  # noqa: F401
+except ImportError:
+    HAS_LMFIT = False
+else:
+    HAS_LMFIT = True
+# /try
 
-__all__ = ["HAS_MINISOM", "HAS_FILTERPY"]
+
+__all__ = ["HAS_MINISOM", "HAS_FILTERPY", "HAS_LMFIT"]
 
 ##############################################################################
 # END
