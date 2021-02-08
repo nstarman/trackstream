@@ -38,19 +38,24 @@ from .type_hints import (
 class TrackStream:
     """Track a Stream.
 
-    When run, produces a StreamTrack
+    When run, produces a StreamTrack.
 
     Parameters
     ----------
-    data : |CoordinateFrame| or |Representation| (or subclass) instance
+    data : |Table| or |CoordinateFrame| instance
         The stream data.
         Must be convertible to |CartesianRep|
 
-    data_err : |QTable|, optional
-        Only used if 'data' is Representation instance, since this cannot
-        hold error information.
+    origin : :class:`~astropy.coordinates.ICRS`
+        The origin point of the rotated reference frame.
+
+    data_err : |QTable| (optional)
         The data_err must have (at least) column names
         ["x_err", "y_err", "z_err"]
+
+    frame : |CoordinateFrame| or None (optional, keyword-only)
+        The stream frame. Locally linearizes the data.
+        If not None, need to fit for the frame (default).
 
     Notes
     -----
@@ -61,16 +66,16 @@ class TrackStream:
 
     def __init__(
         self,
-        rotated_frame: T.Optional[CoordinateType] = None,
-        SOM=None,
         data: T.Union[QTable, coord.BaseCoordinateFrame],
         origin: FrameType,
         data_err: T.Optional[TableType] = None,
+        *,
+        frame: T.Optional[CoordinateType] = None,
     ):
         super().__init__()
 
-        self.origin = origin
-        self.rotated_frame = rotated_frame
+        self.origin: SkyCoordType = coord.SkyCoord(origin, copy=False)
+        self.frame: T.Optional[FrameType] = frame
 
         # ----------
         # process the data
