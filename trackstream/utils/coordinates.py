@@ -25,15 +25,6 @@ from astropy.coordinates.matrix_utilities import (
     rotation_matrix,
 )
 
-# FIRST PARTY
-from utilipy.utils.typing import CoordinateRepresentationType, CoordinateType
-
-##############################################################################
-# PARAMETERS
-
-DataType = T.Union[CoordinateType, CoordinateRepresentationType]
-
-
 ##############################################################################
 # CODE
 ##############################################################################
