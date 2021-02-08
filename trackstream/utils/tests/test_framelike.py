@@ -25,7 +25,7 @@ from trackstream.utils import _framelike as framelike
 
 
 def test_resolve_framelike():
-    """Test ``test_resolve_framelike``."""
+    """Test ``resolve_framelike``."""
     # -----------------------
     # default
 

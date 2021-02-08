@@ -27,7 +27,7 @@ from ._astropy_init import *  # noqa: F401, F403  # isort:skip
 # PROJECT-SPECIFIC
 from . import core
 from . import example_data as examples
-from .conf import conf
+from .config import conf
 from .core import *  # noqa: F401, F403
 
 # ALL
