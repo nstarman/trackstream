@@ -25,6 +25,7 @@ from .type_hints import (
     CoordinateType,
     FrameType,
     TableType,
+)
 
 ##############################################################################
 # PARAMETERS
