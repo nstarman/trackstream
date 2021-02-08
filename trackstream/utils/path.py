@@ -89,7 +89,7 @@ class Path:
 
     def __init__(
         self,
-        path,  # InterpolatedCoordinateFrame
+        path: T.Union[InterpolatedCoordinateFrame, InterpolatedSkyCoord],
         width: T.Union[QuantityType, T.Callable, None] = None,  # func(affine)
         *,
         name: str = None,
@@ -205,6 +205,16 @@ class Path:
     #################################################################
     # Math on the Track!
 
+    def __call__(self, affine: QuantityType):
+        """Call."""
+        meanpath = self.path(affine)
+        width = self.width(affine)
+        # TODO allow for higher moments
+
+        return meanpath, width  # TODO! see FootprintsPackage
+
+    # /def
+
     # def separation(self, c):
     #     raise NotImplementedError("TODO")
 
@@ -215,25 +225,25 @@ class Path:
     #################################################################
     # Miscellaneous
 
-    def _preferred_frame_resolve(self, frame):
-        """Call `resolve_framelike`, but default to preferred frame.
+    # def _preferred_frame_resolve(self, frame):
+    #     """Call `resolve_framelike`, but default to preferred frame.
 
-        For frame is None ``resolve_framelike`` returns the default
-        frame from the config file. Instead, we want the default
-        frame of the footprint.
+    #     For frame is None ``resolve_framelike`` returns the default
+    #     frame from the config file. Instead, we want the default
+    #     frame of the footprint.
 
-        Returns
-        -------
-        `BaseCoordinateFrame` subclass instance
-            Has no data.
+    #     Returns
+    #     -------
+    #     `BaseCoordinateFrame` subclass instance
+    #         Has no data.
 
-        """
-        if frame is None:
-            frame = self.frame
+    #     """
+    #     if frame is None:
+    #         frame = self.frame
 
-        return resolve_framelike(frame)
+    #     return resolve_framelike(frame)
 
-    # /def
+    # # /def
 
 
 # /class

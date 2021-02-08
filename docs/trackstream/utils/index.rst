@@ -7,39 +7,29 @@ Utils (`trackstream.utils`)
 .. currentmodule:: trackstream.utils
 
 
-Modules
-=======
+.. toctree::
+   :caption: Modules:
+   :name: util_modules
+   :maxdepth: 1
 
-
-Splines, with Units
--------------------
-
-.. automodule:: trackstream.utils.interpolate
-   :noindex:
-
-
-Interpolated Coordinates
-------------------------
-
-.. automodule:: trackstream.utils.coordinates
-   :noindex:
-
+   interpolation
+   tests_helper
+   type_hints
 
 
 Reference/API
 =============
 
-.. automodapi:: trackstream.utils
-   :no-main-docstr:
-   :include-all-objects:
+.. toctree::
+   :maxdepth: 2
 
-.. automodapi:: trackstream.utils.interpolate
-   :no-main-docstr:
-   :include-all-objects:
+   utils_ref
 
-.. automodapi:: trackstream.utils.coordinates
-   :no-main-docstr:
-   :include-all-objects:
 
-.. automodapi:: trackstream.utils.tests
-    :include-all-objects:
+Tests
+=====
+
+.. toctree::
+   :maxdepth: 2
+
+   utils_tests

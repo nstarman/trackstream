@@ -35,11 +35,10 @@ repos:
     -   id: add-trailing-comma
 
 -   repo: https://github.com/jumanjihouse/pre-commit-hooks
-    rev: master
+    rev: 2.1.4
     hooks:
     - id: script-must-have-extension
     - id: script-must-not-have-extension
-    - id: shellcheck
     - id: shfmt
 
 -   repo: https://github.com/pre-commit/mirrors-autopep8
