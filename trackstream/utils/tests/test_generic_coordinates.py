@@ -13,6 +13,7 @@ __all__ = [
 
 # THIRD PARTY
 import astropy.coordinates as coord
+import astropy.units as u
 import pytest
 
 # PROJECT-SPECIFIC
@@ -66,6 +67,12 @@ class Test_GenericRepresentation(
         else:
 
             class GenericRepresentationSubClass(cls.klass):
+                attr_classes = dict(
+                    q1=u.Quantity,
+                    q2=u.Quantity,
+                    q3=u.Quantity,
+                )
+
                 def from_cartesian(self):
                     pass
 
