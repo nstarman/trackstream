@@ -44,6 +44,8 @@ trackstream.utils
 
 - Interpolated Coordinates [#30]
 
+  + Fixes, docs, tests [#31]
+
 
 API Changes
 -----------
