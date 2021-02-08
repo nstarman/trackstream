@@ -38,14 +38,14 @@ def test_resolve_framelike():
 
     frame = framelike.resolve_framelike("galactic")
 
-    assert frame == coord.Galactic()
+    assert isinstance(frame, coord.Galactic)
 
     # -----------------------
     # BaseCoordinateFrame
 
     frame = framelike.resolve_framelike(coord.Galactocentric())
 
-    assert frame == coord.Galactocentric()
+    assert isinstance(frame, coord.Galactocentric)
 
     # -----------------------
     # SkyCoord
@@ -54,7 +54,7 @@ def test_resolve_framelike():
         coord.SkyCoord(coord.ICRS(ra=1 * u.deg, dec=2 * u.deg)),
     )
 
-    assert frame == coord.ICRS()
+    assert isinstance(frame, coord.ICRS)
 
     # -----------------------
     # error if wrong type
