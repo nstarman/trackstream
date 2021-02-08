@@ -43,7 +43,8 @@ from trackstream.tests.helper import TypeVarTests
 
 
 class Test_RepresentationOrDifferentialType(
-    TypeVarTests, klass=type_hints.RepresentationOrDifferentialType,
+    TypeVarTests,
+    klass=type_hints.RepresentationOrDifferentialType,
 ):
     @classmethod
     def setup_class(cls):
@@ -59,7 +60,8 @@ class Test_RepresentationOrDifferentialType(
 
 
 class Test_RepresentationType(
-    TypeVarTests, klass=type_hints.RepresentationType
+    TypeVarTests,
+    klass=type_hints.RepresentationType,
 ):
     @classmethod
     def setup_class(cls):
