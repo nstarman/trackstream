@@ -290,7 +290,8 @@ def _infer_derivative_type(rep, dif_unit, n: int = 1):
     # 2) can't for non-time derivatives
     elif unit.physical_type != "time":
         derivative_type = _make_generic_differential_for_representation(
-            rep_cls, n=n,
+            rep_cls,
+            n=n,
         )
 
     else:  # Differentiating a Representation wrt time
@@ -385,7 +386,8 @@ class InterpolatedRepresentationOrDifferential:
     ):
         # Check its instantiated and right class
         if inspect.isclass(rep) and issubclass(
-            rep, coord.BaseRepresentationOrDifferential,
+            rep,
+            coord.BaseRepresentationOrDifferential,
         ):
             raise ValueError("Must instantiate `rep`.")
         elif not isinstance(rep, coord.BaseRepresentationOrDifferential):
@@ -546,7 +548,9 @@ class InterpolatedRepresentationOrDifferential:
             derivative_type = self.derivative_type
         else:
             derivative_type = _infer_derivative_type(
-                self.data, self.affine.unit, n=n,
+                self.data,
+                self.affine.unit,
+                n=n,
             )
 
         # make Differential
@@ -638,7 +642,8 @@ class InterpolatedRepresentationOrDifferential:
         """String Representation, adding interpolation information."""
         prefixstr = "    "
         values = rfn.merge_arrays(
-            (self.affine.value, self.data._values), flatten=True,
+            (self.affine.value, self.data._values),
+            flatten=True,
         )
         arrstr = _array2string(values, prefix=prefixstr)
 
@@ -1032,7 +1037,8 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
 
         """
         rep = self.data.represent_as(
-            other_class, differential_class=differential_class,
+            other_class,
+            differential_class=differential_class,
         )
 
         # don't pass on the derivative_type
@@ -1176,7 +1182,8 @@ class InterpolatedCartesianRepresentation(InterpolatedRepresentation):
 
         # Check its instantiated and right class
         if inspect.isclass(rep) and issubclass(
-            rep, coord.CartesianRepresentation,
+            rep,
+            coord.CartesianRepresentation,
         ):
             raise ValueError("Must instantiate `rep`.")
         elif not isinstance(rep, coord.CartesianRepresentation):
@@ -1250,7 +1257,8 @@ class InterpolatedDifferential(InterpolatedRepresentationOrDifferential):
 
     def __new__(cls, rep, *args, **kwargs):
         if not isinstance(rep, InterpolatedDifferential) and not isinstance(
-            rep, coord.BaseDifferential,
+            rep,
+            coord.BaseDifferential,
         ):
             raise TypeError("`rep` must be a differential type.")
 
@@ -1391,7 +1399,12 @@ class InterpolatedCoordinateFrame:
     """
 
     def __init__(
-        self, data, affine=None, *, interps=None, **interp_kwargs,
+        self,
+        data,
+        affine=None,
+        *,
+        interps=None,
+        **interp_kwargs,
     ):
 
         rep = data.data
@@ -1664,7 +1677,10 @@ class InterpolatedCoordinateFrame:
         interp_kwargs = self._interp_kwargs.copy()
         frame = self.frame.realize_frame(self.data)
         return InterpolatedCoordinateFrame(
-            frame, affine=self.affine.copy(), interps=None, **interp_kwargs,
+            frame,
+            affine=self.affine.copy(),
+            interps=None,
+            **interp_kwargs,
         )
 
     # /def
@@ -1690,7 +1706,8 @@ class InterpolatedCoordinateFrame:
 
         if rep_cls:
             if hasattr(rep_cls, "_unit_representation") and isinstance(
-                self.frame.data, rep_cls._unit_representation,
+                self.frame.data,
+                rep_cls._unit_representation,
             ):
                 rep_cls = self.frame.data.__class__
 
@@ -2004,7 +2021,8 @@ class InterpolatedSkyCoord(SkyCoord):
 
         """
         return super().match_coordinates_sky(
-            catalogcoord, nthneighbor=nthneighbor,
+            catalogcoord,
+            nthneighbor=nthneighbor,
         )
 
     # /def
@@ -2063,7 +2081,8 @@ class InterpolatedSkyCoord(SkyCoord):
 
         """
         return super().match_to_catalog_3d(
-            catalogcoord, nthneighbor=nthneighbor,
+            catalogcoord,
+            nthneighbor=nthneighbor,
         )
 
     # just needed to modify the docstring

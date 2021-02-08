@@ -17,25 +17,19 @@ import astropy.units as u
 import numpy as np
 import pytest
 from astropy.tests.helper import assert_quantity_allclose
-from astropy.utils.decorators import format_doc
 
 # PROJECT-SPECIFIC
 from trackstream.tests.helper import BaseClassDependentTests
-from trackstream.utils import interpolate as interp
+from trackstream.utils import interpolate
 
 ##############################################################################
 # TESTS
 ##############################################################################
 
 
-@format_doc(
-    None,
-    package="trackstream.utils.interp",
-    klass="UnivariateSplinewithUnits",
-)
 class Test_UnivariateSplinewithUnits(
     BaseClassDependentTests,
-    klass=interp.UnivariateSplinewithUnits,
+    klass=interpolate.UnivariateSplinewithUnits,
 ):
     """Test :class:`~{package}.{klass}`."""
 
@@ -81,7 +75,7 @@ class Test_UnivariateSplinewithUnits(
         """Test call method."""
         for spl in self.spls.values():
             y = spl(self.x)  # evaluate spline
-            assert_quantity_allclose(y, self.y, atol=1e-14 * y.unit)
+            assert_quantity_allclose(y, self.y, atol=1e-13 * y.unit)
 
         # /for
 
@@ -168,14 +162,9 @@ class Test_UnivariateSplinewithUnits(
 # -------------------------------------------------------------------
 
 
-@format_doc(
-    None,
-    package="trackstream.utils.interp",
-    klass="InterpolatedUnivariateSplinewithUnits",
-)
 class Test_InterpolatedUnivariateSplinewithUnits(
     Test_UnivariateSplinewithUnits,
-    klass=interp.InterpolatedUnivariateSplinewithUnits,
+    klass=interpolate.InterpolatedUnivariateSplinewithUnits,
 ):
     """Test :class:`~{package}.{klass}`."""
 
@@ -211,14 +200,9 @@ class Test_InterpolatedUnivariateSplinewithUnits(
 # -------------------------------------------------------------------
 
 
-@format_doc(
-    None,
-    package="trackstream.utils.interp",
-    klass="LSQUnivariateSplinewithUnits",
-)
 class Test_LSQUnivariateSplinewithUnits(
     Test_UnivariateSplinewithUnits,
-    klass=interp.LSQUnivariateSplinewithUnits,
+    klass=interpolate.LSQUnivariateSplinewithUnits,
 ):
     """Test :class:`~{package}.{klass}`."""
 
@@ -227,13 +211,13 @@ class Test_LSQUnivariateSplinewithUnits(
         """Setup fixtures for testing."""
         num = 40
 
-        cls.x = np.linspace(-3, 3, num=num) * u.deg
+        cls.x = np.linspace(0, 6, num=num) * u.deg
         cls.y = (np.exp(-(cls.x.value ** 2)) + 0.1) * u.m
         cls.w = np.random.rand(num)
         cls.bbox = [0 * u.deg, 180 * u.deg]
         cls.extra_args = extra_args = dict(k=3, ext=0, check_finite=False)
 
-        klass = interp.InterpolatedUnivariateSplinewithUnits
+        klass = interpolate.InterpolatedUnivariateSplinewithUnits
         spl = klass(cls.x, cls.y, w=None, bbox=[None] * 2, **extra_args)
         cls.t = spl.get_knots().value[1:-1]
 
@@ -244,10 +228,9 @@ class Test_LSQUnivariateSplinewithUnits(
             weight=cls.klass(
                 cls.x, cls.y, cls.t, w=cls.w, bbox=[None] * 2, **extra_args
             ),
-            # FIXME!
-            # bbox=cls.klass(
-            #     cls.x, cls.y, cls.t, w=None, bbox=cls.bbox, **extra_args
-            # ),
+            bbox=cls.klass(
+                cls.x, cls.y, cls.t, w=None, bbox=cls.bbox, **extra_args
+            ),
         )
 
     # /def
