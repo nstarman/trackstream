@@ -19,7 +19,9 @@ import typing as T
 import astropy.coordinates as coord
 import astropy.units as u
 from astropy.coordinates.representation import DIFFERENTIAL_CLASSES
-from starkman_thesis.type_hints import RepresentationType
+
+# PROJECT-SPECIFIC
+from trackstream.type_hints import RepresentationType
 
 ##############################################################################
 # PARAMETERS
@@ -147,8 +149,8 @@ def _make_generic_representation(
         _GENERIC_REGISTRY[rep_cls] = cls
 
         # also store in locals
-        # THIRD PARTY
-        from starkman_thesis.utils import generic_coordinates
+        # PROJECT-SPECIFIC
+        from trackstream.utils import generic_coordinates
 
         setattr(generic_coordinates, cls.__name__, cls)
         generic_coordinates.__all__.append(cls.__name__)
@@ -259,8 +261,8 @@ def _make_generic_differential(
         _GENERIC_REGISTRY[name] = cls
 
     # also store in locals
-    # THIRD PARTY
-    from starkman_thesis.utils import generic_coordinates
+    # PROJECT-SPECIFIC
+    from trackstream.utils import generic_coordinates
 
     setattr(generic_coordinates, cls.__name__, cls)
     generic_coordinates.__all__.append(cls.__name__)
