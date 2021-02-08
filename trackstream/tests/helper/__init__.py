@@ -5,6 +5,7 @@
 
 __all__ = [
     "BaseClassDependentTests",
+    "TypeVarTests",
 ]
 
 ##############################################################################
@@ -12,6 +13,7 @@ __all__ = [
 
 # PROJECT-SPECIFIC
 from .baseclassdependent import BaseClassDependentTests
+from .typevar_tests import TypeVarTests
 
 ##############################################################################
 # END
