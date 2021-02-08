@@ -21,7 +21,10 @@ from astropy.table import QTable
 from astropy.utils.misc import indent
 
 # PROJECT-SPECIFIC
-from .type_hints import CoordinateType, ICRSType, QTableType, QuantityType
+from .type_hints import (
+    CoordinateType,
+    FrameType,
+    TableType,
 
 ##############################################################################
 # PARAMETERS
@@ -57,11 +60,11 @@ class TrackStream:
 
     def __init__(
         self,
-        data: T.Union[coord.BaseCoordinateFrame, coord.BaseRepresentation],
-        origin: ICRSType,
-        data_err: T.Optional[QTableType] = None,
         rotated_frame: T.Optional[CoordinateType] = None,
         SOM=None,
+        data: T.Union[QTable, coord.BaseCoordinateFrame],
+        origin: FrameType,
+        data_err: T.Optional[TableType] = None,
     ):
         super().__init__()
 
