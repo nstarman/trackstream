@@ -81,6 +81,11 @@ class TrackStream:
         # ----------
         # process the data
         # The data is stored as a Representation object, the error as a QTable
+        # ----------
+        # SOM
+
+        self.SOM = None
+        self.visit_order = None
 
         # Step 1) Convert to Representation, storing the Frame type
         # Step 2) Convert to CartesianRepresentation, storing the Rep type
@@ -118,8 +123,6 @@ class TrackStream:
         # ----------
         # SOM
 
-        self.SOM = SOM
-        self.visit_order = np.arange(len(self.data))
 
     # /def
 
