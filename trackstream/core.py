@@ -185,7 +185,7 @@ class TrackStream:
 # -------------------------------------------------------------------
 
 
-class StreamTrack(object):
+class StreamTrack:
     """A stream track interpolation as function of arc length.
 
     The track is Callable, returning a Frame.
@@ -201,7 +201,7 @@ class StreamTrack(object):
 
     def __init__(
         self,
-        track: T.Dict[str, T.Any],
+        track,
         stream_data: T.Optional[CoordinateType],
         origin,
     ):
@@ -225,6 +225,9 @@ class StreamTrack(object):
         # /if
 
     # /def
+
+    #######################################################
+    # Math on the Track
 
     def __call__(self, arc_length: QuantityType) -> CoordinateType:
         """Get discrete points along interpolated stream track.
@@ -252,7 +255,22 @@ class StreamTrack(object):
 
     # /def
 
-    # ---------------------
+    #######################################################
+    # misc
+
+    def __repr__(self):
+        """String representation."""
+        s = super().__repr__()
+
+        frame_name = self._data_frame.__class__.__name__
+        rep_name = self._data_rep.__name__
+        s = s.replace("StreamTrack", f"StreamTrack ({frame_name}|{rep_name})")
+
+        s += "\n" + indent(repr(self._data)[1:-1])
+
+        return s
+
+    # /def
 
 
 # /class

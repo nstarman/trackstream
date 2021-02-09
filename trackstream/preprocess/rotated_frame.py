@@ -44,9 +44,8 @@ from trackstream.setup_package import HAS_LMFIT
 from trackstream.type_hints import QuantityType
 
 if HAS_LMFIT:
-    import utilipy as lf
-
     # FIRST PARTY
+    import utilipy as lf
     from utilipy.data_utils.fitting import scipy_residual_to_lmfit
 
     scipy_residual_to_lmfit_dec = scipy_residual_to_lmfit.decorator
