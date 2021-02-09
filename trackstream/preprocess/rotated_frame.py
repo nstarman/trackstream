@@ -71,8 +71,6 @@ def cartesian_model(
 ) -> T.Tuple:
     """Model from Cartesian Coordinates.
 
-    This model is a bit slow since it operates on |Representation| objects.
-
     Parameters
     ----------
     data : |CartesianRep|

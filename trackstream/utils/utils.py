@@ -26,7 +26,8 @@ import numpy as np
 ##############################################################################
 
 def make_shuffler(
-    length: int, rng=None
+    length: int,
+    rng=None,
 ) -> T.Tuple[T.Sequence[int], T.Sequence[int]]:
     """
     Shuffle and Unshuffle arrays.

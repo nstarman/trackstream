@@ -254,18 +254,6 @@ class StreamTrack(object):
 
     # ---------------------
 
-    def __repr__(self):
-        """String representation."""
-        s = super().__repr__()
-
-        frame_name = self._data_frame.__class__.__name__
-        rep_name = self._data_rep.__name__
-        s = s.replace("StreamTrack", f"StreamTrack ({frame_name}|{rep_name})")
-
-        s += "\n" + indent(repr(self._data)[1:-1])
-
-        return s
-
 
 # /class
 
