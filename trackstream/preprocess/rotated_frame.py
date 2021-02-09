@@ -39,7 +39,7 @@ from astropy.utils.decorators import format_doc, lazyproperty
 
 # PROJECT-SPECIFIC
 from .utils import cartesian_to_spherical, reference_to_skyoffset_matrix
-from trackstream import conf
+from trackstream.config import conf
 from trackstream.setup_package import HAS_LMFIT
 from trackstream.type_hints import QuantityType
 
@@ -53,7 +53,7 @@ if HAS_LMFIT:
 
 else:
     scipy_residual_to_lmfit_dec = (
-        lambda *args, **kw: lambda x: x
+        lambda param_order: lambda x: x
     )  # noqa: E7301
 
 ##############################################################################
@@ -113,7 +113,7 @@ def cartesian_model(
 # -------------------------------------------------------------------
 
 
-@scipy_residual_to_lmfit.decorator(param_order=["rotation", "lon", "lat"])
+@scipy_residual_to_lmfit_dec(param_order=["rotation", "lon", "lat"])
 def residual(
     variables: T.Sequence,
     data: coord.CartesianRepresentation,
@@ -670,6 +670,8 @@ class RotatedFrameFitter(object):
 
     # /def
 
+    #######################################################
+
     def residual(self, rotation, scalar: bool = False):
         """Residual function."""
         variables = (
@@ -681,11 +683,10 @@ class RotatedFrameFitter(object):
 
     # /def
 
-    # ---------------------
+    #######################################################
+    # Plot
 
-    def plot_data(
-        self,
-    ):
+    def plot_data(self):
         # THIRD PARTY
         import matplotlib.pyplot as plt
 
@@ -722,6 +723,8 @@ class RotatedFrameFitter(object):
 
 
 # /class
+
+# -------------------------------------------------------------------
 
 
 class FitResult:
@@ -766,9 +769,13 @@ class FitResult:
     def origin(self):
         return self._origin
 
+    # /def
+
     @property
     def rotation(self):
         return self._rotation
+
+    # /def
 
     @property
     def fit_values(self):
@@ -823,9 +830,7 @@ class FitResult:
 
     # ---------------------
 
-    def plot_data(
-        self,
-    ):
+    def plot_data(self):
         # THIRD PARTY
         import matplotlib.pyplot as plt
 
