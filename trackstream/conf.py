@@ -25,8 +25,12 @@ class Conf(_config.ConfigNamespace):
     # MiniSOM
 
     use_minisom = _config.ConfigItem(
-        False, description="Use MiniSOM.", cfgtype="boolean(default=False)",
+        False,
+        description="Use MiniSOM.",
+        cfgtype="boolean(default=False)",
     )
+
+
 conf = Conf()
 # /class
 

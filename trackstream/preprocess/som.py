@@ -83,7 +83,8 @@ warnings.filterwarnings(
 
 
 preprocessed = namedtuple(
-    "preprocessed", ("data", "trmat", "visit_orders", "start_point")
+    "preprocessed",
+    ("data", "trmat", "visit_orders", "start_point"),
 )
 
 
@@ -200,7 +201,7 @@ class SelfOrganizingMap(object):
         """Self-Organizing Maps."""
         if sigma >= x or sigma >= y:
             warnings.warn(
-                "Warning: sigma is too high for the dimension of the map."
+                "Warning: sigma is too high for the dimension of the map.",
             )
 
         self._input_len = input_len
@@ -329,7 +330,10 @@ class SelfOrganizingMap(object):
 
         for t, iteration in enumerate(iterations):
             self.update(
-                data[iteration], self.winner(data[iteration]), t, num_iteration
+                data[iteration],
+                self.winner(data[iteration]),
+                t,
+                num_iteration,
             )
 
     # /def
@@ -363,7 +367,8 @@ class SelfOrganizingMap(object):
         """Computes the coordinates of the winning neuron for the sample x."""
         self._activate(x)
         return unravel_index(
-            self._activation_map.argmin(), self._activation_map.shape
+            self._activation_map.argmin(),
+            self._activation_map.shape,
         )
 
     # /def
@@ -376,7 +381,9 @@ class SelfOrganizingMap(object):
 
 
 def reorder_visits(
-    data: CoordinateType, visit_order: T.Sequence, start_ind: int,
+    data: CoordinateType,
+    visit_order: T.Sequence,
+    start_ind: int,
 ):
     """Reorder the points from the SOM.
 
@@ -507,6 +514,7 @@ def apply_SOM(
     # -------
     # SOM
     if conf.use_minisom and HAS_MINISOM:
+        # THIRD PARTY
         from minisom import MiniSom as SOM
     else:
         SOM = SelfOrganizingMap
@@ -565,8 +573,9 @@ def apply_SOM(
         # ax.scatter(data[order[0], 0], data[order[0], 1], c="g")
         ax.set_title(
             "iterations: {i};\nerror: {e:.3f}".format(
-                i=iterations, e=som.quantization_error(data)
-            )
+                i=iterations,
+                e=som.quantization_error(data),
+            ),
         )
 
         cbar = plt.colorbar(pts, ax=ax)
@@ -785,7 +794,9 @@ def make_transition_matrix(orders: T.Sequence[T.Sequence]):
 
 
 def draw_ordering(
-    trmat, num: int = 1, rng: T.Optional[np.random.Generator] = None
+    trmat,
+    num: int = 1,
+    rng: T.Optional[np.random.Generator] = None,
 ):
     """Draw ordering(s) from transition matrix.
 
