@@ -17,22 +17,14 @@ __all__ = [
 # IMPORTS
 
 # BUILT-IN
-
-# BUILT-IN
 import typing as T
 
 # THIRD PARTY
 import numpy as np
 from scipy.linalg import block_diag
 
-from .plot import plot_dts
-
 # PROJECT-SPECIFIC
-
-
-##############################################################################
-# PARAMETERS
-
+from .plot import plot_dts
 
 ##############################################################################
 # CODE
@@ -73,7 +65,8 @@ def make_dts(
 
     """
     ds = np.linalg.norm(
-        ordered_data[1:] - ordered_data[:-1], axis=axis
+        ordered_data[1:] - ordered_data[:-1],
+        axis=axis,
     )  # point-to-point distance
 
     Ds = np.convolve(ds, np.ones((N,)) / N, mode="same")
@@ -117,7 +110,7 @@ def make_F(dt: float, order: int = 1, n_dims=3) -> np.ndarray:
             [
                 [1, dt],  # (position to position, position from velocity)
                 [0, 1.0],  # (velocity from position, velocity to velocity)
-            ]
+            ],
         )
     else:
         raise NotImplementedError
@@ -136,7 +129,12 @@ def make_F(dt: float, order: int = 1, n_dims=3) -> np.ndarray:
 
 # TODO check against Q_discrete_white_noise
 # from filterpy.common import Q_discrete_white_noise
-def make_Q(dt: float, var: float = 1.0, n_dims: int = 3, order: int = 2) -> np.ndarray:
+def make_Q(
+    dt: float,
+    var: float = 1.0,
+    n_dims: int = 3,
+    order: int = 2,
+) -> np.ndarray:
     """Make Q Matrix.
 
     Parameters
@@ -156,7 +154,7 @@ def make_Q(dt: float, var: float = 1.0, n_dims: int = 3, order: int = 2) -> np.n
             [  # single Q matrix
                 [0.25 * dt ** 4, 0.5 * dt ** 3],  # 1,1 is position
                 [0.5 * dt ** 3, dt ** 2],  # 2,2 is velocity
-            ]
+            ],
         )
     else:
         NotImplementedError

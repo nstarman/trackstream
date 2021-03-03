@@ -84,7 +84,12 @@ def update(
     H: np.ndarray,
     **kw
 ) -> T.Tuple[
-    np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
 ]:
     """Add a new measurement (z) to the Kalman filter.
 
@@ -140,7 +145,10 @@ def update(
 
     # log-likelihood
     log_lik = multivariate_normal.logpdf(
-        z.flatten(), mean=dot(H, x).flatten(), cov=S, allow_singular=True
+        z.flatten(),
+        mean=dot(H, x).flatten(),
+        cov=S,
+        allow_singular=True,
     )
 
     return x, P, resid, K, S, log_lik

@@ -65,7 +65,14 @@ def plot_dts(distances, averaged_distances):
 
 
 def plot_path(
-    data, path, cov=None, true_path=None, *, num_std=1, cov_alpha=0.5, is_ordered=False
+    data,
+    path,
+    cov=None,
+    true_path=None,
+    *,
+    num_std=1,
+    cov_alpha=0.5,
+    is_ordered=False
 ):
     """Plot time arrays.
 
@@ -104,7 +111,13 @@ def plot_path(
         for i, p in enumerate(cov):
             P = np.array([[p[0, 0], p[2, 0]], [p[0, 2], p[2, 2]]])
             mean = (path.x[i], path.y[i])
-            plot_covariance(mean, cov=P, fc="gray", std=num_std, alpha=cov_alpha)
+            plot_covariance(
+                mean,
+                cov=P,
+                fc="gray",
+                std=num_std,
+                alpha=cov_alpha,
+            )
         axs[0].set_aspect("auto")
     axs[0].plot(path.x, path.y, c="k")
 
@@ -120,7 +133,13 @@ def plot_path(
         for i, p in enumerate(cov):
             P = np.array([[p[0, 0], p[4, 0]], [p[0, 4], p[4, 4]]])
             mean = (path.x[i], path.z[i])
-            plot_covariance(mean, cov=P, fc="gray", std=num_std, alpha=cov_alpha)
+            plot_covariance(
+                mean,
+                cov=P,
+                fc="gray",
+                std=num_std,
+                alpha=cov_alpha,
+            )
         axs[1].set_aspect("auto")
     axs[1].plot(path.x, path.z, c="k")
 
@@ -135,7 +154,13 @@ def plot_path(
         for i, p in enumerate(cov):
             P = np.array([[p[2, 2], p[4, 2]], [p[2, 4], p[4, 4]]])
             mean = (path.y[i], path.z[i])
-            plot_covariance(mean, cov=P, fc="gray", std=num_std, alpha=cov_alpha)
+            plot_covariance(
+                mean,
+                cov=P,
+                fc="gray",
+                std=num_std,
+                alpha=cov_alpha,
+            )
         axs[2].set_aspect("auto")
     axs[2].plot(path.y, path.z, c="k")
 

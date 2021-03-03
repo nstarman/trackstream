@@ -26,9 +26,10 @@ __all__ = [
 
 # PROJECT-SPECIFIC
 
+# PROJECT-SPECIFIC
 # module
 from . import core, kalman, plot, utils
-from .core import *
+from .core import *  # noqa: F401, F403
 from .kalman import KalmanFilter
 from .plot import plot_path
 from .utils import make_dts, make_F, make_H, make_Q, make_R

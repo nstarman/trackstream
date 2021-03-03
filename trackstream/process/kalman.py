@@ -34,7 +34,8 @@ if HAS_FILTERPY:
 # PARAMETERS
 
 kalman_output = namedtuple(
-    "kalman_output", field_names=["Xs", "Ps", "Fs", "Qs"]
+    "kalman_output",
+    field_names=["Xs", "Ps", "Fs", "Qs"],
 )
 
 ##############################################################################
@@ -48,7 +49,7 @@ class KalmanFilter:
     .. todo::
 
         allow these to be callable
-    
+
     Parameters
     ----------
     x0 : np.ndarray
@@ -260,7 +261,11 @@ class KalmanFilter:
         axis: int = 1
     ):
         dts = utils.make_dts(
-            ordered_data=ordered_data, dt0=dt0, N=N, vmin=vmin, axis=axis
+            ordered_data=ordered_data,
+            dt0=dt0,
+            N=N,
+            vmin=vmin,
+            axis=axis,
         )
 
         return dts
