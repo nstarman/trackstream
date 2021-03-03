@@ -35,8 +35,6 @@ import numpy as np
 import scipy.optimize as opt
 from astropy.utils.decorators import format_doc, lazyproperty
 
-# FIRST PARTY
-
 # PROJECT-SPECIFIC
 from .utils import cartesian_to_spherical, reference_to_skyoffset_matrix
 from trackstream.config import conf

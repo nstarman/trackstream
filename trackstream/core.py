@@ -21,12 +21,7 @@ from astropy.table import QTable
 from astropy.utils.misc import indent
 
 # PROJECT-SPECIFIC
-from .type_hints import (
-    CoordinateType,
-    FrameType,
-    QuantityType,
-    TableType,
-)
+from . import type_hints as TH
 
 ##############################################################################
 # PARAMETERS
@@ -37,7 +32,7 @@ from .type_hints import (
 
 
 class TrackStream:
-    """Track a Stream.
+    """Track a Stream in ICRS coordinates.
 
     When run, produces a StreamTrack.
 
@@ -68,15 +63,15 @@ class TrackStream:
     def __init__(
         self,
         data: T.Union[QTable, coord.BaseCoordinateFrame],
-        origin: FrameType,
-        data_err: T.Optional[TableType] = None,
+        origin: TH.FrameType,
+        data_err: T.Optional[TH.TableType] = None,
         *,
-        frame: T.Optional[CoordinateType] = None,
+        frame: T.Optional[TH.CoordinateType] = None,
     ):
         super().__init__()
 
-        self.origin: SkyCoordType = coord.SkyCoord(origin, copy=False)
-        self.frame: T.Optional[FrameType] = frame
+        self.origin: TH.SkyCoordType = coord.SkyCoord(origin, copy=False)
+        self.frame: T.Optional[TH.FrameType] = frame
 
         # ----------
         # process the data
@@ -205,7 +200,7 @@ class StreamTrack:
     def __init__(
         self,
         track,
-        stream_data: T.Optional[CoordinateType],
+        stream_data: T.Optional[TH.CoordinateType],
         origin,
     ):
         super().__init__()
@@ -232,7 +227,7 @@ class StreamTrack:
     #######################################################
     # Math on the Track
 
-    def __call__(self, arc_length: QuantityType) -> CoordinateType:
+    def __call__(self, arc_length: TH.QuantityType) -> TH.CoordinateType:
         """Get discrete points along interpolated stream track.
 
         .. todo::
