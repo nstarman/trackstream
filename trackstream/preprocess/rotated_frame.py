@@ -399,7 +399,7 @@ def fit_frame(
     # Fitting
 
     if use_lmfit:  # lmfit
-        if not _HAS_LMFIT:
+        if not HAS_LMFIT:
             raise ValueError("`lmfit` package not available.")
 
         res, values = _fit_representation_lmfit(
