@@ -71,7 +71,7 @@ class Test_TrackStream(BaseClassDependentTests, klass=TrackStream):
             data=cls.data,
             origin=cls.origin,
             data_err=cls.data_err,
-            rotated_frame=cls.rotframe,
+            frame=cls.rotframe,
         )
 
     # /def
@@ -92,7 +92,7 @@ class Test_TrackStream(BaseClassDependentTests, klass=TrackStream):
             self.data,
             self.origin,
             data_err=self.data_err,
-            rotated_frame=self.rotframe,
+            frame=self.rotframe,
         )
 
         # TODO SOM

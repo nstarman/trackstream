@@ -35,22 +35,23 @@ import numpy as np
 import scipy.optimize as opt
 from astropy.utils.decorators import format_doc, lazyproperty
 
-# FIRST PARTY
-from utilipy.data_utils.fitting import scipy_residual_to_lmfit
-
 # PROJECT-SPECIFIC
 from .utils import cartesian_to_spherical, reference_to_skyoffset_matrix
-from trackstream import conf
+from trackstream.config import conf
+from trackstream.setup_package import HAS_LMFIT
 from trackstream.type_hints import QuantityType
 
-try:
-    # THIRD PARTY
-    import lmfit as lf
-except ImportError:
-    _HAS_LMFIT = False
+if HAS_LMFIT:
+    # FIRST PARTY
+    import utilipy as lf
+    from utilipy.data_utils.fitting import scipy_residual_to_lmfit
+
+    scipy_residual_to_lmfit_dec = scipy_residual_to_lmfit.decorator
+
 else:
-    _HAS_LMFIT = True
-# /try
+    scipy_residual_to_lmfit_dec = (
+        lambda param_order: lambda x: x
+    )  # noqa: E7301
 
 ##############################################################################
 # CODE
@@ -66,8 +67,6 @@ def cartesian_model(
     deg: bool = True,
 ) -> T.Tuple:
     """Model from Cartesian Coordinates.
-
-    This model is a bit slow since it operates on |Representation| objects.
 
     Parameters
     ----------
@@ -109,7 +108,7 @@ def cartesian_model(
 # -------------------------------------------------------------------
 
 
-@scipy_residual_to_lmfit.decorator(param_order=["rotation", "lon", "lat"])
+@scipy_residual_to_lmfit_dec(param_order=["rotation", "lon", "lat"])
 def residual(
     variables: T.Sequence,
     data: coord.CartesianRepresentation,
@@ -400,7 +399,7 @@ def fit_frame(
     # Fitting
 
     if use_lmfit:  # lmfit
-        if not _HAS_LMFIT:
+        if not HAS_LMFIT:
             raise ValueError("`lmfit` package not available.")
 
         res, values = _fit_representation_lmfit(
@@ -666,6 +665,8 @@ class RotatedFrameFitter(object):
 
     # /def
 
+    #######################################################
+
     def residual(self, rotation, scalar: bool = False):
         """Residual function."""
         variables = (
@@ -677,11 +678,10 @@ class RotatedFrameFitter(object):
 
     # /def
 
-    # ---------------------
+    #######################################################
+    # Plot
 
-    def plot_data(
-        self,
-    ):
+    def plot_data(self):
         # THIRD PARTY
         import matplotlib.pyplot as plt
 
@@ -718,6 +718,8 @@ class RotatedFrameFitter(object):
 
 
 # /class
+
+# -------------------------------------------------------------------
 
 
 class FitResult:
@@ -762,9 +764,13 @@ class FitResult:
     def origin(self):
         return self._origin
 
+    # /def
+
     @property
     def rotation(self):
         return self._rotation
+
+    # /def
 
     @property
     def fit_values(self):
@@ -819,9 +825,7 @@ class FitResult:
 
     # ---------------------
 
-    def plot_data(
-        self,
-    ):
+    def plot_data(self):
         # THIRD PARTY
         import matplotlib.pyplot as plt
 

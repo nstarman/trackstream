@@ -7,14 +7,14 @@ Interpolation
 Splines, with Units
 ====================
 
-.. automodule:: starkman_thesis.utils.interpolate
+.. automodule:: trackstream.utils.interpolate
    :noindex:
 
 
 Interpolated Coordinates
 ========================
 
-.. automodule:: starkman_thesis.utils.interpolated_coordinates
+.. automodule:: trackstream.utils.interpolated_coordinates
    :noindex:
 
 

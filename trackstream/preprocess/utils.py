@@ -29,13 +29,13 @@ from astropy.coordinates.matrix_utilities import (
     rotation_matrix,
 )
 
-# FIRST PARTY
-from utilipy.utils.typing import CoordinateRepresentationType, CoordinateType
+# PROJECT-SPECIFIC
+from trackstream.type_hints import CoordinateType, RepresentationType
 
 ##############################################################################
 # PARAMETERS
 
-DataType = T.Union[CoordinateType, CoordinateRepresentationType]
+DataType = T.Union[CoordinateType, RepresentationType]
 
 
 ##############################################################################

@@ -11,7 +11,7 @@ __all__ = [
 # IMPORTS
 
 # PROJECT-SPECIFIC
-from trackstream.conf import Conf
+from trackstream.config import Conf
 
 ##############################################################################
 # TESTS

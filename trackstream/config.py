@@ -27,6 +27,30 @@ class Conf(_config.ConfigNamespace):
         cfgtype="string",
     )
 
+    # Preprocessing
+    # -------------
+
+    use_lmfit = _config.ConfigItem(
+        False,
+        description="Use lmfit.",
+        cfgtype="boolean(default=False)",
+    )
+
+    use_minisom = _config.ConfigItem(
+        False,
+        description="Use MiniSOM.",
+        cfgtype="boolean(default=False)",
+    )
+
+    # Processing
+    # ----------
+
+    use_filterpy = _config.ConfigItem(
+        False,
+        description="Use FilterPy.",
+        cfgtype="boolean(default=False)",
+    )
+
 
 conf = Conf()
 # /class

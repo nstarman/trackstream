@@ -21,7 +21,7 @@ from astropy.table import QTable
 from astropy.utils.misc import indent
 
 # PROJECT-SPECIFIC
-from .type_hints import CoordinateType, ICRSType, QTableType, QuantityType
+from . import type_hints as TH
 
 ##############################################################################
 # PARAMETERS
@@ -32,21 +32,26 @@ from .type_hints import CoordinateType, ICRSType, QTableType, QuantityType
 
 
 class TrackStream:
-    """Track a Stream.
+    """Track a Stream in ICRS coordinates.
 
-    When run, produces a StreamTrack
+    When run, produces a StreamTrack.
 
     Parameters
     ----------
-    data : |CoordinateFrame| or |Representation| (or subclass) instance
+    data : |Table| or |CoordinateFrame| instance
         The stream data.
         Must be convertible to |CartesianRep|
 
-    data_err : |QTable|, optional
-        Only used if 'data' is Representation instance, since this cannot
-        hold error information.
+    origin : :class:`~astropy.coordinates.ICRS`
+        The origin point of the rotated reference frame.
+
+    data_err : |QTable| (optional)
         The data_err must have (at least) column names
         ["x_err", "y_err", "z_err"]
+
+    frame : |CoordinateFrame| or None (optional, keyword-only)
+        The stream frame. Locally linearizes the data.
+        If not None, need to fit for the frame (default).
 
     Notes
     -----
@@ -57,20 +62,25 @@ class TrackStream:
 
     def __init__(
         self,
-        data: T.Union[coord.BaseCoordinateFrame, coord.BaseRepresentation],
-        origin: ICRSType,
-        data_err: T.Optional[QTableType] = None,
-        rotated_frame: T.Optional[CoordinateType] = None,
-        SOM=None,
+        data: T.Union[QTable, coord.BaseCoordinateFrame],
+        origin: TH.FrameType,
+        data_err: T.Optional[TH.TableType] = None,
+        *,
+        frame: T.Optional[TH.CoordinateType] = None,
     ):
         super().__init__()
 
-        self.origin = origin
-        self.rotated_frame = rotated_frame
+        self.origin: TH.SkyCoordType = coord.SkyCoord(origin, copy=False)
+        self.frame: T.Optional[TH.FrameType] = frame
 
         # ----------
         # process the data
         # The data is stored as a Representation object, the error as a QTable
+        # ----------
+        # SOM
+
+        self.SOM = None
+        self.visit_order = None
 
         # Step 1) Convert to Representation, storing the Frame type
         # Step 2) Convert to CartesianRepresentation, storing the Rep type
@@ -107,9 +117,6 @@ class TrackStream:
 
         # ----------
         # SOM
-
-        self.SOM = SOM
-        self.visit_order = np.arange(len(self.data))
 
     # /def
 
@@ -175,7 +182,7 @@ class TrackStream:
 # -------------------------------------------------------------------
 
 
-class StreamTrack(object):
+class StreamTrack:
     """A stream track interpolation as function of arc length.
 
     The track is Callable, returning a Frame.
@@ -191,8 +198,8 @@ class StreamTrack(object):
 
     def __init__(
         self,
-        track: T.Dict[str, T.Any],
-        stream_data: T.Optional[CoordinateType],
+        track,
+        stream_data: T.Optional[TH.CoordinateType],
         origin,
     ):
         super().__init__()
@@ -216,7 +223,10 @@ class StreamTrack(object):
 
     # /def
 
-    def __call__(self, arc_length: QuantityType) -> CoordinateType:
+    #######################################################
+    # Math on the Track
+
+    def __call__(self, arc_length: TH.QuantityType) -> TH.CoordinateType:
         """Get discrete points along interpolated stream track.
 
         .. todo::
@@ -242,7 +252,8 @@ class StreamTrack(object):
 
     # /def
 
-    # ---------------------
+    #######################################################
+    # misc
 
     def __repr__(self):
         """String representation."""
@@ -255,6 +266,8 @@ class StreamTrack(object):
         s += "\n" + indent(repr(self._data)[1:-1])
 
         return s
+
+    # /def
 
 
 # /class

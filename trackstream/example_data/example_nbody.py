@@ -24,8 +24,8 @@ import numpy as np
 from astropy.table import QTable
 from astropy.utils.data import get_pkg_data_filename
 
-# FIRST PARTY
-from utilipy.utils.typing import CoordinateType, TableType
+# PROJECT-SPECIFIC
+from trackstream.type_hints import FrameType, TableType
 
 ##############################################################################
 # CODE
@@ -59,7 +59,7 @@ def _load_nbody() -> TableType:
 # -------------------------------------------------------------------
 
 
-def get_nbody(subsample=slice(100, None, 400)) -> CoordinateType:
+def get_nbody(subsample: slice = slice(100, None, 400)) -> FrameType:
     """Get NBody.
 
     Parameters
@@ -74,7 +74,7 @@ def get_nbody(subsample=slice(100, None, 400)) -> CoordinateType:
     full_data: TableType = _load_nbody()
     sub_data: TableType = full_data[subsample][["x", "y", "z"]]
 
-    data: CoordinateType = coord.Galactocentric(
+    data: FrameType = coord.Galactocentric(
         x=sub_data["x"],
         y=sub_data["y"],
         z=sub_data["z"],
@@ -89,7 +89,7 @@ def get_nbody(subsample=slice(100, None, 400)) -> CoordinateType:
 # -------------------------------------------------------------------
 
 
-def get_nbody_array(subsample=slice(100, None, 400)) -> np.ndarray:
+def get_nbody_array(subsample: slice = slice(100, None, 400)) -> np.ndarray:
     """Get Palomar 5 at pericenter Nbody Data.
 
     TODO move to ZENODO and download to cache instead.

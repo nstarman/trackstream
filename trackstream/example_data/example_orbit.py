@@ -27,10 +27,9 @@ import numpy as np
 from galpy import potential
 from galpy.orbit import Orbit
 
-# FIRST PARTY
-from utilipy import data_utils
-from utilipy.utils.typing import CoordinateRepresentationType as RepType
-from utilipy.utils.typing import FrameOptionsType, UnitType
+# PROJECT-SPECIFIC
+from trackstream.type_hints import FrameLikeType, RepresentationType, UnitType
+from trackstream.utils.utils import make_shuffler
 
 ##############################################################################
 # PARAMETERS
@@ -79,9 +78,9 @@ def make_ordered_orbit_data(
     stop: float = stop,
     num: int = num,
     unit: UnitType = unit,
-    frame: T.Union[str, FrameOptionsType] = "galactocentric",
-    representation_type: T.Union[str, RepType] = "cartesian",
-) -> RepType:
+    frame: FrameLikeType = "galactocentric",
+    representation_type: T.Union[str, RepresentationType] = "cartesian",
+) -> RepresentationType:
     """Make Ordered Orbit Data.
 
     Parameters
@@ -106,7 +105,7 @@ def make_ordered_orbit_data(
     sc = o.SkyCoord(o.time())
     sc_new = sc.transform_to(frame)
 
-    rep: RepType = sc_new.represent_as(representation_type)
+    rep: RepresentationType = sc_new.represent_as(representation_type)
 
     data = rep.without_differentials()
     # data = data.get_xyz().T
@@ -124,9 +123,9 @@ def make_unordered_orbit_data(
     stop: float = stop,
     num: int = num,
     unit: UnitType = unit,
-    frame: T.Union[str, FrameOptionsType] = "galactocentric",
-    representation_type: T.Union[str, RepType] = "cartesian",
-) -> RepType:
+    frame: FrameLikeType = "galactocentric",
+    representation_type: T.Union[str, RepresentationType] = "cartesian",
+) -> RepresentationType:
     """Make Ordered Orbit Data.
 
     Parameters
@@ -149,7 +148,7 @@ def make_unordered_orbit_data(
         representation_type=representation_type,
     )
 
-    shuffler, undo = data_utils.make_shuffler(len(X))
+    shuffler, undo = make_shuffler(len(X))
 
     data = X[shuffler]
 
@@ -167,8 +166,8 @@ def make_noisy_orbit_data(
     num: int = num,
     sigma: T.Optional[T.Dict[str, float]] = None,
     unit: UnitType = unit,
-    frame: T.Union[str, FrameOptionsType] = "galactocentric",
-    representation_type: T.Union[str, RepType] = "cartesian",
+    frame: FrameLikeType = "galactocentric",
+    representation_type: T.Union[str, RepresentationType] = "cartesian",
     rnd=None,
 ):
     """Make Ordered Orbit Data.
