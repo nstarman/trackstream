@@ -20,8 +20,10 @@ __all__ = [
 
 # BUILT-IN
 import typing as T
+from collections.abc import Sequence
 
 # THIRD PARTY
+import astropy.coordinates as coord
 import astropy.units as u
 import numpy as np
 from astropy.coordinates.matrix_utilities import (
@@ -148,6 +150,81 @@ def reference_to_skyoffset_matrix(
 
 # /def
 
+# -------------------------------------------------------------------
+
+
+def find_closest_point(
+    data: DataType,
+    near_point: T.Union[RepresentationType, T.Sequence, np.ndarray],
+):
+    """Find starting point.
+
+    .. |Rep| replace:: :class:`~astropy.coordinates.BaseRepresentation`
+    .. |Coord| replace:: :class:`~astropy.coordinates.BaseCoordinateFrame`
+
+    Parameters
+    ----------
+    data : |Rep| or |Coord| instance
+        Shape (# measurements, # features).
+        Must be transformable to Cartesian coordinates.
+    near_point : Sequence
+        Shape (1, # features)
+        If passing an array, can reshape with ``.reshape(1, -1)``
+
+    Returns
+    -------
+    start_point : Sequence
+        Shape (# features, ). Point in `data` nearest `near_point` in KDTree
+    start_ind : int
+        Index into `data` for the `start_point`
+        If `return_ind` == True
+
+    """
+    if isinstance(near_point, (Sequence, np.ndarray)):
+        near_point = coord.CartesianRepresentation(near_point)
+    else:
+        near_point = near_point.represent_as(coord.CartesianRepresentation)
+
+    data = data.represent_as(coord.CartesianRepresentation)
+
+    start_ind = np.argmin((data - near_point).norm())
+    start_point = data[start_ind]
+
+    return start_point, start_ind
+
+
+# /def
+
+
+# -------------------------------------------------------------------
+
+
+def set_starting_point(data: DataType, start_ind: int):
+    """Reorder data to set starting index at row 0.
+
+    Parameters
+    ----------
+    data
+    start_ind
+
+    Returns
+    -------
+    `data`
+        re-ordered
+
+    """
+    # index order array
+    order = list(range(len(data)))
+    del order[start_ind]
+    order = np.array([start_ind, *order])
+
+    return data[order]  # return reordered data
+
+
+# /def
+
+
+# -------------------------------------------------------------------
 
 ##############################################################################
 # END
