@@ -44,7 +44,8 @@ class Test_StreamTrack(BaseClassDependentTests, klass=StreamTrack):
         lat = np.linspace(-10, 10, num=num) * u.deg
         distance = np.linspace(8, 15, num=num) * u.kpc
 
-        cls.data = coord.ICRS(
+        cls.frame = coord.ICRS()
+        cls.data = cls.frame.realize_frame(
             coord.SphericalRepresentation(lon=lon, lat=lat, distance=distance),
         )
         cls.interps = dict(
@@ -62,6 +63,7 @@ class Test_StreamTrack(BaseClassDependentTests, klass=StreamTrack):
             cls.interps,
             stream_data=cls.data,
             origin=cls.origin,
+            frame=cls.frame,
         )
 
     # /def
