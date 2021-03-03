@@ -33,6 +33,8 @@ trackstream.preprocess
 
 - fit the rotated frame [#28]
 
+- Self-Organizing Maps (SOM) [#20]
+
 
 trackstream.tests.helper
 ^^^^^^^^^^^^^^^^^^^^^^^^
