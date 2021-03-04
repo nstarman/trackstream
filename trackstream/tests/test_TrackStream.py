@@ -102,21 +102,19 @@ class Test_TrackStream(BaseClassDependentTests, klass=TrackStream):
 
         # The data is an ICRS object
         # we must also test passing in a BaseRepresentation
-        rep = self.data.represent_as(coord.SphericalRepresentation)
-
-        tracker = self.klass(rep, self.origin)
-        assert isinstance(tracker._data_frame, coord.BaseCoordinateFrame)
-        assert tracker._data_rep == self.data.representation_type
+        with pytest.raises(TypeError):
+            rep = self.data.represent_as(coord.SphericalRepresentation)
+            self.klass(rep, self.origin)
 
         # and a failed input type
         with pytest.raises(TypeError) as e:
             self.klass(None, self.origin)
 
-        assert f"`data` type <{type(None)}> is wrong." in str(e.value)
+        assert f"`data` type {type(None)} is wrong." in str(e.value)
 
         # problem with contents of data_err
         # right type, wrong column names
-        with pytest.raises(ValueError):
+        with pytest.raises(KeyError):
             self.klass(
                 self.data,
                 self.origin,
@@ -130,28 +128,29 @@ class Test_TrackStream(BaseClassDependentTests, klass=TrackStream):
 
     # -------------------------------
 
-    def test_fit(self):
-        """Test method ``fit``."""
-        track = self.tracker.fit()
+    # TODO!
+    # def test_fit(self):
+    #     """Test method ``fit``."""
+    #     track = self.tracker.fit()
 
-        with pytest.raises(AttributeError):  # can't call what don't have
-            track(None)
+    #     with pytest.raises(AttributeError):  # can't call what don't have
+    #         track(None)
 
-    # /def
+    # # /def
 
-    def test_predict(self):
-        """Test method ``predict``."""
-        with pytest.raises(AttributeError):  # can't call what don't have
-            self.tracker.predict(self.arclength)
+    # def test_predict(self):
+    #     """Test method ``predict``."""
+    #     with pytest.raises(AttributeError):  # can't call what don't have
+    #         self.tracker.predict(self.arclength)
 
-    # /def
+    # # /def
 
-    def test_fit_predict(self):
-        """Test method ``fit_predict``."""
-        with pytest.raises(AttributeError):  # can't call what don't have
-            self.tracker.fit_predict(self.arclength)
+    # def test_fit_predict(self):
+    #     """Test method ``fit_predict``."""
+    #     with pytest.raises(AttributeError):  # can't call what don't have
+    #         self.tracker.fit_predict(self.arclength)
 
-    # /def
+    # # /def
 
 
 # /class

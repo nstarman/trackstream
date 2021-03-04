@@ -26,13 +26,13 @@ from scipy.linalg import block_diag
 
 # PROJECT-SPECIFIC
 from . import type_hints as TH
-from .preprocess import som
-from .preprocess.rotated_frame import RotatedFrameFitter
-from .process.kalman import KalmanFilter
-from .process.utils import make_dts, make_F, make_H, make_Q, make_R
-from .utils.utils import intermix_arrays
-
-# from .utils.path import Path
+from trackstream.preprocess import som
+from trackstream.preprocess.rotated_frame import RotatedFrameFitter
+from trackstream.process.kalman import KalmanFilter
+from trackstream.process.utils import make_dts, make_F, make_H, make_Q, make_R
+from trackstream.utils._framelike import resolve_framelike
+from trackstream.utils.path import Path
+from trackstream.utils.utils import intermix_arrays
 
 ##############################################################################
 # PARAMETERS
@@ -127,9 +127,7 @@ class TrackStream:
     def _parse_data(
         self,
         data: T.Union[
-            Table,
-            coord.BaseCoordinateFrame,
-            coord.BaseRepresentation,
+            Table, coord.BaseCoordinateFrame, coord.BaseRepresentation,
         ],
         data_err: T.Optional[TH.TableType] = None,
     ):
@@ -172,7 +170,7 @@ class TrackStream:
             self._data_rep = _data.representation_type
             self._data = _data.data
         else:
-            raise TypeError(f"`data` type <{type(data)}> is wrong.")
+            raise TypeError(f"`data` type {type(data)} is wrong.")
 
         # Step 3) Convert to Cartesian Representation
         _data = self._data.represent_as(coord.CartesianRepresentation)
@@ -180,22 +178,23 @@ class TrackStream:
         # ----------
         # 2) the error
 
-        err_colnames = ["x_err", "y_err", "z_err"]
+        err_cols = ["x_err", "y_err", "z_err"]
 
         # first munge the data
         if data_err is not None:
             pass
-        elif set(err_colnames).issubset(data.colnames):  # try to extract
-            data_err = data[err_colnames]
+        # try to extract from data table
+        elif isinstance(data, Table) and set(err_cols).issubset(data.colnames):
+            data_err = data[err_cols]
         else:
             warnings.warn(
                 "No data_err and cannot extract from `data`."
                 "Assuming errors of 0.",
             )
-            data_err = QTable(np.zeros((len(data), 3)), names=err_colnames)
+            data_err = QTable(np.zeros((len(data), 3)), names=err_cols)
 
         if isinstance(data_err, Table):
-            data_err = data_err[err_colnames]  # extract columns
+            data_err = data_err[err_cols]  # extract columns
         elif isinstance(data_err, coord.BaseCoordinateFrame):
             if not isinstance(data_err.data, coord.CartesianRepresentation):
                 raise TypeError("data_err must be Cartesian.")
@@ -270,9 +269,7 @@ class TrackStream:
 
         """
         fitter = RotatedFrameFitter(
-            data=self.points.icrs,
-            origin=self.origin,
-            **kwargs,
+            data=self.points.icrs, origin=self.origin, **kwargs,
         )
 
         fit = fitter.fit(rot0=rot0, bounds=bounds)
@@ -527,7 +524,7 @@ class StreamTrack:
 
     Parameters
     ----------
-    track : `~trackstream.utils.path.Path`
+    path : `~trackstream.utils.path.Path`
     stream_data
         Original stream data
     origin
@@ -539,20 +536,32 @@ class StreamTrack:
 
     def __init__(
         self,
-        track,
-        stream_data: T.Optional[TH.CoordinateType],
-        origin,
-        frame,
+        path: Path,
+        stream_data: T.Union[TH.TableType, TH.CoordinateType, None],
+        origin: TH.CoordinateType,
+        frame: TH.FrameLikeType,
         **metadata,
     ):
         super().__init__()
 
-        self._track = track
-        self.origin = origin
-        self.frame = frame
+        # type validation
+        if not isinstance(path, Path):
+            raise TypeError("`path` must be <Path>.")
+        elif not isinstance(
+            origin, (coord.SkyCoord, coord.BaseCoordinateFrame)
+        ):
+            raise TypeError(
+                "`origin` must be <|SkyCoord|, |CoordinateFrame|>."
+            )
 
-        self.stream_data = stream_data
+        # assign
+        self._path: Path = path
+        self._origin = origin
+        self._frame = resolve_framelike(frame)
 
+        self._stream_data = stream_data
+
+        # set the MetaAttribute(s)
         for attr in list(metadata):
             descr = getattr(self.__class__, attr, None)
             if isinstance(descr, MetaAttribute):
@@ -563,14 +572,31 @@ class StreamTrack:
     # /def
 
     @property
-    def track(self):
-        return self._track
+    def path(self):
+        return self._path
 
     # /def
 
     @property
+    def track(self):
+        """The path's central track."""
+        return self._path.path
+
+    @property
     def affine(self):
-        return self._track.affine
+        return self._path.affine
+
+    @property
+    def stream_data(self):
+        return self._stream_data
+
+    @property
+    def origin(self):
+        return self._origin
+
+    @property
+    def frame(self):
+        return self._frame
 
     frame_fit = MetaAttribute()
     visit_order = MetaAttribute()
@@ -598,7 +624,7 @@ class StreamTrack:
             from the interpolation (``.interp``).
 
         """
-        return self._track(arc_length)
+        return self.path(arc_length)
 
     # /def
 
@@ -609,11 +635,11 @@ class StreamTrack:
         """String representation."""
         s = super().__repr__()
 
-        frame_name = self._data_frame.__class__.__name__
-        rep_name = self._data_rep.__name__
+        frame_name = self.frame.__class__.__name__
+        rep_name = self.track.representation_type.__name__
         s = s.replace("StreamTrack", f"StreamTrack ({frame_name}|{rep_name})")
 
-        s += "\n" + indent(repr(self._data)[1:-1])
+        s += "\n" + indent(repr(self._stream_data)[1:-1])
 
         return s
 

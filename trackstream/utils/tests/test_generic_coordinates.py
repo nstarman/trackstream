@@ -39,7 +39,7 @@ def test__GENERIC_REGISTRY():
 
     for key, val in gcoord._GENERIC_REGISTRY.items():
         if not isinstance(key, str):
-            assert issubclass(key, coord.BaseRepresentation)
+            assert issubclass(key, coord.BaseRepresentationOrDifferential)
 
         assert issubclass(
             val,

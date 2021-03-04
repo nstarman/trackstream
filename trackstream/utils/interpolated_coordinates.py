@@ -200,11 +200,7 @@ from .generic_coordinates import (
     _make_generic_differential_for_representation,
 )
 from .interpolate import InterpolatedUnivariateSplinewithUnits as IUSU
-from trackstream.type_hints import (
-    DifferentialType,
-    QuantityType,
-    RepresentationType,
-)
+import trackstream.type_hints as TH
 
 ##############################################################################
 # PARAMETERS
@@ -290,8 +286,7 @@ def _infer_derivative_type(rep, dif_unit, n: int = 1):
     # 2) can't for non-time derivatives
     elif unit.physical_type != "time":
         derivative_type = _make_generic_differential_for_representation(
-            rep_cls,
-            n=n,
+            rep_cls, n=n,
         )
 
     else:  # Differentiating a Representation wrt time
@@ -386,8 +381,7 @@ class InterpolatedRepresentationOrDifferential:
     ):
         # Check its instantiated and right class
         if inspect.isclass(rep) and issubclass(
-            rep,
-            coord.BaseRepresentationOrDifferential,
+            rep, coord.BaseRepresentationOrDifferential,
         ):
             raise ValueError("Must instantiate `rep`.")
         elif not isinstance(rep, coord.BaseRepresentationOrDifferential):
@@ -548,9 +542,7 @@ class InterpolatedRepresentationOrDifferential:
             derivative_type = self.derivative_type
         else:
             derivative_type = _infer_derivative_type(
-                self.data,
-                self.affine.unit,
-                n=n,
+                self.data, self.affine.unit, n=n,
             )
 
         # make Differential
@@ -642,8 +634,7 @@ class InterpolatedRepresentationOrDifferential:
         """String Representation, adding interpolation information."""
         prefixstr = "    "
         values = rfn.merge_arrays(
-            (self.affine.value, self.data._values),
-            flatten=True,
+            (self.affine.value, self.data._values), flatten=True,
         )
         arrstr = _array2string(values, prefix=prefixstr)
 
@@ -1037,8 +1028,7 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
 
         """
         rep = self.data.represent_as(
-            other_class,
-            differential_class=differential_class,
+            other_class, differential_class=differential_class,
         )
 
         # don't pass on the derivative_type
@@ -1182,8 +1172,7 @@ class InterpolatedCartesianRepresentation(InterpolatedRepresentation):
 
         # Check its instantiated and right class
         if inspect.isclass(rep) and issubclass(
-            rep,
-            coord.CartesianRepresentation,
+            rep, coord.CartesianRepresentation,
         ):
             raise ValueError("Must instantiate `rep`.")
         elif not isinstance(rep, coord.CartesianRepresentation):
@@ -1257,8 +1246,7 @@ class InterpolatedDifferential(InterpolatedRepresentationOrDifferential):
 
     def __new__(cls, rep, *args, **kwargs):
         if not isinstance(rep, InterpolatedDifferential) and not isinstance(
-            rep,
-            coord.BaseDifferential,
+            rep, coord.BaseDifferential,
         ):
             raise TypeError("`rep` must be a differential type.")
 
@@ -1400,13 +1388,13 @@ class InterpolatedCoordinateFrame:
 
     def __init__(
         self,
-        data,
+        data: TH.CoordinateType,
         affine=None,
         *,
         interps=None,
         **interp_kwargs,
     ):
-
+        # get rep from CoordinateType
         rep = data.data
 
         if isinstance(rep, InterpolatedRepresentation):
@@ -1510,7 +1498,7 @@ class InterpolatedCoordinateFrame:
     # /def
 
     @property
-    def affine(self) -> QuantityType:  # read-only
+    def affine(self) -> TH.QuantityType:  # read-only
         return self.frame.data.affine
 
     # /def
@@ -1578,21 +1566,21 @@ class InterpolatedCoordinateFrame:
     # /def
 
     @property
-    def representation_type(self) -> RepresentationType:
+    def representation_type(self) -> TH.RepresentationType:
         return self.frame.representation_type
 
     @representation_type.setter
-    def representation_type(self, value: RepresentationType) -> None:
+    def representation_type(self, value: TH.RepresentationType) -> None:
         self.frame.representation_type = value
 
     # /def
 
     def represent_as(
         self,
-        base: T.Union[RepresentationType, str],
-        s: T.Union[str, DifferentialType] = "base",
+        base: T.Union[TH.RepresentationType, str],
+        s: T.Union[str, TH.DifferentialType] = "base",
         in_frame_units: bool = False,
-    ) -> RepresentationType:
+    ) -> TH.RepresentationType:
         """Generate and return a new representation of this frame's `data`
         as a Representation object.
 
@@ -1677,10 +1665,7 @@ class InterpolatedCoordinateFrame:
         interp_kwargs = self._interp_kwargs.copy()
         frame = self.frame.realize_frame(self.data)
         return InterpolatedCoordinateFrame(
-            frame,
-            affine=self.affine.copy(),
-            interps=None,
-            **interp_kwargs,
+            frame, affine=self.affine.copy(), interps=None, **interp_kwargs,
         )
 
     # /def
@@ -1706,8 +1691,7 @@ class InterpolatedCoordinateFrame:
 
         if rep_cls:
             if hasattr(rep_cls, "_unit_representation") and isinstance(
-                self.frame.data,
-                rep_cls._unit_representation,
+                self.frame.data, rep_cls._unit_representation,
             ):
                 rep_cls = self.frame.data.__class__
 
@@ -1847,7 +1831,7 @@ class InterpolatedSkyCoord(SkyCoord):
 
         """
         newsc = SkyCoord(self, copy=True)
-        newsc.frame = self.frame(affine)
+        newsc._sky_coord_frame = self.frame(affine)
 
         return newsc
 
@@ -2021,8 +2005,7 @@ class InterpolatedSkyCoord(SkyCoord):
 
         """
         return super().match_coordinates_sky(
-            catalogcoord,
-            nthneighbor=nthneighbor,
+            catalogcoord, nthneighbor=nthneighbor,
         )
 
     # /def
@@ -2081,8 +2064,7 @@ class InterpolatedSkyCoord(SkyCoord):
 
         """
         return super().match_to_catalog_3d(
-            catalogcoord,
-            nthneighbor=nthneighbor,
+            catalogcoord, nthneighbor=nthneighbor,
         )
 
     # just needed to modify the docstring

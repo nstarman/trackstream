@@ -21,6 +21,8 @@ from astropy.tests.helper import assert_quantity_allclose
 from trackstream import StreamTrack
 from trackstream.tests.helper import BaseClassDependentTests
 from trackstream.utils import InterpolatedUnivariateSplinewithUnits as IUSU
+from trackstream.utils import interpolated_coordinates as icoord
+from trackstream.utils.path import Path
 
 ##############################################################################
 # PARAMETERS
@@ -43,16 +45,17 @@ class Test_StreamTrack(BaseClassDependentTests, klass=StreamTrack):
         lon = np.linspace(0, 25, num=num) * u.deg
         lat = np.linspace(-10, 10, num=num) * u.deg
         distance = np.linspace(8, 15, num=num) * u.kpc
+        width = 100 * u.pc
+
+        cls.rep = coord.SphericalRepresentation(
+            lon=lon, lat=lat, distance=distance
+        )
 
         cls.frame = coord.ICRS()
-        cls.data = cls.frame.realize_frame(
-            coord.SphericalRepresentation(lon=lon, lat=lat, distance=distance),
+        cls.data = icoord.InterpolatedCoordinateFrame(
+            cls.frame.realize_frame(cls.rep), affine=cls.arclength
         )
-        cls.interps = dict(
-            lon=IUSU(cls.arclength, lon),
-            lat=IUSU(cls.arclength, lat),
-            distance=IUSU(cls.arclength, distance),
-        )
+        cls.path = Path(cls.data, width=width)
 
         # origin
         i = num // 2
@@ -60,10 +63,7 @@ class Test_StreamTrack(BaseClassDependentTests, klass=StreamTrack):
 
         # track
         cls.track = StreamTrack(
-            cls.interps,
-            stream_data=cls.data,
-            origin=cls.origin,
-            frame=cls.frame,
+            cls.path, stream_data=cls.data, origin=cls.origin, frame=cls.frame,
         )
 
     # /def
@@ -73,14 +73,16 @@ class Test_StreamTrack(BaseClassDependentTests, klass=StreamTrack):
     def test_instantiation(self):
         """Test instantiation."""
         track = StreamTrack(
-            self.interps,
+            self.path,
             stream_data=self.data,
             origin=self.origin,
+            frame=self.frame,
         )
 
-        assert hasattr(track, "_data")
-        assert hasattr(track, "_track")
-        assert hasattr(track, "origin")
+        assert hasattr(track, "_stream_data")
+        assert hasattr(track, "_path")
+        assert hasattr(track, "_origin")
+        assert hasattr(track, "_frame")
 
         # --------------
         # Different argument types
@@ -89,30 +91,33 @@ class Test_StreamTrack(BaseClassDependentTests, klass=StreamTrack):
         # we must also test passing in a BaseRepresentation
         rep = self.data.represent_as(coord.SphericalRepresentation)
 
-        track = self.klass(self.interps, stream_data=rep, origin=self.origin)
-        assert isinstance(track._data_frame, coord.BaseCoordinateFrame)
-        assert track._data_rep == self.data.representation_type
+        track = self.klass(
+            self.path, stream_data=rep, origin=self.origin, frame=self.frame
+        )
+        assert isinstance(track.frame, coord.BaseCoordinateFrame)
+        assert track.track.representation_type == self.data.representation_type
 
         # and a failed input type
         with pytest.raises(TypeError) as e:
-            self.klass(None, None, None)
+            self.klass(None, stream_data=None, origin=None, frame=None)
+        assert "`path` must be" in str(e.value)
 
-        assert f"`stream_data` type <{type(None)}> is wrong." in str(e.value)
+        with pytest.raises(TypeError) as e:
+            self.klass(self.path, stream_data=None, origin=None, frame=None)
+        assert "`origin` must be " in str(e.value)
 
     # /def
 
     def test_call(self):
         """Test call method."""
-        data = self.track(self.arclength)
+        data, width = self.track(self.arclength)
 
-        assert isinstance(data, coord.ICRS)
+        assert isinstance(data.frame, coord.ICRS)
         assert data.representation_type == coord.SphericalRepresentation
         assert_quantity_allclose(data.ra, self.data.ra, atol=1e-15 * u.deg)
         assert_quantity_allclose(data.dec, self.data.dec, atol=1e-15 * u.deg)
         assert_quantity_allclose(
-            data.distance,
-            self.data.distance,
-            atol=1e-15 * u.kpc,
+            data.distance, self.data.distance, atol=1e-15 * u.kpc,
         )
 
     # /def
@@ -121,8 +126,8 @@ class Test_StreamTrack(BaseClassDependentTests, klass=StreamTrack):
         """Test that the modified __repr__ method works."""
         s = self.track.__repr__()
 
-        frame_name = self.track._data_frame.__class__.__name__
-        rep_name = self.track._data_rep.__name__
+        frame_name = self.track.frame.__class__.__name__
+        rep_name = self.track.path.path.representation_type.__name__
         assert f"StreamTrack ({frame_name}|{rep_name})" in s
 
     # /def
