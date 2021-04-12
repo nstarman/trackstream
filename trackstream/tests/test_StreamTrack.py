@@ -20,7 +20,6 @@ from astropy.tests.helper import assert_quantity_allclose
 # PROJECT-SPECIFIC
 from trackstream import StreamTrack
 from trackstream.tests.helper import BaseClassDependentTests
-from trackstream.utils import InterpolatedUnivariateSplinewithUnits as IUSU
 from trackstream.utils import interpolated_coordinates as icoord
 from trackstream.utils.path import Path
 
@@ -48,12 +47,15 @@ class Test_StreamTrack(BaseClassDependentTests, klass=StreamTrack):
         width = 100 * u.pc
 
         cls.rep = coord.SphericalRepresentation(
-            lon=lon, lat=lat, distance=distance
+            lon=lon,
+            lat=lat,
+            distance=distance,
         )
 
         cls.frame = coord.ICRS()
         cls.data = icoord.InterpolatedCoordinateFrame(
-            cls.frame.realize_frame(cls.rep), affine=cls.arclength
+            cls.frame.realize_frame(cls.rep),
+            affine=cls.arclength,
         )
         cls.path = Path(cls.data, width=width)
 
@@ -63,7 +65,10 @@ class Test_StreamTrack(BaseClassDependentTests, klass=StreamTrack):
 
         # track
         cls.track = StreamTrack(
-            cls.path, stream_data=cls.data, origin=cls.origin, frame=cls.frame,
+            cls.path,
+            stream_data=cls.data,
+            origin=cls.origin,
+            frame=cls.frame,
         )
 
     # /def
@@ -92,7 +97,10 @@ class Test_StreamTrack(BaseClassDependentTests, klass=StreamTrack):
         rep = self.data.represent_as(coord.SphericalRepresentation)
 
         track = self.klass(
-            self.path, stream_data=rep, origin=self.origin, frame=self.frame
+            self.path,
+            stream_data=rep,
+            origin=self.origin,
+            frame=self.frame,
         )
         assert isinstance(track.frame, coord.BaseCoordinateFrame)
         assert track.track.representation_type == self.data.representation_type
@@ -117,7 +125,9 @@ class Test_StreamTrack(BaseClassDependentTests, klass=StreamTrack):
         assert_quantity_allclose(data.ra, self.data.ra, atol=1e-15 * u.deg)
         assert_quantity_allclose(data.dec, self.data.dec, atol=1e-15 * u.deg)
         assert_quantity_allclose(
-            data.distance, self.data.distance, atol=1e-15 * u.kpc,
+            data.distance,
+            self.data.distance,
+            atol=1e-15 * u.kpc,
         )
 
     # /def

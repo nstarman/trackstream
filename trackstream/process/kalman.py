@@ -187,6 +187,9 @@ class KalmanFilter:
             predicter = custom_predict
             smoother = custom_rts_smoother
 
+            if use_filterpy:
+                warnings.warn("can't use filterpy.")
+
         # /if
 
         q_kw = q_kw or {}  # None -> dict
@@ -195,7 +198,7 @@ class KalmanFilter:
         x = self.x0
         P = self.P0
 
-        R = self.R0
+        R = self.R0  # TODO! make function of data point!
         H = self.H0
 
         if callable(self.F0):
@@ -212,9 +215,12 @@ class KalmanFilter:
             Q = self.Q0
             make_Q = utils.make_Q
 
-        # n = len(data)
+        n = len(data)
         # initialize arrays
-        Xs, Ps, Fs, Qs = [], [], [], []
+        Xs = np.empty((n, *np.shape(x)))
+        Ps = np.empty((n, *np.shape(P)))
+        Fs = np.empty((n, *np.shape(F)))
+        Qs = np.empty((n, *np.shape(Q)))
         # iterate predict & update steps
         for i, z in enumerate(data):
             # F, Q
@@ -226,10 +232,8 @@ class KalmanFilter:
             x, P, *_ = updater(x, P=P, z=z, R=R, H=H)
 
             # append results
-            Xs.append(x)
-            Ps.append(P)
-            Fs.append(F)
-            Qs.append(Q)
+            Xs[i], Ps[i] = x, P
+            Fs[i], Qs[i] = F, Q
 
         # /for
 
