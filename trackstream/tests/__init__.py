@@ -13,7 +13,7 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
-# PROJECT-SPECIFIC
+# LOCAL
 from . import test_init as init_tests
 from . import test_StreamTrack as streamtrack_tests
 from . import test_TrackStream as trackstream_tests

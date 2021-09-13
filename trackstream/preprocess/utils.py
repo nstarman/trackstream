@@ -18,7 +18,7 @@ __all__ = [
 ###############################################################################
 # IMPORTS
 
-# BUILT-IN
+# STDLIB
 import typing as T
 from collections.abc import Sequence
 
@@ -31,8 +31,8 @@ from astropy.coordinates.matrix_utilities import (
     rotation_matrix,
 )
 
-# PROJECT-SPECIFIC
-from trackstream.type_hints import CoordinateType, RepresentationType
+# LOCAL
+from trackstream._type_hints import CoordinateType, RepresentationType
 
 ##############################################################################
 # PARAMETERS

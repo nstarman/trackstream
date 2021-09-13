@@ -9,6 +9,7 @@ __copyright__ = "Copyright 2020"
 __all__ = [
     # modules
     "examples",
+    "preprocess",
     # instances
     "conf",
 ]
@@ -19,14 +20,12 @@ __all__ = [
 
 # Packages may add whatever they like to this file, but
 # should keep this content at the top.
-# ----------------------------------------------------------------------------
 from ._astropy_init import *  # noqa: F401, F403  # isort:skip
 
-# ----------------------------------------------------------------------------
-
-# PROJECT-SPECIFIC
+# LOCAL
 from . import core
 from . import example_data as examples
+from . import preprocess
 from .config import conf
 from .core import *  # noqa: F401, F403
 

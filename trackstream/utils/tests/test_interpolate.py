@@ -18,7 +18,7 @@ import numpy as np
 import pytest
 from astropy.tests.helper import assert_quantity_allclose
 
-# PROJECT-SPECIFIC
+# LOCAL
 from trackstream.tests.helper import BaseClassDependentTests
 from trackstream.utils import interpolate
 

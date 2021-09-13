@@ -16,7 +16,7 @@ import astropy.coordinates as coord
 import astropy.units as u
 import pytest
 
-# PROJECT-SPECIFIC
+# LOCAL
 from trackstream.tests.helper import BaseClassDependentTests
 from trackstream.utils import generic_coordinates as gcoord
 

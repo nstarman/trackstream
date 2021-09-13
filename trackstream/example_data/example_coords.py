@@ -25,7 +25,7 @@ import astropy.units as u
 from astropy.coordinates.matrix_utilities import matrix_transpose
 from astropy.utils.decorators import format_doc
 
-# PROJECT-SPECIFIC
+# LOCAL
 from trackstream.utils.coordinates import reference_to_skyoffset_matrix
 
 ##############################################################################

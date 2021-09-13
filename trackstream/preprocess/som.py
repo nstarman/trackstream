@@ -29,7 +29,7 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
-# BUILT-IN
+# STDLIB
 import typing as T
 import warnings
 from collections import namedtuple
@@ -62,11 +62,11 @@ from numpy import (
 from scipy import sparse
 from tqdm import tqdm
 
-# PROJECT-SPECIFIC
+# LOCAL
 from .utils import DataType, find_closest_point, set_starting_point
 from trackstream.config import conf
 from trackstream.setup_package import HAS_MINISOM
-from trackstream.type_hints import CoordinateType
+from trackstream._type_hints import CoordinateType
 
 if conf.use_minisom:
     if not HAS_MINISOM:

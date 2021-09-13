@@ -11,8 +11,8 @@
 __all__ = [
     "test_cartesian_model",
     "test_residual",
-    "test__make_bounds_defaults",
-    "test_make_bounds",
+    # "test__make_bounds_defaults",
+    # "test_make_bounds",
 ]
 
 
@@ -26,7 +26,7 @@ import numpy as np
 import pytest
 from astropy.tests.helper import assert_quantity_allclose
 
-# PROJECT-SPECIFIC
+# LOCAL
 from trackstream.example_data import example_coords
 from trackstream.example_data.tests import data
 from trackstream.preprocess import rotated_frame
@@ -79,7 +79,12 @@ from trackstream.preprocess import rotated_frame
     ],
 )
 def test_cartesian_model(
-    test_data, lon, lat, rotation, deg: bool, expected_data,
+    test_data,
+    lon,
+    lat,
+    rotation,
+    deg: bool,
+    expected_data,
 ):
     """Test `~trackstream.preprocess.rotated_frame.cartesian_model`."""
     # --------------
@@ -95,7 +100,11 @@ def test_cartesian_model(
     # apply model
 
     r, lon, lat = rotated_frame.cartesian_model(
-        test_data.cartesian, lon=lon, lat=lat, rotation=rotation, deg=deg,
+        test_data.cartesian,
+        lon=lon,
+        lat=lat,
+        rotation=rotation,
+        deg=deg,
     )
     # longitude and latitude
     lon = np.mod(coord.Longitude(lon, unit=angle_unit), 180 * u.deg)
@@ -109,10 +118,14 @@ def test_cartesian_model(
 
     assert_quantity_allclose(r, expected_r, atol=1e-10 * expected_r.unit)
     assert_quantity_allclose(
-        lon, np.mod(expected_lon, 180 * u.deg), atol=1e-10 * expected_lon.unit,
+        lon,
+        np.mod(expected_lon, 180 * u.deg),
+        atol=1e-10 * expected_lon.unit,
     )
     assert_quantity_allclose(
-        lat, np.mod(expected_lat, 180 * u.deg), atol=1e-10 * expected_lat.unit,
+        lat,
+        np.mod(expected_lat, 180 * u.deg),
+        atol=1e-10 * expected_lat.unit,
     )
 
 
@@ -175,7 +188,9 @@ def test_residual(test_data, variables, scalar, expected_lat):
     # compare result and expected latitude
     # When scalar is False, can have units, so always take value.
     np.testing.assert_allclose(
-        res, u.Quantity(expected_lat).to_value(), atol=1e-12,
+        res,
+        u.Quantity(expected_lat).to_value(),
+        atol=1e-12,
     )
 
 

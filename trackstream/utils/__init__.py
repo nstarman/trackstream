@@ -21,7 +21,7 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
-# PROJECT-SPECIFIC
+# LOCAL
 from . import coordinates
 from ._framelike import resolve_framelike
 from .interpolate import InterpolatedUnivariateSplinewithUnits

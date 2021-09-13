@@ -11,7 +11,7 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
-# BUILT-IN
+# STDLIB
 import typing as T
 
 # THIRD PARTY
@@ -21,9 +21,9 @@ from astropy.coordinates import (
     sky_coordinate_parsers,
 )
 
-# PROJECT-SPECIFIC
+# LOCAL
 from trackstream.config import conf
-from trackstream.type_hints import FrameLikeType
+from trackstream._type_hints import FrameLikeType
 
 ##############################################################################
 # CODE

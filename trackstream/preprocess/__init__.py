@@ -16,7 +16,7 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
-# PROJECT-SPECIFIC
+# LOCAL
 from . import rotated_frame
 from .rotated_frame import RotatedFrameFitter
 from .som import SelfOrganizingMap

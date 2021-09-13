@@ -17,7 +17,7 @@ import numpy as np
 import pytest
 from astropy.table import QTable
 
-# PROJECT-SPECIFIC
+# LOCAL
 from trackstream import TrackStream
 from trackstream.tests.helper import BaseClassDependentTests
 

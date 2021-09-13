@@ -13,20 +13,20 @@ __all__ = ["__version__"]
 try:
     _ASTROPY_SETUP_
 except NameError:
-    # BUILT-IN
+    # STDLIB
     import builtins
 
     builtins._ASTROPY_SETUP_ = False
 
 try:
-    # PROJECT-SPECIFIC
+    # LOCAL
     from .version import version as __version__
 except ImportError:
     __version__ = ""
 
 
 if not _ASTROPY_SETUP_:
-    # BUILT-IN
+    # STDLIB
     import os
     from warnings import warn
 

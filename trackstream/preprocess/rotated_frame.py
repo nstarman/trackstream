@@ -21,7 +21,7 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
-# BUILT-IN
+# STDLIB
 import copy
 import typing as T
 from types import MappingProxyType
@@ -33,11 +33,11 @@ import numpy as np
 import scipy.optimize as opt
 from astropy.utils.decorators import lazyproperty
 
-# PROJECT-SPECIFIC
+# LOCAL
 from .utils import cartesian_to_spherical, reference_to_skyoffset_matrix
 from trackstream.config import conf
 from trackstream.setup_package import HAS_LMFIT
-from trackstream.type_hints import QuantityType
+from trackstream._type_hints import QuantityType
 
 if HAS_LMFIT:
     # FIRST PARTY
@@ -652,7 +652,7 @@ class RotatedFrameFitter(object):
         scalar: bool = True,
     ):
         """Plot Residual as a function of rotation angle."""
-        # PROJECT-SPECIFIC
+        # LOCAL
         from .plot import plot_rotation_frame_residual
 
         fig = plot_rotation_frame_residual(

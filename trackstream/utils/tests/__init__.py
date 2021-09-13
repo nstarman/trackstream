@@ -15,13 +15,13 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
-# BUILT-IN
+# STDLIB
 from pathlib import Path
 
 # THIRD PARTY
 from astropy.tests.runner import TestRunner
 
-# PROJECT-SPECIFIC
+# LOCAL
 from . import test_interpolate as interpolation_tests
 from . import test_interpolated_coordinates as interpolated_coordinates_test
 

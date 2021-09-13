@@ -82,7 +82,7 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
-# BUILT-IN
+# STDLIB
 import typing as T
 import warnings
 
@@ -92,8 +92,8 @@ import numpy as np
 import scipy.interpolate as _interp
 from scipy.interpolate.fitpack2 import _curfit_messages, fitpack
 
-# PROJECT-SPECIFIC
-from trackstream.type_hints import QuantityType, UnitType
+# LOCAL
+from trackstream._type_hints import QuantityType, UnitType
 
 ##############################################################################
 # PARAMETERS

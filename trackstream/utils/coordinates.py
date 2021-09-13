@@ -14,7 +14,7 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
-# BUILT-IN
+# STDLIB
 import typing as T
 
 # THIRD PARTY

@@ -15,7 +15,7 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
-# BUILT-IN
+# STDLIB
 import os.path
 
 # THIRD PARTY
@@ -24,8 +24,8 @@ import numpy as np
 from astropy.table import QTable
 from astropy.utils.data import get_pkg_data_filename
 
-# PROJECT-SPECIFIC
-from trackstream.type_hints import FrameType, TableType
+# LOCAL
+from trackstream._type_hints import FrameType, TableType
 
 ##############################################################################
 # CODE

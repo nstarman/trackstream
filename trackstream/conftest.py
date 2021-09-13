@@ -8,7 +8,7 @@ packagename.test
 
 """
 
-# BUILT-IN
+# STDLIB
 import os
 
 # THIRD PARTY
@@ -46,7 +46,7 @@ def pytest_configure(config):
         PYTEST_HEADER_MODULES.pop("Pandas", None)
         PYTEST_HEADER_MODULES["scikit-image"] = "skimage"
 
-        # PROJECT-SPECIFIC
+        # LOCAL
         from . import __version__
 
         packagename = os.path.basename(os.path.dirname(__file__))

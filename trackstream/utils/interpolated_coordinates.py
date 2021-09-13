@@ -177,7 +177,7 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
-# BUILT-IN
+# STDLIB
 import abc
 import copy
 import inspect
@@ -193,14 +193,14 @@ from astropy.coordinates.representation import _array2string
 from astropy.utils.decorators import format_doc
 from numpy import array_equal
 
-# PROJECT-SPECIFIC
+# LOCAL
 from .generic_coordinates import (
     GenericDifferential,
     _make_generic_differential,
     _make_generic_differential_for_representation,
 )
 from .interpolate import InterpolatedUnivariateSplinewithUnits as IUSU
-from trackstream.type_hints import (
+from trackstream._type_hints import (
     DifferentialType,
     QuantityType,
     RepresentationType,
