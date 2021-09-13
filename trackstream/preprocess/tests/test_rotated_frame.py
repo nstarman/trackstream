@@ -79,12 +79,7 @@ from trackstream.preprocess import rotated_frame
     ],
 )
 def test_cartesian_model(
-    test_data,
-    lon,
-    lat,
-    rotation,
-    deg: bool,
-    expected_data,
+    test_data, lon, lat, rotation, deg: bool, expected_data,
 ):
     """Test `~trackstream.preprocess.rotated_frame.cartesian_model`."""
     # --------------
@@ -100,11 +95,7 @@ def test_cartesian_model(
     # apply model
 
     r, lon, lat = rotated_frame.cartesian_model(
-        test_data.cartesian,
-        lon=lon,
-        lat=lat,
-        rotation=rotation,
-        deg=deg,
+        test_data.cartesian, lon=lon, lat=lat, rotation=rotation, deg=deg,
     )
     # longitude and latitude
     lon = np.mod(coord.Longitude(lon, unit=angle_unit), 180 * u.deg)
@@ -118,14 +109,10 @@ def test_cartesian_model(
 
     assert_quantity_allclose(r, expected_r, atol=1e-10 * expected_r.unit)
     assert_quantity_allclose(
-        lon,
-        np.mod(expected_lon, 180 * u.deg),
-        atol=1e-10 * expected_lon.unit,
+        lon, np.mod(expected_lon, 180 * u.deg), atol=1e-10 * expected_lon.unit,
     )
     assert_quantity_allclose(
-        lat,
-        np.mod(expected_lat, 180 * u.deg),
-        atol=1e-10 * expected_lat.unit,
+        lat, np.mod(expected_lat, 180 * u.deg), atol=1e-10 * expected_lat.unit,
     )
 
 
@@ -188,257 +175,11 @@ def test_residual(test_data, variables, scalar, expected_lat):
     # compare result and expected latitude
     # When scalar is False, can have units, so always take value.
     np.testing.assert_allclose(
-        res,
-        u.Quantity(expected_lat).to_value(),
-        atol=1e-12,
+        res, u.Quantity(expected_lat).to_value(), atol=1e-12,
     )
 
 
 # /def
-
-
-# -------------------------------------------------------------------
-
-
-def test__make_bounds_defaults():
-    """Test `~trackstream.preprocess.rotated_frame._make_bounds_defaults`."""
-    expected = set(("rot_lower", "rot_upper", "origin_lim"))
-    assert set(rotated_frame._make_bounds_defaults.keys()) == expected
-
-
-# /def
-
-
-# TODO use hypothesis instead
-@pytest.mark.parametrize(
-    "origin,rot_lower,rot_upper,origin_lim,expected",
-    [
-        (
-            coord.UnitSphericalRepresentation(lon=0 * u.deg, lat=0 * u.deg),
-            -1 * u.deg,
-            2 * u.deg,
-            3 * u.deg,
-            np.c_[[-1, 2], [-3, 3], [-3, 3]].T,
-        ),
-        (
-            coord.UnitSphericalRepresentation(lon=10 * u.deg, lat=11 * u.deg),
-            -1 * u.deg,
-            2 * u.deg,
-            3 * u.deg,
-            np.c_[[-1, 2], [7, 13], [8, 14]].T,
-        ),
-    ],
-)
-def test_make_bounds(
-    origin: coord.UnitSphericalRepresentation,
-    rot_lower: u.Quantity,
-    rot_upper: u.Quantity,
-    origin_lim: u.Quantity,
-    expected: coord.UnitSphericalRepresentation,
-):
-    """Test `~trackstream.preprocess.rotated_frame.make_bounds`."""
-    bounds = rotated_frame.make_bounds(
-        origin,
-        rot_lower=rot_lower,
-        rot_upper=rot_upper,
-        origin_lim=origin_lim,
-    )
-
-    np.testing.assert_allclose(bounds, expected)
-
-
-# /def
-
-
-# -------------------------------------------------------------------
-
-
-def test__minimize_defaults():
-    """Test `~trackstream.preprocess.rotated_frame._minimize_defaults`."""
-    expected = set(("fix_origin", "use_lmfit", "leastsquares", "align_v"))
-    assert set(rotated_frame._minimize_defaults.keys()) == expected
-
-
-# /def
-
-
-class Test_fit_frame:
-    """Test `~trackstream.preprocess.rotated_frame.fit_frame`."""
-
-    def setup_class(self):
-        """Setup fixture."""
-
-    # /def
-
-
-# /def
-
-
-# # -------------------------------------------------------------------
-
-
-# @pytest.mark.skip(reason="TODO")
-# def test_align_v_positive_lon():
-#     """Test `~trackstream.preprocess.rotated_frame.align_v_positive_lon`."""
-#     assert False
-
-
-# # /def
-
-
-# # -------------------------------------------------------------------
-
-
-# @pytest.mark.skip(reason="TODO")
-# def test_order_data_from_lon():
-#     """Test `~trackstream.preprocess.rotated_frame.order_data_from_lon`."""
-#     assert False
-
-
-# # /def
-
-
-# # -------------------------------------------------------------------
-
-
-# @pytest.mark.skip(reason="TODO")
-# class Test_RotatedFrameFitter:
-#     """Test `~trackstream.preprocess.rotated_frame.RotatedFrameFitter`."""
-
-#     def setup_class(self):
-#         """Setup testing class."""
-#         pass
-
-#     # /def
-
-#     def teardown_class(self):
-#         """Setup testing class."""
-#         pass
-
-#     # /def
-
-#     # -------------------------------------------
-
-#     @pytest.mark.skip(reason="TODO")
-#     def test_make_bounds(self):
-#         """Test method ``make_bounds``."""
-#         assert False
-
-#     # /def
-
-#     @pytest.mark.skip(reason="TODO")
-#     def test_fit(self):
-#         """Test method ``fit``."""
-#         assert False
-
-#     # /def
-
-#     @pytest.mark.skip(reason="TODO")
-#     def test_residual(self):
-#         """Test method ``residual``."""
-#         assert False
-
-#     # /def
-
-#     # -------------------------------------------
-#     # plot test methods
-
-#     @pytest.mark.skip(reason="TODO")
-#     @pytest.mark.mpl_image_compare(baseline_dir="baseline_images")
-#     def test_plot_data(self):
-#         """Test method ``plot_data``."""
-#         assert False
-
-#     # /def
-
-#     @pytest.mark.skip(reason="TODO")
-#     @pytest.mark.mpl_image_compare(baseline_dir="baseline_images")
-#     def test_plot_residual(self):
-#         """Test method ``plot_residual``."""
-#         assert False
-
-#     # /def
-
-
-# # /def
-
-# # -------------------------------------------------------------------
-
-
-# @pytest.mark.skip(reason="TODO")
-# class Test_FitResult:
-#     """Test `~trackstream.preprocess.rotated_frame.RotatedFrameFitter`."""
-
-#     def setup_class(self):
-#         """Setup testing class."""
-#         pass
-
-#     # /def
-
-#     def teardown_class(self):
-#         """Setup testing class."""
-#         pass
-
-#     # /def
-
-#     # -------------------------------------------
-
-#     @pytest.mark.skip(reason="TODO")
-#     def test_fit_values(self):
-#         """Test method ``fit_values``."""
-#         assert False
-
-#     # /def
-
-#     @pytest.mark.skip(reason="TODO")
-#     def test_frame(self):
-#         """Test method ``frame``."""
-#         assert False
-
-#     # /def
-
-#     @pytest.mark.skip(reason="TODO")
-#     def test_residual(self):
-#         """Test method ``residual``."""
-#         assert False
-
-#     # /def
-
-#     @pytest.mark.skip(reason="TODO")
-#     def test_residual_scalar(self):
-#         """Test method ``residual_scalar``."""
-#         assert False
-
-#     # /def
-
-#     @pytest.mark.skip(reason="TODO")
-#     def test_lon_order(self):
-#         """Test method ``residual_scalar``."""
-#         assert False
-
-#     # /def
-
-#     # -------------------------------------------
-#     # test plot methods
-
-#     @pytest.mark.skip(reason="TODO")
-#     @pytest.mark.mpl_image_compare(baseline_dir="baseline_images")
-#     def test_plot_data(self):
-#         """Test method ``plot_data``."""
-#         assert False
-
-#     # /def
-
-#     @pytest.mark.skip(reason="TODO")
-#     @pytest.mark.mpl_image_compare(baseline_dir="baseline_images")
-#     def test_plot_on_residual(self):
-#         """Test method ``plot_on_residual``."""
-#         assert False
-
-#     # /def
-
-
-# # /def
 
 
 ##############################################################################
