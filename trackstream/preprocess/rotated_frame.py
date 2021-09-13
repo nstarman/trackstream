@@ -41,7 +41,7 @@ from trackstream._type_hints import QuantityType
 
 if HAS_LMFIT:
     # FIRST PARTY
-    import utilipy as lf
+    import lmfit as lf
     from utilipy.data_utils.fitting import scipy_residual_to_lmfit
 
     scipy_residual_to_lmfit_dec = scipy_residual_to_lmfit.decorator
@@ -242,28 +242,6 @@ def align_v_positive_lon(
         rotation = rotation + 180 * u.deg
 
     return values
-
-
-# /def
-
-
-def order_data_from_lon(data: coord.BaseCoordinateFrame) -> np.ndarray:
-    """Order data by Longitude.
-
-    Parameters
-    ----------
-    data : `~astropy.coordinates.BaseCoordinateFrame`
-        Must be output of SkyOffsetFrame.
-
-    Returns
-    -------
-    order : ndarray
-
-    """
-    arr = np.arange(len(data))
-    orderer = np.argsort(data.lon)
-
-    return arr[orderer]
 
 
 # /def
@@ -680,7 +658,7 @@ class FitResult:
 
     Parameters
     ----------
-    data : |CoordinateFrame|
+    data : |Frame|
         In ICRS coordinates.
     fit_values : Dict[str, Any]
         Has keys "rotation" and "origin".
@@ -688,7 +666,7 @@ class FitResult:
 
     Attributes
     ----------
-    data : |CoordinateFrame|
+    data : |Frame|
         Transformed to |SkyOffsetFrame|
     fitresult : Any, optional
     fit_values : MappingProxy
@@ -764,10 +742,9 @@ class FitResult:
         order : ndarray
 
         """
-        arr = np.arange(len(self.data))
         orderer = np.argsort(self.data.lon)
 
-        return arr[orderer]
+        return orderer
 
     # /def
 
@@ -775,6 +752,8 @@ class FitResult:
 
     def __repr__(self):
         return f"FitResult({self.fit_values})"
+
+    # /def
 
     # ---------------------
 
