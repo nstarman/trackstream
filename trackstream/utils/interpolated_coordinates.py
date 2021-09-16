@@ -200,11 +200,7 @@ from .generic_coordinates import (
     _make_generic_differential_for_representation,
 )
 from .interpolate import InterpolatedUnivariateSplinewithUnits as IUSU
-from trackstream._type_hints import (
-    DifferentialType,
-    QuantityType,
-    RepresentationType,
-)
+from trackstream._type_hints import DifferentialType, QuantityType, RepresentationType
 
 ##############################################################################
 # PARAMETERS
@@ -427,9 +423,7 @@ class InterpolatedRepresentationOrDifferential:
             self._interps = dict()
             # positional information
             for comp in rep.components:
-                self._interps[comp] = interp_cls(
-                    affine, getattr(rep, comp), **interp_kwargs
-                )
+                self._interps[comp] = interp_cls(affine, getattr(rep, comp), **interp_kwargs)
 
             # differentials information
             # these are stored in a dictionary with keys wrt time
@@ -473,9 +467,7 @@ class InterpolatedRepresentationOrDifferential:
     # /def
 
     def _realize_class(self, *args):
-        return self._class_(
-            *args, derivative_type=self.derivative_type, **self._interp_kwargs
-        )
+        return self._class_(*args, derivative_type=self.derivative_type, **self._interp_kwargs)
 
     # /def
 
@@ -1044,9 +1036,7 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
         # don't pass on the derivative_type
         # can't do self._class_ since InterpolatedCartesianRepresentation
         # only accepts `rep` of Cartesian type.
-        return InterpolatedRepresentation(
-            rep, self.affine, **self._interp_kwargs
-        )
+        return InterpolatedRepresentation(rep, self.affine, **self._interp_kwargs)
 
     # /def
 
@@ -1349,9 +1339,7 @@ class InterpolatedDifferential(InterpolatedRepresentationOrDifferential):
 
         """
         rep = self.data.to_cartesian()
-        return InterpolatedCartesianRepresentation(
-            rep, self.affine, **self._interp_kwargs
-        )
+        return InterpolatedCartesianRepresentation(rep, self.affine, **self._interp_kwargs)
 
     # /def
 
@@ -1418,13 +1406,10 @@ class InterpolatedCoordinateFrame:
                     "Need to pass a Quantity array for `affine`.",
                 )
 
-            rep = InterpolatedRepresentation(
-                rep, affine=affine, interps=interps, **interp_kwargs
-            )
+            rep = InterpolatedRepresentation(rep, affine=affine, interps=interps, **interp_kwargs)
         else:
             raise TypeError(
-                "`data` must be type "
-                + "<InterpolatedRepresentation> or <BaseRepresentation>",
+                "`data` must be type " + "<InterpolatedRepresentation> or <BaseRepresentation>",
             )
 
         self.frame = data.realize_frame(rep)
@@ -1642,9 +1627,7 @@ class InterpolatedCoordinateFrame:
         """
         rep = self.frame.represent_as(base, s=s, in_frame_units=in_frame_units)
 
-        return InterpolatedRepresentation(
-            rep, affine=self.affine, **self._interp_kwargs
-        )
+        return InterpolatedRepresentation(rep, affine=self.affine, **self._interp_kwargs)
 
     # /def
 
@@ -1734,22 +1717,12 @@ class InterpolatedCoordinateFrame:
 
                 # Swap in frame-specific component names
                 rep_comp_names = self.representation_component_names
-                invnames = {
-                    nmrepr: nmpref for nmpref, nmrepr in rep_comp_names.items()
-                }
+                invnames = {nmrepr: nmpref for nmpref, nmrepr in rep_comp_names.items()}
                 for i, name in enumerate(comp_names):
                     comp_names[i] = invnames.get(name, name)
 
                 # Reassemble the repr string
-                data_repr = (
-                    part1
-                    + "("
-                    + affine_name
-                    + "| "
-                    + ", ".join(comp_names)
-                    + ")"
-                    + part2
-                )
+                data_repr = part1 + "(" + affine_name + "| " + ", ".join(comp_names) + ")" + part2
 
         # else:  # uncomment when encounter
         #     data = self.frame.data
@@ -1795,10 +1768,7 @@ class InterpolatedCoordinateFrame:
 
         cls_name = self.__class__.__name__
         if data_repr:
-            return (
-                f"<Interpolated{cls_name} "
-                f"Coordinate{frameattrs}: {data_repr}>"
-            )
+            return f"<Interpolated{cls_name} " f"Coordinate{frameattrs}: {data_repr}>"
         # else:  # uncomment when encounter
         #     return f"<Interpolated{cls_name} Frame{frameattrs}>"
 
@@ -1817,9 +1787,7 @@ class InterpolatedSkyCoord(SkyCoord):
     def __init__(self, *args, affine=None, copy=True, **kwargs):
 
         keys = tuple(kwargs.keys())  # needed b/c pop changes size
-        interp_kwargs = {
-            k: kwargs.pop(k) for k in keys if k.startswith("interp_")
-        }
+        interp_kwargs = {k: kwargs.pop(k) for k in keys if k.startswith("interp_")}
 
         super().__init__(*args, copy=copy, **kwargs)
 

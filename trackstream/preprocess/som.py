@@ -64,9 +64,9 @@ from tqdm import tqdm
 
 # LOCAL
 from .utils import DataType, find_closest_point, set_starting_point
+from trackstream._type_hints import CoordinateType
 from trackstream.config import conf
 from trackstream.setup_package import HAS_MINISOM
-from trackstream._type_hints import CoordinateType
 
 if conf.use_minisom:
     if not HAS_MINISOM:
@@ -291,9 +291,7 @@ class SelfOrganizingMap(object):
         """Assigns a code book (weights vector of the winning neuron)
         to each sample in data."""
         winners_coords = argmin(self._distance_from_weights(data), axis=1)
-        return self._weights[
-            unravel_index(winners_coords, self._weights.shape[:2])
-        ]
+        return self._weights[unravel_index(winners_coords, self._weights.shape[:2])]
 
     # /def
 

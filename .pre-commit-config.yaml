@@ -62,7 +62,7 @@ repos:
     - id: flake8
       args: # arguments to configure flake8
         # making isort line length compatible with black
-        - "--max-line-length=88"
+        - "--max-line-length=100"
         - "--max-complexity=18"
         - "--select=B,C,E,F,W,T4,B9"
 
@@ -86,7 +86,9 @@ repos:
       args: [--nbqa-mutate]
     - id: nbqa-flake8
       additional_dependencies: [flake8==3.8.4]
-      args: [--nbqa-mutate]
+      args:
+        - "--nbqa-mutate"
+        - "--max-line-length=100"
     - id: nbqa-pyupgrade
       additional_dependencies: [pyupgrade==2.7.3]
       args: [--nbqa-mutate, --py36-plus]

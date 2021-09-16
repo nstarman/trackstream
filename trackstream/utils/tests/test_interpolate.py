@@ -50,12 +50,8 @@ class Test_UnivariateSplinewithUnits(
         )
 
         cls.spls = dict(
-            basic=cls.klass(
-                cls.x, cls.y, w=None, bbox=[None] * 2, **extra_args
-            ),
-            weight=cls.klass(
-                cls.x, cls.y, w=cls.w, bbox=[None] * 2, **extra_args
-            ),
+            basic=cls.klass(cls.x, cls.y, w=None, bbox=[None] * 2, **extra_args),
+            weight=cls.klass(cls.x, cls.y, w=cls.w, bbox=[None] * 2, **extra_args),
             bbox=cls.klass(cls.x, cls.y, w=None, bbox=cls.bbox, **extra_args),
         )
 
@@ -180,12 +176,8 @@ class Test_InterpolatedUnivariateSplinewithUnits(
         cls.extra_args = extra_args = dict(k=3, ext=0, check_finite=False)
 
         cls.spls = dict(
-            basic=cls.klass(
-                cls.x, cls.y, w=None, bbox=[None] * 2, **extra_args
-            ),
-            weight=cls.klass(
-                cls.x, cls.y, w=cls.w, bbox=[None] * 2, **extra_args
-            ),
+            basic=cls.klass(cls.x, cls.y, w=None, bbox=[None] * 2, **extra_args),
+            weight=cls.klass(cls.x, cls.y, w=cls.w, bbox=[None] * 2, **extra_args),
             bbox=cls.klass(cls.x, cls.y, w=None, bbox=cls.bbox, **extra_args),
         )
 
@@ -222,15 +214,9 @@ class Test_LSQUnivariateSplinewithUnits(
         cls.t = spl.get_knots().value[1:-1]
 
         cls.spls = dict(
-            basic=cls.klass(
-                cls.x, cls.y, cls.t, w=None, bbox=[None] * 2, **extra_args
-            ),
-            weight=cls.klass(
-                cls.x, cls.y, cls.t, w=cls.w, bbox=[None] * 2, **extra_args
-            ),
-            bbox=cls.klass(
-                cls.x, cls.y, cls.t, w=None, bbox=cls.bbox, **extra_args
-            ),
+            basic=cls.klass(cls.x, cls.y, cls.t, w=None, bbox=[None] * 2, **extra_args),
+            weight=cls.klass(cls.x, cls.y, cls.t, w=cls.w, bbox=[None] * 2, **extra_args),
+            bbox=cls.klass(cls.x, cls.y, cls.t, w=None, bbox=cls.bbox, **extra_args),
         )
 
     # /def

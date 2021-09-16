@@ -7,8 +7,13 @@ requires = ["setuptools",
 
 build-backend = 'setuptools.build_meta'
 
+[tool.autopep8]
+max_line_length = 100
+in-place = true
+recursive = true
+
 [tool.isort]
-line_length = 79
+line_length = 100
 multi_line_output = 3
 include_trailing_comma = "True"
 force_grid_wrap = 0
@@ -17,17 +22,16 @@ ensure_newline_before_comments = "True"
 sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
 
 known_third_party = ["astropy", "extension_helpers", "galpy", "matplotlib", "numpy", "pytest", "scipy", "setuptools", "tqdm"]
-known_firstparty = ["astronat", "utilipy"]
 known_localfolder = "trackstream"
 
-import_heading_stdlib = "BUILT-IN"
+import_heading_stdlib = "STDLIB"
 import_heading_thirdparty = "THIRD PARTY"
 import_heading_firstparty = "FIRST PARTY"
 import_heading_localfolder = "LOCAL"
 
 
 [tool.black]
-line-length = 79
+line-length = 100
 include = '\.pyi?$'
 exclude = '''
 /(

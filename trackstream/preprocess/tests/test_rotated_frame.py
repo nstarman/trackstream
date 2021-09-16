@@ -92,9 +92,7 @@ def test_cartesian_model(
 
     angle_unit = u.deg if deg else u.rad  # get unit
     # reverse map: value, key map in expected_data
-    rev_names = {
-        v: k for k, v in expected_data.representation_component_names.items()
-    }
+    rev_names = {v: k for k, v in expected_data.representation_component_names.items()}
 
     # --------------
     # apply model

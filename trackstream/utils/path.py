@@ -28,10 +28,7 @@ from astropy.coordinates import BaseCoordinateFrame
 
 # LOCAL
 from .interpolate import InterpolatedUnivariateSplinewithUnits as IUSU
-from .interpolated_coordinates import (
-    InterpolatedCoordinateFrame,
-    InterpolatedSkyCoord,
-)
+from .interpolated_coordinates import InterpolatedCoordinateFrame, InterpolatedSkyCoord
 from trackstream._type_hints import FrameLikeType, QuantityType
 from trackstream.utils._framelike import resolve_framelike
 

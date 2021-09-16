@@ -14,6 +14,7 @@ try:
     _ASTROPY_SETUP_
 except NameError:
     # STDLIB
+    # BUILT-IN
     import builtins
 
     builtins._ASTROPY_SETUP_ = False
@@ -27,6 +28,7 @@ except ImportError:
 
 if not _ASTROPY_SETUP_:
     # STDLIB
+    # BUILT-IN
     import os
     from warnings import warn
 
@@ -62,8 +64,7 @@ if not _ASTROPY_SETUP_:
                     update_default_config(__package__, config_dir)
                 except ConfigurationDefaultMissingError as e:
                     wmsg = (
-                        e.args[0]
-                        + " Cannot install default profile. If you are "
+                        e.args[0] + " Cannot install default profile. If you are "
                         "importing from source, this is expected."
                     )
                     warn(ConfigurationDefaultMissingWarning(wmsg))

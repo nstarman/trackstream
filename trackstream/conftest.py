@@ -16,10 +16,7 @@ import pytest
 
 try:
     # THIRD PARTY
-    from pytest_astropy_header.display import (
-        PYTEST_HEADER_MODULES,
-        TESTED_VERSIONS,
-    )
+    from pytest_astropy_header.display import PYTEST_HEADER_MODULES, TESTED_VERSIONS
 
     ASTROPY_HEADER = True
 except ImportError:

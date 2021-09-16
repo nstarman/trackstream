@@ -1199,10 +1199,7 @@ class Test_InterpolatedCoordinateFrame(
 
     def test__frame_attrs_repr(self) -> None:
         """Test method ``_frame_attrs_repr``."""
-        assert (
-            self.inst._frame_attrs_repr()
-            == self.inst.frame._frame_attrs_repr()
-        )
+        assert self.inst._frame_attrs_repr() == self.inst.frame._frame_attrs_repr()
         # TODO more tests
 
     # /def

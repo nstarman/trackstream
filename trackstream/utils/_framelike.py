@@ -15,15 +15,11 @@ __all__ = [
 import typing as T
 
 # THIRD PARTY
-from astropy.coordinates import (
-    BaseCoordinateFrame,
-    SkyCoord,
-    sky_coordinate_parsers,
-)
+from astropy.coordinates import BaseCoordinateFrame, SkyCoord, sky_coordinate_parsers
 
 # LOCAL
-from trackstream.config import conf
 from trackstream._type_hints import FrameLikeType
+from trackstream.config import conf
 
 ##############################################################################
 # CODE

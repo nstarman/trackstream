@@ -23,6 +23,7 @@ __all__ = [
 
 # STDLIB
 import copy
+import functools
 import typing as T
 from types import MappingProxyType
 
@@ -35,25 +36,51 @@ from astropy.utils.decorators import lazyproperty
 
 # LOCAL
 from .utils import cartesian_to_spherical, reference_to_skyoffset_matrix
+from trackstream._type_hints import QuantityType
 from trackstream.config import conf
 from trackstream.setup_package import HAS_LMFIT
-from trackstream._type_hints import QuantityType
 
 if HAS_LMFIT:
-    # FIRST PARTY
+    # THIRD PARTY
     import lmfit as lf
-    from utilipy.data_utils.fitting import scipy_residual_to_lmfit
 
-    scipy_residual_to_lmfit_dec = scipy_residual_to_lmfit.decorator
-
-else:
-    scipy_residual_to_lmfit_dec = (
-        lambda param_order: lambda x: x
-    )  # noqa: E7301
 
 ##############################################################################
 # CODE
 ##############################################################################
+
+
+def scipy_residual_to_lmfit(function=None, param_order=None):
+    """Decorator to make scipy residual functions compatible with lmfit.
+
+    Parameters
+    ----------
+    function : callable
+        The residual function.
+    param_order : list of strs
+        The variable order used by lmfit.
+        Strings are the names of the lmfit parameters.
+        Must be in the same order as the scipy residual function.
+    """
+    if param_order is None:
+        raise ValueError("`param_order` cannot be None")
+
+    if function is None:
+        return functools.partial(scipy_residual_to_lmfit, param_order=param_order)
+
+    def lmfit(params, *args: T.Any, **kwargs: T.Any) -> T.Sequence:
+        """`lmfit` version of function."""
+        variables = [params[n].value for n in param_order]
+        return function(variables, *args, **kwargs)
+
+    # /def
+
+    function.lmfit = lmfit
+
+    return function
+
+
+# /def
 
 
 def cartesian_model(
@@ -106,7 +133,7 @@ def cartesian_model(
 # -------------------------------------------------------------------
 
 
-@scipy_residual_to_lmfit_dec(param_order=["rotation", "lon", "lat"])
+@scipy_residual_to_lmfit(param_order=["rotation", "lon", "lat"])
 def residual(
     variables: T.Sequence,
     data: coord.CartesianRepresentation,
@@ -294,10 +321,7 @@ class RotatedFrameFitter(object):
 
     """
 
-    def __init__(
-        self, data: coord.BaseCoordinateFrame, origin: coord.ICRS, **kwargs
-    ):
-        # -------------
+    def __init__(self, data: coord.BaseCoordinateFrame, origin: coord.ICRS, **kwargs):
         super().__init__()
         self.data = data
         self.origin = origin
@@ -306,9 +330,7 @@ class RotatedFrameFitter(object):
         # create bounds
 
         bounds_args = {
-            k: kwargs.pop(k)
-            for k in ("rot_lower", "rot_upper", "origin_lim")
-            if k in kwargs
+            k: kwargs.pop(k) for k in ("rot_lower", "rot_upper", "origin_lim") if k in kwargs
         }
         self.set_bounds(**bounds_args)
 

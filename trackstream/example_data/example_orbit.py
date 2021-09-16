@@ -214,12 +214,7 @@ def make_noisy_orbit_data(
     recarr = X._values  # numpy recarray
 
     # make representation with gaussian-convolved values.
-    data = X.__class__(
-        **{
-            n: rnd.normal(recarr[n], scale=sigma[n])
-            for n in recarr.dtype.names
-        }
-    )
+    data = X.__class__(**{n: rnd.normal(recarr[n], scale=sigma[n]) for n in recarr.dtype.names})
 
     return data
 
