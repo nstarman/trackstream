@@ -36,7 +36,17 @@ else:
 # /try
 
 
-__all__ = ["HAS_MINISOM", "HAS_FILTERPY", "HAS_LMFIT"]
+try:
+    # THIRD PARTY
+    import tqdm  # noqa: F401
+except ImportError:
+    HAS_TQDM = False
+else:
+    HAS_TQDM = True
+# /try
+
+
+__all__ = ["HAS_MINISOM", "HAS_FILTERPY", "HAS_LMFIT", "HAS_TQDM"]
 
 ##############################################################################
 # END
