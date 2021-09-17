@@ -88,22 +88,22 @@ DifferentialType = T.TypeVar("BaseDifferential", bound=coord.BaseDifferential)
 """|Differential|"""
 
 FrameType = T.TypeVar("CoordinateFrame", bound=coord.BaseCoordinateFrame)
-"""|CoordinateFrame|"""
+"""|Frame|"""
 
 SkyCoordType = T.TypeVar("SkyCoord", bound=coord.SkyCoord)
 """|SkyCoord|"""
 
 CoordinateType = T.Union[FrameType, SkyCoordType]
-"""|CoordinateFrame| or |SkyCoord|"""
+"""|Frame| or |SkyCoord|"""
 
 PositionType = T.Union[RepresentationType, CoordinateType]
-"""|BaseRepresentation|, |CoordinateFrame|, or |SkyCoord|"""
+"""|BaseRepresentation|, |Frame|, or |SkyCoord|"""
 
 GenericPositionType = T.Union[RepresentationOrDifferentialType, CoordinateType]
-"""|BaseRepresentationOrDifferential|, |CoordinateFrame|, or |SkyCoord|"""
+"""|BaseRepresentationOrDifferential|, |Frame|, or |SkyCoord|"""
 
 FrameLikeType = T.Union[CoordinateType, str]
-"""|CoordinateFrame| or |SkyCoord| or `str`"""
+"""|Frame| or |SkyCoord| or `str`"""
 
 # -----------------
 # table

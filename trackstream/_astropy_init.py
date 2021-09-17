@@ -14,7 +14,6 @@ try:
     _ASTROPY_SETUP_
 except NameError:
     # STDLIB
-    # BUILT-IN
     import builtins
 
     builtins._ASTROPY_SETUP_ = False
@@ -28,7 +27,6 @@ except ImportError:
 
 if not _ASTROPY_SETUP_:
     # STDLIB
-    # BUILT-IN
     import os
     from warnings import warn
 
