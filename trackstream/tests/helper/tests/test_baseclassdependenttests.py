@@ -13,7 +13,7 @@ __all__ = [
 # THIRD PARTY
 import pytest
 
-# PROJECT-SPECIFIC
+# LOCAL
 from trackstream.tests import helper
 
 ##############################################################################

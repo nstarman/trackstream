@@ -8,7 +8,7 @@ packagename.test
 
 """
 
-# BUILT-IN
+# STDLIB
 import os
 
 # THIRD PARTY
@@ -16,10 +16,7 @@ import pytest
 
 try:
     # THIRD PARTY
-    from pytest_astropy_header.display import (
-        PYTEST_HEADER_MODULES,
-        TESTED_VERSIONS,
-    )
+    from pytest_astropy_header.display import PYTEST_HEADER_MODULES, TESTED_VERSIONS
 
     ASTROPY_HEADER = True
 except ImportError:
@@ -46,7 +43,7 @@ def pytest_configure(config):
         PYTEST_HEADER_MODULES.pop("Pandas", None)
         PYTEST_HEADER_MODULES["scikit-image"] = "skimage"
 
-        # PROJECT-SPECIFIC
+        # LOCAL
         from . import __version__
 
         packagename = os.path.basename(os.path.dirname(__file__))

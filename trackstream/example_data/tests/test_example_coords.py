@@ -22,7 +22,7 @@ import astropy.units as u
 import pytest
 from astropy.tests.helper import assert_quantity_allclose
 
-# PROJECT-SPECIFIC
+# LOCAL
 from trackstream.example_data import example_coords
 
 ##############################################################################
@@ -38,7 +38,7 @@ def icrs():
         properly use pytest fixtures
 
     """
-    # PROJECT-SPECIFIC
+    # LOCAL
     from trackstream.example_data.tests import data
 
     return data.icrs
@@ -56,7 +56,7 @@ def ricrs():
         properly use pytest fixtures
 
     """
-    # PROJECT-SPECIFIC
+    # LOCAL
     from trackstream.example_data.tests import data
 
     return data.ricrs

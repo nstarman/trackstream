@@ -14,7 +14,7 @@ Utils (`trackstream.utils`)
 
    interpolation
    tests_helper
-   type_hints
+   _type_hints
 
 
 Reference/API

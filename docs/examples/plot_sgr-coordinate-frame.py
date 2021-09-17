@@ -50,11 +50,7 @@ import astropy.units as u
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy.coordinates import frame_transform_graph
-from astropy.coordinates.matrix_utilities import (
-    matrix_product,
-    matrix_transpose,
-    rotation_matrix,
-)
+from astropy.coordinates.matrix_utilities import matrix_product, matrix_transpose, rotation_matrix
 from astropy.visualization import astropy_mpl_style
 
 plt.style.use(astropy_mpl_style)

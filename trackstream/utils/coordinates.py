@@ -14,16 +14,13 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
-# BUILT-IN
+# STDLIB
 import typing as T
 
 # THIRD PARTY
 import astropy.units as u
 import numpy as np
-from astropy.coordinates.matrix_utilities import (
-    matrix_product,
-    rotation_matrix,
-)
+from astropy.coordinates.matrix_utilities import matrix_product, rotation_matrix
 
 ##############################################################################
 # CODE
@@ -52,9 +49,7 @@ def cartesian_to_spherical(
 
     """
     r: T.Sequence = np.sqrt(x ** 2.0 + y ** 2.0 + z ** 2.0)
-    lat: T.Sequence = (
-        np.arctan2(np.sqrt(x ** 2.0 + y ** 2.0), z) - np.pi / 2
-    )  # to match astropy
+    lat: T.Sequence = np.arctan2(np.sqrt(x ** 2.0 + y ** 2.0), z) - np.pi / 2  # to match astropy
     lon: T.Sequence = np.arctan2(y, x) + np.pi  # to match astropy
 
     if deg:

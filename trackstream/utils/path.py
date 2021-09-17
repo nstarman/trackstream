@@ -16,7 +16,7 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
-# BUILT-IN
+# STDLIB
 import copy
 import typing as T
 
@@ -26,13 +26,10 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import BaseCoordinateFrame
 
-# PROJECT-SPECIFIC
+# LOCAL
 from .interpolate import InterpolatedUnivariateSplinewithUnits as IUSU
-from .interpolated_coordinates import (
-    InterpolatedCoordinateFrame,
-    InterpolatedSkyCoord,
-)
-from trackstream.type_hints import FrameLikeType, QuantityType
+from .interpolated_coordinates import InterpolatedCoordinateFrame, InterpolatedSkyCoord
+from trackstream._type_hints import FrameLikeType, QuantityType
 from trackstream.utils._framelike import resolve_framelike
 
 ##############################################################################

@@ -11,7 +11,7 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
-# BUILT-IN
+# STDLIB
 import typing as T
 
 # THIRD PARTY
@@ -20,8 +20,8 @@ import numpy as np
 from astropy.table import QTable
 from astropy.utils.misc import indent
 
-# PROJECT-SPECIFIC
-from . import type_hints as TH
+# LOCAL
+from . import _type_hints as TH
 
 ##############################################################################
 # PARAMETERS
@@ -244,9 +244,7 @@ class StreamTrack:
             from the interpolation (``.interp``).
 
         """
-        rep = self._data_rep(
-            **{k: v(arc_length) for k, v in self._track.items()}
-        )
+        rep = self._data_rep(**{k: v(arc_length) for k, v in self._track.items()})
 
         return self._data_frame.realize_frame(rep)
 

@@ -15,7 +15,7 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
-# BUILT-IN
+# STDLIB
 import operator
 
 # THIRD PARTY
@@ -24,7 +24,7 @@ import astropy.units as u
 import numpy as np
 import pytest
 
-# PROJECT-SPECIFIC
+# LOCAL
 from trackstream.tests.helper import BaseClassDependentTests
 from trackstream.utils import generic_coordinates as gcoord
 from trackstream.utils import interpolated_coordinates as icoord
@@ -1199,10 +1199,7 @@ class Test_InterpolatedCoordinateFrame(
 
     def test__frame_attrs_repr(self) -> None:
         """Test method ``_frame_attrs_repr``."""
-        assert (
-            self.inst._frame_attrs_repr()
-            == self.inst.frame._frame_attrs_repr()
-        )
+        assert self.inst._frame_attrs_repr() == self.inst.frame._frame_attrs_repr()
         # TODO more tests
 
     # /def

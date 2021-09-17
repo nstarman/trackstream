@@ -15,7 +15,7 @@ import astropy.coordinates as coord
 import astropy.units as u
 import pytest
 
-# PROJECT-SPECIFIC
+# LOCAL
 from trackstream.config import conf
 from trackstream.utils import _framelike as framelike
 

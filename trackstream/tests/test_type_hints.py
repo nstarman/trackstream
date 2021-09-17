@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Testing :mod:`~discO.type_hints`."""
+"""Testing :mod:`~discO._type_hints`."""
 
 __all__ = [
     # Astropy types
@@ -33,8 +33,8 @@ import astropy.units as u
 import pytest
 from astropy import table
 
-# PROJECT-SPECIFIC
-from trackstream import type_hints
+# LOCAL
+from trackstream import _type_hints
 from trackstream.tests.helper import TypeVarTests
 
 ##############################################################################
@@ -44,7 +44,7 @@ from trackstream.tests.helper import TypeVarTests
 
 class Test_RepresentationOrDifferentialType(
     TypeVarTests,
-    klass=type_hints.RepresentationOrDifferentialType,
+    klass=_type_hints.RepresentationOrDifferentialType,
 ):
     @classmethod
     def setup_class(cls):
@@ -61,7 +61,7 @@ class Test_RepresentationOrDifferentialType(
 
 class Test_RepresentationType(
     TypeVarTests,
-    klass=type_hints.RepresentationType,
+    klass=_type_hints.RepresentationType,
 ):
     @classmethod
     def setup_class(cls):
@@ -76,7 +76,7 @@ class Test_RepresentationType(
 # -------------------------------------------------------------------
 
 
-class Test_DifferentialType(TypeVarTests, klass=type_hints.DifferentialType):
+class Test_DifferentialType(TypeVarTests, klass=_type_hints.DifferentialType):
     @classmethod
     def setup_class(cls):
         """Setup fixtures for testing."""
@@ -90,7 +90,7 @@ class Test_DifferentialType(TypeVarTests, klass=type_hints.DifferentialType):
 # -------------------------------------------------------------------
 
 
-class Test_FrameType(TypeVarTests, klass=type_hints.FrameType):
+class Test_FrameType(TypeVarTests, klass=_type_hints.FrameType):
     @classmethod
     def setup_class(cls):
         """Setup fixtures for testing."""
@@ -114,7 +114,7 @@ class Test_FrameType(TypeVarTests, klass=type_hints.FrameType):
 # -------------------------------------------------------------------
 
 
-class Test_SkyCoordType(TypeVarTests, klass=type_hints.SkyCoordType):
+class Test_SkyCoordType(TypeVarTests, klass=_type_hints.SkyCoordType):
     @classmethod
     def setup_class(cls):
         """Setup fixtures for testing."""
@@ -158,7 +158,7 @@ class Test_FrameLikeType:
 # -------------------------------------------------------------------
 
 
-class Test_TableType(TypeVarTests, klass=type_hints.TableType):
+class Test_TableType(TypeVarTests, klass=_type_hints.TableType):
     @classmethod
     def setup_class(cls):
         """Setup fixtures for testing."""
@@ -172,7 +172,7 @@ class Test_TableType(TypeVarTests, klass=type_hints.TableType):
 # -------------------------------------------------------------------
 
 
-class Test_QTableType(TypeVarTests, klass=type_hints.QTableType):
+class Test_QTableType(TypeVarTests, klass=_type_hints.QTableType):
     @classmethod
     def setup_class(cls):
         """Setup fixtures for testing."""
@@ -208,7 +208,7 @@ class Test_UnitLkeType:
 # -------------------------------------------------------------------
 
 
-class Test_QuantityType(TypeVarTests, klass=type_hints.QuantityType):
+class Test_QuantityType(TypeVarTests, klass=_type_hints.QuantityType):
     @classmethod
     def setup_class(cls):
         """Setup fixtures for testing."""

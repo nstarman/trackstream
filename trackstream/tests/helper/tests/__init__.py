@@ -12,7 +12,7 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
-# PROJECT-SPECIFIC
+# LOCAL
 from . import test_baseclassdependenttests as baseclassdependenttests_tests
 
 ##############################################################################

@@ -12,7 +12,7 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
-# BUILT-IN
+# STDLIB
 import typing as T
 
 # THIRD PARTY
@@ -20,8 +20,8 @@ import astropy.coordinates as coord
 import numpy as np
 from astropy.coordinates.matrix_utilities import matrix_product
 
-# PROJECT-SPECIFIC
-from trackstream.type_hints import CoordinateType
+# LOCAL
+from trackstream._type_hints import CoordinateType
 
 ##############################################################################
 # PARAMETERS

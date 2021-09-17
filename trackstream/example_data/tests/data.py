@@ -20,7 +20,7 @@ import astropy.coordinates as coord
 import astropy.units as u
 import numpy as np
 
-# PROJECT-SPECIFIC
+# LOCAL
 from trackstream.example_data import example_coords
 
 ##############################################################################

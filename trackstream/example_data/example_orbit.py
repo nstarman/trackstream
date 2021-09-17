@@ -18,7 +18,7 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
-# BUILT-IN
+# STDLIB
 import typing as T
 
 # THIRD PARTY
@@ -27,8 +27,8 @@ import numpy as np
 from galpy import potential
 from galpy.orbit import Orbit
 
-# PROJECT-SPECIFIC
-from trackstream.type_hints import FrameLikeType, RepresentationType, UnitType
+# LOCAL
+from trackstream._type_hints import FrameLikeType, RepresentationType, UnitType
 from trackstream.utils.utils import make_shuffler
 
 ##############################################################################
@@ -214,12 +214,7 @@ def make_noisy_orbit_data(
     recarr = X._values  # numpy recarray
 
     # make representation with gaussian-convolved values.
-    data = X.__class__(
-        **{
-            n: rnd.normal(recarr[n], scale=sigma[n])
-            for n in recarr.dtype.names
-        }
-    )
+    data = X.__class__(**{n: rnd.normal(recarr[n], scale=sigma[n]) for n in recarr.dtype.names})
 
     return data
 

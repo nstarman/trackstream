@@ -11,7 +11,7 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
-# PROJECT-SPECIFIC
+# LOCAL
 from .baseclassdependent import BaseClassDependentTests
 from .typevar_tests import TypeVarTests
 

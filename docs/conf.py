@@ -25,7 +25,7 @@
 # Thus, any C-extensions that are needed to build the documentation will *not*
 # be accessible, and the documentation will not build correctly.
 
-# BUILT-IN
+# STDLIB
 import datetime
 import os
 import sys
@@ -90,8 +90,8 @@ rst_epilog += """
 .. |Quantity| replace:: :class:`~astropy.units.Quantity`
 .. |AngleType| replace:: :class:`~astropy.coordinates.Angle`
 
-.. |CoordinateFrame| replace:: `~astropy.coordinates.BaseCoordinateFrame`
-
+.. |SkyCoord| replace:: :class:`~astropy.coordinates.SkyCoord`
+.. |Frame| replace:: `~astropy.coordinates.BaseCoordinateFrame`
 .. |Representation| replace:: :class:`~astropy.coordinates.BaseRepresentation`
 .. |CartesianRep| replace:: :class:`~astropy.coordinates.CartesianRepresentation`
 

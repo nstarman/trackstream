@@ -12,7 +12,7 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
-# BUILT-IN
+# STDLIB
 import typing as T
 
 # THIRD PARTY
@@ -20,8 +20,8 @@ import astropy.coordinates as coord
 import astropy.units as u
 from astropy.coordinates.representation import DIFFERENTIAL_CLASSES
 
-# PROJECT-SPECIFIC
-from trackstream.type_hints import RepresentationType
+# LOCAL
+from trackstream._type_hints import RepresentationType
 
 ##############################################################################
 # PARAMETERS
@@ -149,7 +149,7 @@ def _make_generic_representation(
         _GENERIC_REGISTRY[rep_cls] = cls
 
         # also store in locals
-        # PROJECT-SPECIFIC
+        # LOCAL
         from trackstream.utils import generic_coordinates
 
         setattr(generic_coordinates, cls.__name__, cls)
@@ -261,7 +261,7 @@ def _make_generic_differential(
         _GENERIC_REGISTRY[name] = cls
 
     # also store in locals
-    # PROJECT-SPECIFIC
+    # LOCAL
     from trackstream.utils import generic_coordinates
 
     setattr(generic_coordinates, cls.__name__, cls)

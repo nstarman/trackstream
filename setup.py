@@ -11,7 +11,7 @@ other information are set in the setup.cfg file.
 ##############################################################################
 # IMPORTS
 
-# BUILT-IN
+# STDLIB
 import os
 import sys
 

@@ -10,11 +10,11 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
-# BUILT-IN
+# STDLIB
 import abc
 import typing as T
 
-# PROJECT-SPECIFIC
+# LOCAL
 from .baseclassdependent import BaseClassDependentTests
 
 ##############################################################################

@@ -15,10 +15,10 @@ __all__ = [
 ]
 
 
-##############################################################################
+###############################################################################
 # IMPORTS
 
-# BUILT-IN
+# STDLIB
 import typing as T
 from collections.abc import Sequence
 
@@ -26,13 +26,10 @@ from collections.abc import Sequence
 import astropy.coordinates as coord
 import astropy.units as u
 import numpy as np
-from astropy.coordinates.matrix_utilities import (
-    matrix_product,
-    rotation_matrix,
-)
+from astropy.coordinates.matrix_utilities import matrix_product, rotation_matrix
 
-# PROJECT-SPECIFIC
-from trackstream.type_hints import CoordinateType, RepresentationType
+# LOCAL
+from trackstream._type_hints import CoordinateType, RepresentationType
 
 ##############################################################################
 # PARAMETERS
@@ -66,10 +63,9 @@ def cartesian_to_spherical(
     r, lat, lon : Sequence
 
     """
+    # TODO! re-implement with pyerfa for speed
     r: T.Sequence = np.sqrt(x ** 2.0 + y ** 2.0 + z ** 2.0)
-    lat: T.Sequence = (
-        np.arctan2(np.sqrt(x ** 2.0 + y ** 2.0), z) - np.pi / 2
-    )  # to match astropy
+    lat: T.Sequence = np.arctan2(np.sqrt(x ** 2.0 + y ** 2.0), z) - np.pi / 2  # to match astropy
     lon: T.Sequence = np.arctan2(y, x) + np.pi  # to match astropy
 
     if deg:
@@ -225,6 +221,158 @@ def set_starting_point(data: DataType, start_ind: int):
 
 
 # -------------------------------------------------------------------
+
+
+# def select_bind_partial(sig, *args, **kwargs):
+#     """Get a BoundArguments object, that partially maps the
+#     passed `args` and `kwargs` to the function's signature.
+#     Raises `TypeError` if the passed arguments can not be bound.
+#     """
+#     return _select_bind(sig, args, kwargs, partial=True)
+#
+#
+# # /def
+#
+#
+# def _select_bind(sig, args, kwargs, *, partial=False):
+#     """Bind partial, not throwing error if kwargs mismatch."""
+#
+#     arguments = dict()
+#
+#     parameters = iter(sig.parameters.values())
+#     parameters_ex = ()
+#     arg_vals = iter(args)
+#
+#     while True:
+#         # Let's iterate through the positional arguments and corresponding
+#         # parameters
+#         try:
+#             arg_val = next(arg_vals)
+#         except StopIteration:
+#             # No more positional arguments
+#             try:
+#                 param = next(parameters)
+#             except StopIteration:
+#                 # No more parameters. That's it. Just need to check that
+#                 # we have no `kwargs` after this while loop
+#                 break
+#             else:
+#                 if param.kind == _VAR_POSITIONAL:
+#                     # That's OK, just empty *args.  Let's start parsing
+#                     # kwargs
+#                     break
+#                 elif param.name in kwargs:
+#                     if param.kind == _POSITIONAL_ONLY:
+#                         msg = (
+#                             "{arg!r} parameter is positional only, "
+#                             "but was passed as a keyword"
+#                         )
+#                         msg = msg.format(arg=param.name)
+#                         raise TypeError(msg) from None
+#                     parameters_ex = (param,)
+#                     break
+#                 elif param.kind == _VAR_KEYWORD or param.default is not _empty:
+#                     # That's fine too - we have a default value for this
+#                     # parameter.  So, lets start parsing `kwargs`, starting
+#                     # with the current parameter
+#                     parameters_ex = (param,)
+#                     break
+#                 else:
+#                     # No default, not VAR_KEYWORD, not VAR_POSITIONAL,
+#                     # not in `kwargs`
+#                     if partial:
+#                         parameters_ex = (param,)
+#                         break
+#                     else:
+#                         msg = "missing a required argument: {arg!r}"
+#                         msg = msg.format(arg=param.name)
+#                         raise TypeError(msg) from None
+#         else:
+#             # We have a positional argument to process
+#             try:
+#                 param = next(parameters)
+#             except StopIteration:
+#                 raise TypeError("too many positional arguments") from None
+#             else:
+#                 if param.kind in (_VAR_KEYWORD, _KEYWORD_ONLY):
+#                     # Looks like we have no parameter for this positional
+#                     # argument
+#                     raise TypeError("too many positional arguments") from None
+#
+#                 if param.kind == _VAR_POSITIONAL:
+#                     # We have an '*args'-like argument, let's fill it with
+#                     # all positional arguments we have left and move on to
+#                     # the next phase
+#                     values = [arg_val]
+#                     values.extend(arg_vals)
+#                     arguments[param.name] = tuple(values)
+#                     break
+#
+#                 if param.name in kwargs and param.kind != _POSITIONAL_ONLY:
+#                     raise TypeError(
+#                         "multiple values for argument {arg!r}".format(
+#                             arg=param.name
+#                         )
+#                     ) from None
+#
+#                 arguments[param.name] = arg_val
+#
+#     # Now, we iterate through the remaining parameters to process
+#     # keyword arguments
+#     kwargs_param = None
+#     for param in itertools.chain(parameters_ex, parameters):
+#         if param.kind == _VAR_KEYWORD:
+#             # Memorize that we have a '**kwargs'-like parameter
+#             kwargs_param = param
+#             continue
+#
+#         if param.kind == _VAR_POSITIONAL:
+#             # Named arguments don't refer to '*args'-like parameters.
+#             # We only arrive here if the positional arguments ended
+#             # before reaching the last parameter before *args.
+#             continue
+#
+#         param_name = param.name
+#         try:
+#             arg_val = kwargs.pop(param_name)
+#         except KeyError:
+#             # We have no value for this parameter.  It's fine though,
+#             # if it has a default value, or it is an '*args'-like
+#             # parameter, left alone by the processing of positional
+#             # arguments.
+#             if (
+#                 not partial
+#                 and param.kind != _VAR_POSITIONAL
+#                 and param.default is _empty
+#             ):
+#                 raise TypeError(
+#                     "missing a required argument: {arg!r}".format(
+#                         arg=param_name
+#                     )
+#                 ) from None
+#
+#         else:
+#             if param.kind == _POSITIONAL_ONLY:
+#                 # This should never happen in case of a properly built
+#                 # Signature object (but let's have this check here
+#                 # to ensure correct behaviour just in case)
+#                 raise TypeError(
+#                     "{arg!r} parameter is positional only, "
+#                     "but was passed as a keyword".format(arg=param.name)
+#                 )
+#
+#             arguments[param_name] = arg_val
+#
+#     if kwargs:
+#         if kwargs_param is not None:
+#             # Process our '**kwargs'-like parameter
+#             arguments[kwargs_param.name] = kwargs
+#
+#     return sig._bound_arguments_cls(sig, arguments)
+#
+#
+# # /def
+
 
 ##############################################################################
 # END
