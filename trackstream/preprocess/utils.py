@@ -9,7 +9,6 @@ This sub-module is destined for common non-package specific utility functions.
 
 
 __all__ = [
-    # functions
     "cartesian_to_spherical",
     "reference_to_skyoffset_matrix",
 ]
@@ -63,7 +62,6 @@ def cartesian_to_spherical(
     r, lat, lon : Sequence
 
     """
-    # TODO! re-implement with pyerfa for speed
     r: T.Sequence = np.sqrt(x ** 2.0 + y ** 2.0 + z ** 2.0)
     lat: T.Sequence = np.arctan2(np.sqrt(x ** 2.0 + y ** 2.0), z) - np.pi / 2  # to match astropy
     lon: T.Sequence = np.arctan2(y, x) + np.pi  # to match astropy
