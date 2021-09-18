@@ -14,21 +14,14 @@ __all__ = [
 # STDLIB
 import typing as T
 import warnings
-from collections import namedtuple
 
 # THIRD PARTY
-import astropy.coordinates as coord
 import numpy as np
-import typing_extensions as TE
-from numpy import linalg, pi, random
 from scipy import sparse
-from tqdm import tqdm
 
 # LOCAL
-from .utils import DataType  # , find_closest_point, set_starting_point
-from trackstream._type_hints import CoordinateType
 from trackstream.config import conf
-from trackstream.utils.pbar import get_progress_bar
+from trackstream.setup_package import HAS_MINISOM
 
 if conf.use_minisom:
     if not HAS_MINISOM:
@@ -39,7 +32,7 @@ if conf.use_minisom:
 ##############################################################################
 
 
-def make_transition_matrix(orders: T.Sequence[T.Sequence]):
+def make_transition_matrix(orders: T.Sequence[T.Sequence]) -> sparse.lil_matrix:
     """Make Transition Matrix from SOM-derived orders.
 
     The SOM-derived orders can vary with the random seed. To account
@@ -62,12 +55,9 @@ def make_transition_matrix(orders: T.Sequence[T.Sequence]):
     See Also
     --------
     `~draw_ordering`
-
     """
     nelt = orders.shape[1]  # number of elements in matrix
-
-    # empty and sparse transition matrix
-    trmat = sparse.lil_matrix((nelt, nelt), dtype=float)
+    trmat = sparse.lil_matrix((nelt, nelt), dtype=float)  # empty, sparse
 
     # fill in transition pairs, counting number of occurrences.
     for i in range(nelt):  # TODO vectorize

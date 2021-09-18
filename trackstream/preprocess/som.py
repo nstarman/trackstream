@@ -16,7 +16,7 @@ References
 __all__ = [
     "SelfOrganizingMap",
     # functions
-    "apply_SOM",
+    # "apply_SOM",
     "apply_SOM_repeat",
     "prepare_SOM",
     "order_data",
@@ -46,8 +46,8 @@ from tqdm import tqdm
 from .utils import DataType  # , find_closest_point, set_starting_point
 
 # from trackstream.setup_package import HAS_MINISOM
+# from trackstream.config import conf
 from trackstream._type_hints import CoordinateType
-from trackstream.config import conf
 from trackstream.utils.pbar import get_progress_bar
 
 # if conf.use_minisom:
@@ -253,8 +253,8 @@ class SelfOrganizingMap:
         """Assigns a code book (weights vector of the winning neuron)
         to each sample in data.
         """
-        winners_coords = argmin(self._distance_from_weights(data), axis=1)
-        return self._weights[unravel_index(winners_coords, self._weights.shape[:2])]
+        winners_coords = np.argmin(self._distance_from_weights(data), axis=1)
+        return self._weights[np.unravel_index(winners_coords, self._weights.shape[:2])]
 
     # /def
 

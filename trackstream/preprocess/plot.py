@@ -50,9 +50,7 @@ def plot_rotation_frame_residual(
     """
     # Get data
     frame = data.replicate_without_data()
-    origin = origin.transform_to(frame).represent_as(
-        coord.SphericalRepresentation,
-    )
+    origin = origin.transform_to(frame).represent_as(coord.SphericalRepresentation)
     lon = origin.lon.to_value(u.deg)
     lat = origin.lat.to_value(u.deg)
 
@@ -74,19 +72,18 @@ def plot_rotation_frame_residual(
 
     if scalar:
         ax.scatter(rs, res)
-        ax.set_xlabel(r"$\theta$")
+        ax.set_xlabel(r"Rotation angle $\theta$")
         ax.set_ylabel(r"residual")
 
     else:
         im, norm = imshow_norm(res.T, ax=ax, aspect="auto", origin="lower")
-        ax.set_xlabel(r"$\theta$/10 + 180 [deg]")
+        ax.set_xlabel(r"10 * ($\theta$ + 180 [deg])")
         ax.set_ylabel(r"phi2")
 
         cbar = fig.colorbar(im)
         cbar.ax.set_ylabel("residual")
 
     return fig
-
 
 # /def
 
@@ -124,7 +121,6 @@ def plot_SOM(data, order):
     fig.tight_layout()
 
     return fig
-
 
 # /def
 
