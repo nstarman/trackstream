@@ -84,7 +84,7 @@ the transformation is often incorrect.
 
 Representations are all well and good, but what about coordinate frames?
 The interpolated representations can be used the same as Astropy's, including
-in a |CoordinateFrame|.
+in a |Frame|.
 
     >>> frame = coord.ICRS(irep)
     >>> frame[:1]
@@ -1888,7 +1888,7 @@ class InterpolatedSkyCoord(SkyCoord):
 
         Parameters
         ----------
-        other : |SkyCoord| or |CoordinateFrame|
+        other : |SkyCoord| or |Frame|
             The coordinate to get the separation to.
 
         Returns
@@ -1919,7 +1919,7 @@ class InterpolatedSkyCoord(SkyCoord):
 
         Parameters
         ----------
-        other : |SkyCoord| or |CoordinateFrame|
+        other : |SkyCoord| or |Frame|
             The coordinate to get the separation to.
 
         Returns
@@ -1948,7 +1948,7 @@ class InterpolatedSkyCoord(SkyCoord):
 
         Parameters
         ----------
-        catalogcoord : |SkyCoord| or |CoordinateFrame|
+        catalogcoord : |SkyCoord| or |Frame|
             The base catalog in which to search for matches. Typically this
             will be a coordinate object that is an array (i.e.,
             ``catalogcoord.isscalar == False``)
@@ -2010,7 +2010,7 @@ class InterpolatedSkyCoord(SkyCoord):
 
         Parameters
         ----------
-        catalogcoord : |SkyCoord| or |CoordinateFrame|
+        catalogcoord : |SkyCoord| or |Frame|
             The base catalog in which to search for matches. Typically this
             will be a coordinate object that is an array (i.e.,
             ``catalogcoord.isscalar == False``)
@@ -2070,7 +2070,7 @@ class InterpolatedSkyCoord(SkyCoord):
 
         Parameters
         ----------
-        searcharoundcoords : |SkyCoord| or |CoordinateFrame|
+        searcharoundcoords : |SkyCoord| or |Frame|
             The coordinates to search around to try to find matching points in
             this `SkyCoord`. This should be an object with array coordinates,
             not a scalar coordinate object.
@@ -2131,7 +2131,7 @@ class InterpolatedSkyCoord(SkyCoord):
 
         Parameters
         ----------
-        searcharoundcoords : |SkyCoord| or |CoordinateFrame|
+        searcharoundcoords : |SkyCoord| or |Frame|
             The coordinates to search around to try to find matching points in
             this `SkyCoord`. This should be an object with array coordinates,
             not a scalar coordinate object.

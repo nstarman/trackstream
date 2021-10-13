@@ -14,7 +14,7 @@ References
 """
 
 __all__ = [
-    "SelfOrganizingMap",
+    "SelfOrganizingMap1D",
     # functions
     # "apply_SOM",
     "apply_SOM_repeat",
@@ -32,7 +32,6 @@ __credits__ = "MiniSom"
 # STDLIB
 import typing as T
 import warnings
-from collections import namedtuple
 
 # THIRD PARTY
 import astropy.coordinates as coord
@@ -44,16 +43,8 @@ from tqdm import tqdm
 
 # LOCAL
 from .utils import DataType  # , find_closest_point, set_starting_point
-
-# from trackstream.setup_package import HAS_MINISOM
-# from trackstream.config import conf
 from trackstream._type_hints import CoordinateType
 from trackstream.utils.pbar import get_progress_bar
-
-# if conf.use_minisom:
-#     if not HAS_MINISOM:
-#         warnings.warn("Can't find MiniSOM, falling back to built-in SOM.")
-
 
 ##############################################################################
 # PARAMETERS
@@ -64,27 +55,19 @@ warnings.filterwarnings(
 )
 
 
-preprocessed = namedtuple(
-    "preprocessed",
-    ("data", "trmat", "visit_orders", "start_point"),
-)
-
-
 ##############################################################################
 # CODE
 ##############################################################################
 
 
-# class SelfOrganizingMap1D:
-class SelfOrganizingMap:
+class SelfOrganizingMap1D:
     """Initializes a Self-Organizing Map, (modified from [MiniSom]_).
 
     Parameters
     ----------
-    x, y : int
-        x, y dimension of the SOM.
-
-    input_len : int
+    nlattice : int
+        Number of lattice points in the 1D SOM.
+    nfeature : int
         Number of the elements of the vectors in input.
 
     sigma : float, optional (default=1.0)
@@ -131,62 +114,72 @@ class SelfOrganizingMap:
 
     def __init__(
         self,
-        x: int,  # todo! deprecate b/c always 1
-        y: int,
-        input_len: int,
+        nlattice: int,
+        nfeature: int,
         sigma: float = 0.1,
         learning_rate: float = 0.3,
-        decay_function: T.Union[
-            T.Callable,
-            TE.Literal["asymptotic"],
-        ] = "asymptotic",
+        decay_function: T.Union[T.Callable, TE.Literal["asymptotic"]] = "asymptotic",
         random_seed: T.Optional[int] = None,
         **kwargs,
     ):
-        """Self-Organizing Maps."""
-        if sigma >= x or sigma >= y:
-            warnings.warn(
-                "Warning: sigma is too high for the dimension of the map.",
-            )
+        if sigma >= 1 or sigma >= nlattice:
+            warnings.warn("sigma is too high for the dimension of the map")
 
-        self._input_len = input_len
+        self._nlattice = nlattice
+        self._nfeature = nfeature
         self._sigma = sigma
         self._learning_rate = learning_rate
 
-        if decay_function == "asymptotic":
-            decay_function = asymptotic_decay
+        decay_function = asymptotic_decay if decay_function == "asymptotic" else decay_function
         self._decay_function = decay_function
 
-        self._rng = random.RandomState(random_seed)
+        self._rng = random.default_rng(random_seed)
 
-        self._activation_map = np.zeros((x, y))
+        self._activation_map = np.zeros((1, nlattice))
         # used to evaluate the neighborhood function
-        self._neigx = np.arange(x)  # TODO! deprecate b/c 1D
-        self._neigy = np.arange(y)
+        self._neigx = np.arange(1)  # TODO! deprecate b/c 1D
+        self._neigy = np.arange(nlattice)
 
         self._xx, self._yy = np.meshgrid(self._neigx, self._neigy)
         self._xx = self._xx.astype(float)  # TODO! deprecate b/c 1D
         self._yy = self._yy.astype(float)
 
         # random initialization
-        self._weights = 2 * self._rng.rand(x, y, input_len) - 1
+        self._weights = 2 * self._rng.random((1, nlattice, nfeature)) - 1
         self._weights /= linalg.norm(self._weights, axis=-1, keepdims=True)
 
     # /def
 
-    def neighborhood(self, c, sigma) -> np.ndarray:
-        """Returns a Gaussian centered in c."""
-        d = 2 * pi * sigma ** 2
-        ax = np.exp(-np.power(self._xx - self._xx.T[c], 2) / d)
-        ay = np.exp(-np.power(self._yy - self._yy.T[c], 2) / d)
-        return (ax * ay).T  # the external product gives a matrix
+    @property
+    def nlattice(self):
+        """Number of lattice points."""
+        return self._nlattice
 
-    # /def
+    @property
+    def nfeature(self):
+        """Number of features."""
+        return self._nfeature
+
+    @property
+    def sigma(self):
+        return self._sigma
+
+    @property
+    def learning_rate(self):
+        """Learning Rate."""
+        return self._learning_rate
+
+    @property
+    def decay_function(self):
+        """Decay function."""
+        return self._decay_function
+
+    # ===============================================================
 
     def _activate(self, x):
-        """Updates matrix activation_map, in this matrix
-        the element i,j is the response of the neuron i,j to x.
-
+        """
+        Updates matrix activation_map, in this matrix the element i,j is the
+        response of the neuron i,j to x.
         """
         self._activation_map = self._activation_distance(x, self._weights)
 
@@ -194,14 +187,14 @@ class SelfOrganizingMap:
 
     def _activation_distance(self, x, w):
         return linalg.norm(np.subtract(x, w), axis=-1)
-
-    # Change to ChiSquare
-    # REDUCES TO GAUSSIAN LIKELIHOOD
+        # TODO! change to ChiSquare
+        # REDUCES TO GAUSSIAN LIKELIHOOD
 
     # /def
 
     def _distance_from_weights(self, data):
-        """Returns a matrix d where d[i,j] is the euclidean distance between
+        """
+        Returns a matrix d where d[i,j] is the euclidean distance between
         data[i] and the j-th weight.
         """
         input_data = np.array(data)
@@ -309,6 +302,17 @@ class SelfOrganizingMap:
 
     # /def
 
+    # ---------------------------------
+
+    def neighborhood(self, c, sigma) -> np.ndarray:
+        """Returns a Gaussian centered in c."""
+        d = 2 * pi * sigma ** 2
+        ax = np.exp(-np.power(self._xx - self._xx.T[c], 2) / d)
+        ay = np.exp(-np.power(self._yy - self._yy.T[c], 2) / d)
+        return (ax * ay).T  # the external product gives a matrix
+
+    # /def
+
     def update(self, x, win, t, max_iteration):
         """Updates the weights of the neurons.
 
@@ -348,7 +352,33 @@ class SelfOrganizingMap:
 # /class
 
 
-###########################################################
+# -------------------------------------------------------------------
+
+
+def asymptotic_decay(learning_rate: float, iteration: int, max_iter: float):
+    """Decay function of the learning process.
+
+    Parameters
+    ----------
+    learning_rate : float
+        current learning rate.
+    iteration : int
+        current iteration.
+    max_iter : int
+        maximum number of iterations for the training.
+
+    Returns
+    -------
+    float
+
+    """
+    return learning_rate / (1.0 + (2.0 * iteration / max_iter))
+
+
+# /def
+
+
+##############################################################################
 
 
 def reorder_visits(
@@ -411,31 +441,6 @@ def reorder_visits(
 
 # /def
 
-# -------------------------------------------------------------------
-
-
-def asymptotic_decay(learning_rate: float, iteration: int, max_iter: float):
-    """Decay function of the learning process.
-
-    Parameters
-    ----------
-    learning_rate : float
-        current learning rate.
-    iteration : int
-        current iteration.
-    max_iter : int
-        maximum number of iterations for the training.
-
-    Returns
-    -------
-    float
-
-    """
-    return learning_rate / (1.0 + (2.0 * iteration / max_iter))
-
-
-# /def
-
 
 ##############################################################################
 
@@ -448,7 +453,6 @@ def prepare_SOM(
     iterations: int = 10000,
     random_seed: T.Optional[int] = None,
     progress: bool = False,
-    # use_minisom: T.Optional[bool] = None,
     nlattice: T.Optional[int] = None,
     **kwargs,
 ) -> T.Callable:
@@ -479,14 +483,12 @@ def prepare_SOM(
     som : SOM instance
 
     """
-    stream_dims = 1  # streams are 1D
     # length of data, number of features: (x, y, z) or (ra, dec), etc.
     data_len, nfeature = data.shape
     if nlattice is None:
         nlattice = data_len // 10  # allows to be variable
 
-    som = SelfOrganizingMap(
-        stream_dims,
+    som = SelfOrganizingMap1D(
         nlattice,
         nfeature,
         sigma=sigma,
@@ -571,7 +573,7 @@ def prepare_SOM(
 #             **kwargs
 #         )
 #     # else:
-#     #     USING_MINISOM = not isinstance(som, SelfOrganizingMap)
+#     #     USING_MINISOM = not isinstance(som, SelfOrganizingMap1D)
 #
 #     # ----------
 #
@@ -731,84 +733,84 @@ def order_data(som, data):
 # -------------------------------------------------------------------
 
 
-def apply_SOM_repeat(
-    data: DataType,
-    random_seeds: T.Optional[T.Sequence[int]],
-    *,
-    dims: int = 1,
-    learning_rate: float = 0.8,
-    sigma: float = 4.0,
-    iterations: int = 10000,
-    reorder: T.Optional[T.Sequence] = True,
-    plot: bool = False,
-    _tqdm: bool = True,
-) -> T.Sequence[int]:
-    """SOM Preprocess.
-
-    Parameters
-    ----------
-    data : BaseCoordinateFrame instance
-    random_seeds: Sequence
-        Random seeds to use.
-
-    dims : int (optional, keyword-only)
-    learning_rate : float (optional, keyword-only)
-    sigma : float (optional, keyword-only)
-        Spread of the neighborhood function, needs to be adequate
-        to the dimensions of the map.
-        (at the iteration t we have sigma(t) = sigma / (1 + t/T)
-        where T is #num_iteration/2)
-    neighborhood_function : str (optional, keyword-only)
-    iterations : int (optional, keyword-only)
-
-    reorder : Sequence (optional, keyword-only)
-        If not None, the starting index.
-    plot : bool (optional, keyword-only)
-
-    Returns
-    -------
-    orders : Sequence
-        Shape (len(`random_seeds`), len(`data`))
-
-    """
-    if isinstance(
-        data,
-        (coord.SkyCoord, coord.BaseCoordinateFrame, coord.BaseRepresentation),
-    ):
-        rep = data.represent_as(coord.CartesianRepresentation)
-        data = rep._values.view("f8").reshape(-1, len(rep.components))
-    else:
-        raise TypeError
-
-    # -------
-
-    nrows = len(random_seeds)
-    orders = np.empty((nrows, len(data)), dtype=int)
-
-    iterator = tqdm(random_seeds) if _tqdm else random_seeds
-    for i, seed in enumerate(iterator):
-        visit_order = apply_SOM(
-            data,
-            learning_rate=learning_rate,
-            sigma=sigma,
-            iterations=iterations,
-            random_seed=seed,
-            reorder=None,
-            plot=False,
-        )
-
-        if reorder is not None:
-            order = reorder_visits(rep, visit_order, start_ind=reorder)
-
-        else:
-            order = visit_order
-
-        orders[i] = order
-
-    return orders
-
-
-# /def
+# def apply_SOM_repeat(
+#     data: DataType,
+#     random_seeds: T.Optional[T.Sequence[int]],
+#     *,
+#     dims: int = 1,
+#     learning_rate: float = 0.8,
+#     sigma: float = 4.0,
+#     iterations: int = 10000,
+#     reorder: T.Optional[T.Sequence] = True,
+#     plot: bool = False,
+#     _tqdm: bool = True,
+# ) -> T.Sequence[int]:
+#     """SOM Preprocess.
+#
+#     Parameters
+#     ----------
+#     data : BaseCoordinateFrame instance
+#     random_seeds: Sequence
+#         Random seeds to use.
+#
+#     dims : int (optional, keyword-only)
+#     learning_rate : float (optional, keyword-only)
+#     sigma : float (optional, keyword-only)
+#         Spread of the neighborhood function, needs to be adequate
+#         to the dimensions of the map.
+#         (at the iteration t we have sigma(t) = sigma / (1 + t/T)
+#         where T is #num_iteration/2)
+#     neighborhood_function : str (optional, keyword-only)
+#     iterations : int (optional, keyword-only)
+#
+#     reorder : Sequence (optional, keyword-only)
+#         If not None, the starting index.
+#     plot : bool (optional, keyword-only)
+#
+#     Returns
+#     -------
+#     orders : Sequence
+#         Shape (len(`random_seeds`), len(`data`))
+#
+#     """
+#     if isinstance(
+#         data,
+#         (coord.SkyCoord, coord.BaseCoordinateFrame, coord.BaseRepresentation),
+#     ):
+#         rep = data.represent_as(coord.CartesianRepresentation)
+#         data = rep._values.view("f8").reshape(-1, len(rep.components))
+#     else:
+#         raise TypeError
+#
+#     # -------
+#
+#     nrows = len(random_seeds)
+#     orders = np.empty((nrows, len(data)), dtype=int)
+#
+#     iterator = tqdm(random_seeds) if _tqdm else random_seeds
+#     for i, seed in enumerate(iterator):
+#         visit_order = apply_SOM(
+#             data,
+#             learning_rate=learning_rate,
+#             sigma=sigma,
+#             iterations=iterations,
+#             random_seed=seed,
+#             reorder=None,
+#             plot=False,
+#         )
+#
+#         if reorder is not None:
+#             order = reorder_visits(rep, visit_order, start_ind=reorder)
+#
+#         else:
+#             order = visit_order
+#
+#         orders[i] = order
+#
+#     return orders
+#
+#
+# # /def
 
 ##############################################################################
 # END

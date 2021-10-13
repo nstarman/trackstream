@@ -10,6 +10,10 @@ __all__ = [
     # modules
     "examples",
     "preprocess",
+    # classes
+    "Stream",
+    "TrackStream",
+    "StreamTrack",
     # instances
     "conf",
 ]
@@ -27,10 +31,8 @@ from . import core
 from . import example_data as examples
 from . import preprocess
 from .config import conf
-from .core import *  # noqa: F401, F403
-
-# ALL
-__all__ += core.__all__
+from .core import StreamTrack, TrackStream
+from .stream import Stream
 
 ##############################################################################
 # END

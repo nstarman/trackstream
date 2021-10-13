@@ -91,10 +91,12 @@ def plot_rotation_frame_residual(
 
     return fig
 
+
 # /def
 
 
 # -------------------------------------------------------------------
+
 
 def plot_SOM(data, order):
     """Plot SOM.
@@ -127,6 +129,7 @@ def plot_SOM(data, order):
     fig.tight_layout()
 
     return fig
+
 
 # /def
 

@@ -38,11 +38,26 @@ if HAS_LMFIT:
 
 
 ##############################################################################
+# PARAMETERS
+
+FT = T.TypeVar("FT")
+
+##############################################################################
 # CODE
 ##############################################################################
 
 
-def scipy_residual_to_lmfit(function=None, param_order=None):
+@T.overload
+def scipy_residual_to_lmfit(function: None, *, param_order: T.List[str]) -> functools.partial:
+    ...
+
+
+@T.overload
+def scipy_residual_to_lmfit(function: FT, *, param_order: T.List[str]) -> FT:
+    ...
+
+
+def scipy_residual_to_lmfit(function=None, *, param_order):
     """Decorator to make scipy residual functions compatible with lmfit.
 
     Parameters
@@ -53,20 +68,30 @@ def scipy_residual_to_lmfit(function=None, param_order=None):
         The variable order used by lmfit.
         Strings are the names of the lmfit parameters.
         Must be in the same order as the scipy residual function.
-    """
-    if param_order is None:
-        raise ValueError("`param_order` cannot be None")
 
+    Returns
+    -------
+    function : callable
+        The same as ``function``.
+    """
+    # allow for @-syntax
     if function is None:
         return functools.partial(scipy_residual_to_lmfit, param_order=param_order)
 
-    def lmfit(params, *args: T.Any, **kwargs: T.Any) -> T.Sequence:
-        """`lmfit` version of function."""
-        variables = [params[n].value for n in param_order]
+    def lmfit(params: T.Mapping[str, T.Any], *args: T.Any, **kwargs: T.Any) -> T.Sequence:
+        """:mod:`lmfit` version of function.
+
+        Parameters
+        ----------
+        params : `~lmfit.Parameters`
+        *args, **kwargs : Any
+        """
+        variables: T.List[T.Any] = [params[n].value for n in param_order]
         return function(variables, *args, **kwargs)
 
     # /def
 
+    # attach lmfit version to original function
     function.lmfit = lmfit
 
     return function
