@@ -77,9 +77,15 @@ def plot_rotation_frame_residual(
 
     else:
         im, norm = imshow_norm(res.T, ax=ax, aspect="auto", origin="lower")
-        ax.set_xlabel(r"10 * ($\theta$ + 180 [deg])")
+        # xticks
+        locs = ax.get_xticks()
+        xticks = [str(int(loc // 10)) for loc in locs]
+        plt.xticks(locs[1:-1], xticks[1:-1])
+        # labels
+        ax.set_xlabel(r"$\theta$ + 180 [deg]")
         ax.set_ylabel(r"phi2")
 
+        # colorbar
         cbar = fig.colorbar(im)
         cbar.ax.set_ylabel("residual")
 

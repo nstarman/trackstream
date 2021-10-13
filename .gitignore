@@ -4,7 +4,7 @@
 ###############################################################################
 # Project-Specific
 
-# Large Data Files
+# Data Files
 # ex: data/
 
 trackstream/extern/**/data/**/_*
@@ -12,17 +12,8 @@ trackstream/extern/**/data/**/_*
 # scratch folder
 scratch/
 
-# _old
-**/_old
-
-# templates
-*_template
-
 # scripts
 trackstream/scripts/**/output
-
-# Environments subfolders
-envs/*/**
 
 # comment when done with public projects
 notebooks/**/*.png

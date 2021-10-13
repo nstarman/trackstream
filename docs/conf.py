@@ -107,7 +107,6 @@ rst_epilog += """
 
 .. |NDArray| replace:: :class:`~numpy.ndarray`
 
-
 """
 
 # extensions

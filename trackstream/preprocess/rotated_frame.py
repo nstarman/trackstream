@@ -690,17 +690,15 @@ class FitResult:
 
     # /def
 
-    @property
+    @lazyproperty
     def fit_values(self):
-        return MappingProxyType(
-            dict(origin=self.origin, rotation=self.rotation),
-        )
+        return MappingProxyType(dict(origin=self.origin, rotation=self.rotation))
 
     # /def
 
     @lazyproperty
     def frame(self):
-        """SkyOffsetFrame."""
+        """`~astropy.coordinates.SkyOffsetFrame`."""
         # make frame  # TODO ensure same as `make_frame`
         frame = coord.SkyOffsetFrame(**self.fit_values)
         frame.differential_type = coord.SphericalCosLatDifferential
@@ -708,8 +706,9 @@ class FitResult:
 
     # /def
 
-    @property
+    @lazyproperty
     def residual(self):
+        """Fit result residual."""
         return np.abs(self.data.lat - 0.0)
 
     # /def
