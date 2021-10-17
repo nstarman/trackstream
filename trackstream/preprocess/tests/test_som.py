@@ -101,15 +101,91 @@ class TestSelfOrganizingMap1D:
         with pytest.raises(ValueError, match="shapes"):
             som._distance_from_weights(data[::2, ::2])
 
+    @pytest.mark.skip("TODO!")
     def test_pca_weights_init(self, som):
         """Test ``SelfOrganizingMap1D.pca_weights_init``."""
-        pass
+        assert False
 
+    @pytest.mark.skip("TODO!")
+    def test_binned_weights_init(self, som):
+        """Test ``SelfOrganizingMap1D.binned_weights_init``."""
+        assert False
+
+    @pytest.mark.skip("TODO!")
+    def test_quantization(self, som):
+        """Test ``SelfOrganizingMap1D.quantization``."""
+        assert False
+
+    @pytest.mark.skip("TODO!")
+    def test_quantization_error(self, som):
+        """Test ``SelfOrganizingMap1D.quantization_error``."""
+        assert False
+
+    @pytest.mark.skip("TODO!")
+    def test_train(self, som):
+        """Test :meth:`trackstream.preprocess.som.SelfOrganizingMap1D.train`."""
+        assert False
+
+    @pytest.mark.skip("TODO!")
     def test_neighborhood(self, som):
-        """Test :attr:`trackstream.preprocess.som.SelfOrganizingMap1D.neighborhood`."""
+        """Test :meth:`trackstream.preprocess.som.SelfOrganizingMap1D.neighborhood`."""
         som.neighborhood(10, 0.3)
         assert False
 
+    @pytest.mark.skip("TODO!")
+    def test_update(self, som):
+        """Test :meth:`trackstream.preprocess.som.SelfOrganizingMap1D.update`."""
+        assert False
+
+    @pytest.mark.skip("TODO!")
+    def test_winner(self, som):
+        """Test :meth:`trackstream.preprocess.som.SelfOrganizingMap1D.winner`."""
+        assert False
+
+
+# /class
+
+#####################################################################
+
+
+@pytest.mark.parametrize("learning_rate", [0, 1, 2])
+@pytest.mark.parametrize("iteration", [0, 1, 2])
+@pytest.mark.parametrize("max_iter", [10, 10, 10])
+def test_asymptotic_decay(learning_rate, iteration, max_iter):
+    """Test :func:`trackstream.preprocess.som.asymptotic_decay`."""
+    expected = learning_rate / (1.0 + (2.0 * iteration / max_iter))
+    got = asymptotic_decay(learning_rate, iteration, max_iter)
+    assert got == expected
+
+
+# /def
+
+
+@pytest.mark.skip("TODO!")
+def test_reorder_visits():
+    """Test :func:`trackstream.preprocess.som.reorder_visits`."""
+    assert False
+
+
+# /def
+
+
+@pytest.mark.skip("TODO!")
+def test_prepare_SOM():
+    """Test :func:`trackstream.preprocess.som.prepare_SOM`."""
+    assert False
+
+
+# /def
+
+
+@pytest.mark.skip("TODO!")
+def test_order_data():
+    """Test :func:`trackstream.preprocess.som.order_data`."""
+    assert False
+
+
+# /def
 
 ##############################################################################
 # END

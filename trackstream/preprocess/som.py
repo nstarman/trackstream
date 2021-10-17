@@ -242,6 +242,8 @@ class SelfOrganizingMap1D:
         # TODO! just self._weights b/c 1D
         self._weights[0] = res.statistic.T
 
+    # /def
+
     def quantization(self, data):
         """Assigns a code book (weights vector of the winning neuron)
         to each sample in data.
@@ -252,8 +254,10 @@ class SelfOrganizingMap1D:
     # /def
 
     def quantization_error(self, data):
-        """Returns the quantization error computed as the average
-        distance between each input sample and its best matching unit."""
+        """
+        Returns the quantization error computed as the average
+        distance between each input sample and its best matching unit.
+        """
         return linalg.norm(data - self.quantization(data), axis=1).mean()
 
     # /def
@@ -355,7 +359,7 @@ class SelfOrganizingMap1D:
 # -------------------------------------------------------------------
 
 
-def asymptotic_decay(learning_rate: float, iteration: int, max_iter: float):
+def asymptotic_decay(learning_rate: float, iteration: int, max_iter: float) -> float:
     """Decay function of the learning process.
 
     Parameters

@@ -16,14 +16,19 @@ import typing as T
 
 # THIRD PARTY
 import astropy.coordinates as coord
+import astropy.table as table
 import astropy.units as u
 import numpy as np
-from astropy.table import QTable
+from astropy.coordinates import BaseCoordinateFrame
+from astropy.utils.metadata import MetaAttribute, MetaData
 from astropy.utils.misc import indent
 
 # LOCAL
 from . import _type_hints as TH
 from .stream import Stream
+from trackstream.preprocess.rotated_frame import FitResult, RotatedFrameFitter
+from trackstream.preprocess.som import order_data, prepare_SOM
+from trackstream.utils.path import Path
 
 ##############################################################################
 # CODE
@@ -37,14 +42,8 @@ class TrackStream:
 
     Parameters
     ----------
-    arm1SOM : `~trackstream.preprocess.SelfOrganizingMap` or None (optional, keyword-only)
-    arm2SOM : `~trackstream.preprocess.SelfOrganizingMap` or None (optional, keyword-only)
-
-    Notes
-    -----
-    This method brings together a few different classes and techniques.
-    More granular control can be achieved by using each piece separately.
-
+    arm1SOM, arm2SOM : `~trackstream.preprocess.SelfOrganizingMap` or None (optional, keyword-only)
+        Fiducial SOMs for stream arms 1 and 2, respectively.
     """
 
     def __init__(self, *, arm1SOM=None, arm2SOM=None):
@@ -52,62 +51,9 @@ class TrackStream:
 
         # ----------
         # SOM
+
         self._arm1_SOM = arm1SOM
         self._arm2_SOM = arm2SOM
-
-        # self.visit_order = None
-
-    #         super().__init__()
-    #
-    #         self.origin: TH.SkyCoordType = coord.SkyCoord(origin, copy=False)
-    #         self.frame: T.Optional[TH.FrameType] = frame
-    #
-    #         # ----------
-    #         # process the data
-    #         # The data is stored as a Representation object, the error as a QTable
-    #         # ----------
-    #         # SOM
-    #
-    #         self.SOM = None
-    #         self.visit_order = None
-    #
-    #         # Step 1) Convert to Representation, storing the Frame type
-    #         # Step 2) Convert to CartesianRepresentation, storing the Rep type
-    #         if isinstance(data, coord.BaseCoordinateFrame):
-    #             self._data_frame = data.replicate_without_data()
-    #             self._data_rep = data.representation_type
-    #             self._data = data._data
-    #         elif isinstance(data, coord.BaseRepresentation):
-    #             self._data_frame = coord.BaseCoordinateFrame()
-    #             self._data_rep = data.__class__
-    #             self._data = data
-    #         else:
-    #             raise TypeError(f"`data` type <{type(data)}> is wrong.")
-    #         # /if
-    #
-    #         # Step 3) Convert to Cartesian Representation
-    #         data = data.represent_as(coord.CartesianRepresentation)
-    #
-    #         # Step 4) Get the errors
-    #         # The data does not have errors, we need to construct it here.
-    #         err_colnames = ["x_err", "y_err", "z_err"]
-    #         if data_err is None:  # make a table matching data with errors of 0
-    #             data_err = QTable(np.zeros((len(data), 3)), names=err_colnames)
-    #         else:  # there are provided errors
-    #             # check has correct columns
-    #             if not set(err_colnames).issubset(data_err.colnames):
-    #                 raise ValueError(
-    #                     f"data_err does not have columns {err_colnames}",
-    #                 )
-    #
-    #         self.data_err = data_err
-    #         self.orig_data = data
-    #         self.data = data
-    #
-    #         # ----------
-    #         # SOM
-
-    # /def
 
     # ===============================================================
     # Fit
@@ -252,7 +198,7 @@ class TrackStream:
 
         # then we need to change the visit order to
         # be applied to the original data, not ordered by lon
-        # visit_order = order_by_lon[visit_order]
+        # visit_order = order_by_lon[visit_order]  # FIXME!
 
         # ----------------------------
         # TODO! transition matrix
@@ -296,19 +242,19 @@ class TrackStream:
 
         # 1) Already provided or in cache.
         #    Either way, don't need to repeat the process.
-        frame = stream._system_frame  # can be None
-        frame_fit = self._cache.get("frame_fit", None)
+        frame: T.Optional[BaseCoordinateFrame] = stream._system_frame
+        frame_fit: T.Optional[FitResult] = self._cache.get("frame_fit", None)
 
         # 2) Fit (& cache), if still None.
         #    This can be turned off using `fit_frame_if_needed`, but is probably
         #    more important than the following step of the SOM.
         if frame is None and fit_frame_if_needed:
-            rotated_frame_fit_kw = rotated_frame_fit_kw or {}
-            frame, frame_fit = self._fit_rotated_frame(stream, **rotated_frame_fit_kw)
+            kw: dict = rotated_frame_fit_kw or {}
+            frame, frame_fit = self._fit_rotated_frame(stream, **kw)
 
         # 3) if it's still None, give up
         if frame is None:
-            frame = stream.data_coord.frame.replicate_without_data()
+            frame: BaseCoordinateFrame = stream.data_coord.frame.replicate_without_data()
             frame_fit = None
 
         # Cache the fit frame on the stream. This is used for transforming the
@@ -319,14 +265,16 @@ class TrackStream:
         stream._cache["frame"] = frame
 
         # get arms, in frame
-        # do this after caching b/c coords_arm1 can use the cache
-        arm1 = stream.coords_arm1.transform_to(frame)
-        arm2 = stream.coords_arm2.transform_to(frame)
+        # do this after caching b/c coords can use the cache
+        arm1: coord.SkyCoord = stream.arm1.coords
+        arm2: coord.SkyCoord = stream.arm2.coords
 
         # -------------------
         # Self-Organizing Map
         # Unlike the previous step, we must do this for both arms.
 
+        # -----
+        # Arm 1
         som = self._arm1_SOM
         visit_order = None
 
@@ -341,6 +289,8 @@ class TrackStream:
         # 3) if it's still None, give up
         if visit_order is None:
             visit_order = np.argsort(arm1.lon)
+        visit_order = np.array(visit_order, dtype=int)
+
         # now rearrange the data
         arm1 = arm1[visit_order]
 
@@ -348,8 +298,8 @@ class TrackStream:
         self._cache["arm1_visit_order"] = visit_order
         self._cache["arm1_SOM"] = som
 
-        # Arm 2
         # -----
+        # Arm 2  (if not none)
         som = self._arm2_SOM
         visit_order = None
 
@@ -366,6 +316,8 @@ class TrackStream:
             # 3) if it's still None, give up
             if visit_order is None:
                 visit_order = np.argsort(arm2.lon)
+            visit_order = np.array(visit_order, dtype=int)
+
             # now rearrange the data
             arm2 = arm2[visit_order]
 
@@ -376,6 +328,8 @@ class TrackStream:
         self._cache["arm2_SOM"] = som
 
         # -------------------
+
+        return 22
 
         # -------------------
         # Combine together into a single path
@@ -432,6 +386,61 @@ class TrackStream:
 
 
 # /class
+
+
+# self.visit_order = None
+
+#         super().__init__()
+#
+#         self.origin: TH.SkyCoordType = coord.SkyCoord(origin, copy=False)
+#         self.frame: T.Optional[TH.FrameType] = frame
+#
+#         # ----------
+#         # process the data
+#         # The data is stored as a Representation object, the error as a QTable
+#         # ----------
+#         # SOM
+#
+#         self.SOM = None
+#         self.visit_order = None
+#
+#         # Step 1) Convert to Representation, storing the Frame type
+#         # Step 2) Convert to CartesianRepresentation, storing the Rep type
+#         if isinstance(data, coord.BaseCoordinateFrame):
+#             self._data_frame = data.replicate_without_data()
+#             self._data_rep = data.representation_type
+#             self._data = data._data
+#         elif isinstance(data, coord.BaseRepresentation):
+#             self._data_frame = coord.BaseCoordinateFrame()
+#             self._data_rep = data.__class__
+#             self._data = data
+#         else:
+#             raise TypeError(f"`data` type <{type(data)}> is wrong.")
+#         # /if
+#
+#         # Step 3) Convert to Cartesian Representation
+#         data = data.represent_as(coord.CartesianRepresentation)
+#
+#         # Step 4) Get the errors
+#         # The data does not have errors, we need to construct it here.
+#         err_colnames = ["x_err", "y_err", "z_err"]
+#         if data_err is None:  # make a table matching data with errors of 0
+#             data_err = QTable(np.zeros((len(data), 3)), names=err_colnames)
+#         else:  # there are provided errors
+#             # check has correct columns
+#             if not set(err_colnames).issubset(data_err.colnames):
+#                 raise ValueError(
+#                     f"data_err does not have columns {err_colnames}",
+#                 )
+#
+#         self.data_err = data_err
+#         self.orig_data = data
+#         self.data = data
+#
+#         # ----------
+#         # SOM
+
+# /def
 
 
 ##############################################################################

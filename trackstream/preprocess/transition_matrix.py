@@ -19,14 +19,6 @@ import warnings
 import numpy as np
 from scipy import sparse
 
-# LOCAL
-from trackstream.config import conf
-from trackstream.setup_package import HAS_MINISOM
-
-if conf.use_minisom:
-    if not HAS_MINISOM:
-        warnings.warn("Can't find MiniSOM, falling back to built-in SOM.")
-
 ##############################################################################
 # CODE
 ##############################################################################
