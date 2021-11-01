@@ -77,6 +77,64 @@ class TestStream:
         assert isinstance(stream.data, table.Table)
 
     # -------------------------------------------
+    # arm1
+
+    def test_arm1_index(self, stream):
+        expected = stream.data["tail"] == "arm1"
+        got = stream.arm1.index
+        assert all(got == expected)
+
+    def test_arm1_has_data(self, stream):
+        expected = any(stream.data["tail"] == "arm1")
+        got = stream.arm1.has_data
+        assert got == expected
+
+    def test_arm1_data(self, stream):
+        if not stream.arm1.has_data:
+            with pytest.raises(Exception, match="no arm 1"):
+                stream.arm1.data
+        else:
+            index = stream.data["tail"] == "arm1"
+            expected = stream.data[index]
+            got = stream.arm1.data
+            assert all(got == expected)
+
+    # -------------------------------------------
+    # arm2
+
+    def test_arm2_coords(self, stream):
+        index = stream.data["tail"] == "arm2"
+        expected = stream.coords[index]
+        got = stream.arm2.coords
+        assert all(got == expected)
+
+    def test_arm2_index(self, stream):
+        expected = stream.data["tail"] == "arm2"
+        got = stream.arm2.index
+        assert all(got == expected)
+
+    def test_arm2_has_data(self, stream):
+        expected = any(stream.data["tail"] == "arm2")
+        got = stream.arm2.has_data
+        assert got == expected
+
+    def test_arm2_data(self, stream):
+        if not stream.arm2.has_data:
+            with pytest.raises(Exception, match="no arm 1"):
+                stream.arm2.data
+        else:
+            index = stream.data["tail"] == "arm2"
+            expected = stream.data[index]
+            got = stream.arm2.data
+            assert all(got == expected)
+
+    def test_arm2_coords(self, stream):
+        index = stream.data["tail"] == "arm2"
+        expected = stream.coords[index]
+        got = stream.arm2.coords
+        assert all(got == expected)
+
+    # -------------------------------------------
 
     def test_system_frame(self, stream):
         """Test system-centric frame."""
@@ -92,15 +150,8 @@ class TestStream:
         assert stream.frame is stream.system_frame
 
     def test_number_of_tails(self, stream):
-        assert stream.number_of_tails == 2 if (stream.has_arm1 and stream.has_arm2) else 1
-
-    def test_has_arm1(self, stream):
-        flags = np.unique(stream.data["tail"])
-        assert stream.has_arm1 is True if "arm_1" in flags else False
-
-    def test_has_arm2(self, stream):
-        flags = np.unique(stream.data["tail"])
-        assert stream.has_arm2 is True if "arm_2" in flags else False
+        expect = 2 if (stream.arm1.has_data and stream.arm2.has_data) else 1
+        assert stream.number_of_tails == expect
 
     def test_coords(self, stream):
         assert isinstance(stream.coords, coord.SkyCoord)
@@ -108,24 +159,7 @@ class TestStream:
         frame = stream.system_frame if stream.system_frame is not None else stream.data_frame
         assert np.all(stream.coords == stream.data_coords.transform_to(frame))
 
-    def test_coords_arm1(self, stream):
-        got = stream.coords_arm1
-        if stream.number_of_tails == 2:
-            assert np.all(got == stream.coords[stream.data["tail"] == "arm_1"])
-        else:
-            assert got is stream.coords
-
-    def test_coords_arm2(self, stream):
-        got = stream.coords_arm2
-        if stream.has_arm2:
-            assert np.all(got == stream.coords[stream.data["tail"] == "arm_2"])
-        else:
-            assert got is None
-
     # -------------------------------------------
-
-    # def test_original_data(self, stream):
-    #     assert stream.original_data == stream._data_frame.realize_frame(stream._data)
 
     def test_data_coords(self, stream):
         assert np.all(stream.data_coords == stream.data["coord"])
@@ -150,7 +184,24 @@ class TestStream:
             stream.fit_track()
 
         # now guaranteed to have a working track
-        assert isinstance(stream.track, StreamTrack)
+        # assert isinstance(stream.track, StreamTrack)
+
+        # TODO! more tests
+
+    def test_fit_track(self, stream):
+        """Test fit stream track."""
+        if "track" not in stream._cache:
+            stream.fit_track(force=True)
+
+        # a track is already fit
+        # not force
+        with pytest.raises(Exception, match="already fit"):
+            stream.fit_track()
+
+        # testing a forced fit
+        track = stream.fit_track(force=True)
+
+        assert track is stream._cache["track"]
 
         # TODO! more tests
 

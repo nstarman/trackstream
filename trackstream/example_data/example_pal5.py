@@ -37,7 +37,7 @@ def make_example_pal5_data() -> None:
 
     # read data
     table = QTable.read(
-        get_pkg_data_filename("Vasiliev18_table.ecsv", package="trackstream.example_data")
+        get_pkg_data_filename("Vasiliev18_table.ecsv", package="trackstream.example_data"),
     )
     table.add_index("Name")
 

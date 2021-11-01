@@ -27,7 +27,7 @@ from astropy.utils.misc import indent
 from . import _type_hints as TH
 from .stream import Stream
 from trackstream.preprocess.rotated_frame import FitResult, RotatedFrameFitter
-from trackstream.preprocess.som import order_data, prepare_SOM
+from trackstream.preprocess.som import order_data, prepare_SOM, reorder_visits
 from trackstream.utils.path import Path
 
 ##############################################################################
@@ -329,7 +329,7 @@ class TrackStream:
 
         # -------------------
 
-        return 22
+        return "TODO"  # TODO!
 
         # -------------------
         # Combine together into a single path
@@ -377,9 +377,9 @@ class TrackStream:
 
     # /def
 
-    def fit_predict(self, arc_length, **fit_kwargs):
+    def fit_predict(self, stream, arc_length, **fit_kwargs):
         """Fit and Predict."""
-        self.fit(**fit_kwargs)
+        self.fit(stream, **fit_kwargs)
         return self.predict(arc_length)
 
     # /def

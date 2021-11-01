@@ -387,9 +387,7 @@ class InterpolatedRepresentationOrDifferential:
         ):
             raise ValueError("Must instantiate `rep`.")
         elif not isinstance(rep, coord.BaseRepresentationOrDifferential):
-            raise TypeError(
-                "`rep` must be a `BaseRepresentationOrDifferential`.",
-            )
+            raise TypeError("`rep` must be a `BaseRepresentationOrDifferential`.")
 
         # Affine parameter
         affine = u.Quantity(affine, copy=False)  # ensure Quantity
@@ -452,24 +450,17 @@ class InterpolatedRepresentationOrDifferential:
                     # store in place of original
                     self.data.differentials[k] = dif
 
-        # /if
-
-    # /def
-
     @property
     def affine(self):  # read-only
         return self._affine
 
     @property
     def _class_(self):
+        """Get this object's true class, not the un-interpolated class."""
         return object.__class__(self)
 
-    # /def
-
-    def _realize_class(self, *args):
-        return self._class_(*args, derivative_type=self.derivative_type, **self._interp_kwargs)
-
-    # /def
+    def _realize_class(self, rep, affine):
+        return self._class_(rep, affine, derivative_type=self.derivative_type, **self._interp_kwargs)
 
     #################################################################
     # Interpolation Methods
@@ -667,8 +658,8 @@ class InterpolatedRepresentationOrDifferential:
 
     # /def
 
-    def _scale_operation(self, op, *args):
-        rep = self.data._scale_operation(op, *args)
+    def _scale_operation(self, op, *args, scaled_base=False):
+        rep = self.data._scale_operation(op, *args, scaled_base=scaled_base)
 
         return self._realize_class(rep, self.affine)
 
@@ -1232,7 +1223,9 @@ class InterpolatedCartesianRepresentation(InterpolatedRepresentation):
 
         return self._realize_class(newrep, self.affine)
 
-    # /def
+    def _scale_operation(self, op, *args):
+        rep = self.data._scale_operation(op, *args)
+        return self._realize_class(rep, self.affine)
 
 
 # /class
@@ -1452,8 +1445,8 @@ class InterpolatedCoordinateFrame:
 
     # /def
 
-    def _realize_class(self, *args):
-        return self._class_(*args, affine=self.affine, **self._interp_kwargs)
+    def _realize_class(self, data):
+        return self._class_(data, affine=self.affine, **self._interp_kwargs)
 
     # /def
 

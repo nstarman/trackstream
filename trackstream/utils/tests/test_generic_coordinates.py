@@ -17,7 +17,6 @@ import astropy.units as u
 import pytest
 
 # LOCAL
-from trackstream.tests.helper import BaseClassDependentTests
 from trackstream.utils import generic_coordinates as gcoord
 
 ##############################################################################
@@ -52,46 +51,38 @@ def test__GENERIC_REGISTRY():
 #####################################################################
 
 
-class Test_GenericRepresentation(
-    BaseClassDependentTests,
-    klass=gcoord.GenericRepresentation,
-):
+class Test_GenericRepresentation:
     """Test :class:`~{package}.{klass}`."""
 
-    @classmethod
-    def setup_class(cls):
-        """Setup fixtures for testing."""
-        if not issubclass(cls.klass, gcoord.GenericRepresentation):
-            cls.inst = cls.klass()
+    @pytest.fixture
+    def rep_cls(self):
+        return gcoord.GenericRepresentation
 
-        else:
+    # @pytest.fixture
+    # def rep(self, rep_cls):
+    #     return rep_cls(q1=1, q2=2, q3=3)
+    @pytest.fixture
+    def rep(self, rep_cls):
+        class GenericRepresentationSubClass(rep_cls):
+            attr_classes = dict(q1=u.Quantity, q2=u.Quantity, q3=u.Quantity)
 
-            class GenericRepresentationSubClass(cls.klass):
-                attr_classes = dict(
-                    q1=u.Quantity,
-                    q2=u.Quantity,
-                    q3=u.Quantity,
-                )
+            def from_cartesian(self):
+                pass
 
-                def from_cartesian(self):
-                    pass
+            def to_cartesian(self):
+                pass
 
-                def to_cartesian(self):
-                    pass
-
-            cls.inst = GenericRepresentationSubClass(q1=1, q2=2, q3=3)
-
-    # /def
+        return GenericRepresentationSubClass(q1=1, q2=2, q3=3)
 
     # -------------------------------
 
-    def test_attr_classes(self):
+    def test_attr_classes(self, rep_cls, rep):
         """Test attribute ``attr_classes``."""
         # works as class attribute
-        assert tuple(self.klass.attr_classes.keys()) == ("q1", "q2", "q3")
+        assert tuple(rep_cls.attr_classes.keys()) == ("q1", "q2", "q3")
 
         # works as instance attribute
-        assert tuple(self.inst.attr_classes.keys()) == ("q1", "q2", "q3")
+        assert tuple(rep.attr_classes.keys()) == ("q1", "q2", "q3")
 
     # /def
 
@@ -133,42 +124,42 @@ def test__make_generic_representation():
 #####################################################################
 
 
-class Test_GenericDifferential(
-    BaseClassDependentTests,
-    klass=gcoord.GenericDifferential,
-):
+class TestGenericDifferential:
     """Test :class:`~{package}.{klass}`."""
 
-    @classmethod
-    def setup_class(cls):
-        """Setup fixtures for testing."""
-        if not issubclass(cls.klass, gcoord.GenericDifferential):
-            cls.inst = cls.klass()
+    @pytest.fixture
+    def rep_cls(self):
+        return gcoord.GenericRepresentation
 
-        else:
+    @pytest.fixture
+    def dif_cls(self):
+        return gcoord.GenericDifferential
 
-            class GenericDifferentialSubClass(cls.klass):
-                base_representation = gcoord.GenericRepresentation
+    # @pytest.fixture
+    # def dif(self, dif_cls):
+    #     return dif_cls(d_q1=1, d_q2=2, d_q3=3)
+    @pytest.fixture
+    def dif(self, dif_cls, rep_cls):
+        class GenericDifferentialSubClass(dif_cls):
+            base_representation = rep_cls
 
-                def from_cartesian(self):
-                    pass
+            def from_cartesian(self):
+                pass
 
-                def to_cartesian(self):
-                    pass
+            def to_cartesian(self):
+                pass
 
-            cls.inst = GenericDifferentialSubClass(d_q1=1, d_q2=2, d_q3=3)
-
-    # /def
+        return GenericDifferentialSubClass(d_q1=1, d_q2=2, d_q3=3)
 
     # -------------------------------
 
-    def test_base_representation(self):
+    def test_base_representation(self, dif_cls, dif):
         """Test attribute ``attr_classes``."""
         # works as class attribute
-        assert self.klass.base_representation == gcoord.GenericRepresentation
+        assert dif_cls.base_representation == gcoord.GenericRepresentation
 
         # works as instance attribute
-        assert self.inst.base_representation == gcoord.GenericRepresentation
+        assert dif.base_representation == gcoord.GenericRepresentation
 
     # /def
 

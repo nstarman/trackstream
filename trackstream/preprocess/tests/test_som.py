@@ -33,7 +33,10 @@ class TestSelfOrganizingMap1D:
     @pytest.fixture
     def som(self):
         return self.som_cls(
-            self.nlattice, self.nfeature, sigma=self.sigma, learning_rate=self.learning_rate
+            self.nlattice,
+            self.nfeature,
+            sigma=self.sigma,
+            learning_rate=self.learning_rate,
         )
 
     # ===============================================================

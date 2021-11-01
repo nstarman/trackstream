@@ -17,7 +17,7 @@ __all__ = [
     "SelfOrganizingMap1D",
     # functions
     # "apply_SOM",
-    "apply_SOM_repeat",
+    # "apply_SOM_repeat",
     "prepare_SOM",
     "order_data",
     "reorder_visits",

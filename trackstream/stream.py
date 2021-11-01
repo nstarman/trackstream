@@ -162,16 +162,20 @@ class Stream:
     # -----------------------------------------------------
 
     @property
-    def system_frame(self) -> coord.BaseCoordinateFrame:
+    def system_frame(self) -> T.Optional[coord.BaseCoordinateFrame]:
         """A system-centric frame.
 
         Determined from the argument ``frame`` at initialization.
         If None (default) and the method ``fit`` has been called,
         then a system frame has been found and cached.
         """
-        frame: coord.BaseCoordinateFrame = (
-            self._system_frame if self._system_frame is not None else self._cache.get("frame", None)
-        )
+        frame: T.Optional[coord.BaseCoordinateFrame]
+
+        if self._system_frame is not None:
+            frame = self._system_frame
+        else:
+            frame = self._cache.get("frame", None)
+
         return frame
 
     # /def
@@ -199,7 +203,11 @@ class Stream:
     @lazyproperty
     def coords(self) -> coord.SkyCoord:
         """Coordinates."""
-        frame = self.system_frame if self.system_frame is not None else self.data_frame
+        frame: coord.SkyCoord
+        if self.system_frame is not None:
+            frame = self.system_frame
+        else:
+            frame = self.data_frame
         return self.data_coords.transform_to(frame)
 
     # /def
