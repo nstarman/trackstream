@@ -28,9 +28,9 @@ from scipy.linalg import block_diag
 
 # LOCAL
 from . import _type_hints as TH
-from trackstream.utils._framelike import resolve_framelike
+from trackstream.utils import resolve_framelike
+from trackstream.utils.misc import intermix_arrays
 from trackstream.utils.path import Path
-from trackstream.utils.utils import intermix_arrays
 
 ##############################################################################
 # CODE

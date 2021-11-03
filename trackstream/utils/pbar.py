@@ -24,7 +24,7 @@ if HAS_TQDM:
 
 
 class _NoOpPBar(object):
-    """This class implements the progress bar interface but does nothing"""
+    """This class implements the progress bar interface but does nothing."""
 
     def __init__(self):
         pass
@@ -39,34 +39,27 @@ class _NoOpPBar(object):
         pass
 
 
-# -------------------------------------------------------------------
-
-
 def get_progress_bar(display, total):
-    """Get a progress bar interface with given properties
+    """Get a progress bar.
 
-    If the tqdm library is not installed, this will always return a "progress
-    bar" that does nothing.
+    If :mod:`tqdm` is not installed, this will return a no-op.
+    Function modified from :mod:`~emcee`.
 
-    Args:
-        display (bool or str): Should the bar actually show the progress? Or a
-                               string to indicate which tqdm bar to use.
-        total (int): The total size of the progress bar.
+    Parameters
+    ----------
+    display : bool or str
+        Should the bar actually show the progress?
+        Or a string to indicate which tqdm bar to use.
+    total : int
+        The total size of the progress bar.
 
     """
-    if display:
-        if not HAS_TQDM:
-            logging.warning(
-                "You must install the tqdm library to use progress " "indicators with emcee",
-            )
-            return _NoOpPBar()
-        else:
-            if display is True:
-                return tqdm.tqdm(total=total)
-            else:
-                return getattr(tqdm, "tqdm_" + display)(total=total)
-
-    return _NoOpPBar()
-
-
-# /def
+    if not display:
+        return _NoOpPBar()
+    elif not HAS_TQDM:
+        logging.warning("You must install the tqdm library to have progress bars.")
+        return _NoOpPBar()
+    elif display:
+        return tqdm.tqdm(total=total)
+    else:
+        return getattr(tqdm, "tqdm_" + display)(total=total)

@@ -3,29 +3,28 @@
 """Utilities for :mod:`~trackstream.utils`."""
 
 
-__all__ = [
-    "intermix_arrays",
-    "make_shuffler",
-]
+__all__ = ["intermix_arrays", "make_shuffler"]
 
 
 ##############################################################################
 # IMPORTS
 
 # STDLIB
+import functools
 import typing as T
 
 # THIRD PARTY
+import astropy.units as u
 import numpy as np
+from astropy.coordinates import BaseCoordinateFrame, SkyCoord, sky_coordinate_parsers
+from numpy.random import Generator
 
-##############################################################################
-# PARAMETERS
-
+# LOCAL
+from trackstream.config import conf
 
 ##############################################################################
 # CODE
 ##############################################################################
-
 
 # TODO stride option for block sizes
 def intermix_arrays(*arrs: T.Sequence, axis=-1):
@@ -81,24 +80,16 @@ def intermix_arrays(*arrs: T.Sequence, axis=-1):
     return np.array(arrs).T.flatten().reshape(shape)
 
 
-# /def
-
-
-# -------------------------------------------------------------------
-
-
 def make_shuffler(
-    length: int,
-    rng=None,
-) -> T.Tuple[T.Sequence[int], T.Sequence[int]]:
-    """
-    Shuffle and Unshuffle arrays.
+    length: int, rng: T.Optional[Generator] = None
+) -> T.Tuple[np.ndarray, np.ndarray]:
+    """Shuffle and Unshuffle arrays.
 
     Parameters
     ----------
     length : int
         Array length for which to construct (un)shuffle arrays.
-    rng : :class:`~numpy.random.Generator` instance, optional
+    rng : `~numpy.random.Generator`, optional
         random number generator.
 
     Returns
@@ -111,10 +102,7 @@ def make_shuffler(
 
     """
     if rng is None:
-        try:
-            rng = np.random.default_rng()
-        except AttributeError:
-            rng = np.random
+        rng = np.random.default_rng()
 
     # start with index array
     shuffler = np.arange(length)
@@ -126,8 +114,6 @@ def make_shuffler(
 
     return shuffler, undo
 
-
-# /def
 
 ##############################################################################
 # END

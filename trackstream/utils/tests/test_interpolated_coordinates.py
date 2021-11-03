@@ -45,17 +45,11 @@ def test_find_first_best_compatible_differential():
     assert dif is coord.CartesianDifferential
 
     # ----------------------------
-    # test when it doesn't
+    # TODO! test when it doesn't
     # rep = coord.CartesianRepresentation(x=1, y=2, z=3)
     # # find differential
     # dif = icrd_cls(rep)
     # assert dif is coord.CartesianDifferential
-
-
-# /class
-
-
-#####################################################################
 
 
 def test_infer_derivative_type():
@@ -87,14 +81,10 @@ def test_infer_derivative_type():
     assert dif is coord.CartesianDifferential
 
 
-# /class
-
-
 #####################################################################
 
 
 class InterpolatedCoordinatesBase:
-    
     @pytest.fixture
     def num(self):
         return 40
@@ -126,7 +116,7 @@ class InterpolatedCoordinatesBase:
             x=np.linspace(0, 1, num=num) * u.kpc,
             y=np.linspace(1, 2, num=num) * u.kpc,
             z=np.linspace(2, 3, num=num) * u.kpc,
-            differentials=dif
+            differentials=dif,
         )
         return rep
 
@@ -326,8 +316,12 @@ class Test_InterpolatedRepresentationOrDifferential(InterpolatedCoordinatesBase)
         newrep = irep._scale_operation(operator.mul, 1.1)
 
         # comparisons are wonky when differentials are attached
-        assert np.all(newrep.data.without_differentials() == 1.1 * irep.data.without_differentials())
-        assert np.all(newrep.data.differentials["s"].data == 1.1 * irep.data.differentials["s"].data)
+        assert np.all(
+            newrep.data.without_differentials() == 1.1 * irep.data.without_differentials()
+        )
+        assert np.all(
+            newrep.data.differentials["s"].data == 1.1 * irep.data.differentials["s"].data
+        )
 
     def test___add__(self, irep) -> None:
         """Test method ``__add__``."""
@@ -741,7 +735,7 @@ class Test_InterpolatedDifferential(Test_InterpolatedRepresentationOrDifferentia
 
         got = idif.represent_as(
             coord.PhysicsSphericalDifferential,
-            base=coord.PhysicsSphericalRepresentation(0 * u.rad, 0 * u.rad, 0 * u.km)
+            base=coord.PhysicsSphericalRepresentation(0 * u.rad, 0 * u.rad, 0 * u.km),
         )
 
         assert isinstance(got, coord.PhysicsSphericalDifferential)

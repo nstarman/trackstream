@@ -1,16 +1,8 @@
 # -*- coding: utf-8 -*-
 
-"""Path are an affine-parameterized path.
+"""Path are an affine-parameterized path."""
 
-.. todo::
-
-    Move this elsewhere: utils? or systems.utils?
-
-"""
-
-__all__ = [
-    "Path",
-]
+__all__ = ["Path"]
 
 
 ##############################################################################
@@ -24,13 +16,13 @@ import typing as T
 import astropy.coordinates as coord
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import BaseCoordinateFrame
+from astropy.coordinates import BaseCoordinateFrame, SkyCoord
 
 # LOCAL
 from .interpolate import InterpolatedUnivariateSplinewithUnits as IUSU
 from .interpolated_coordinates import InterpolatedCoordinateFrame, InterpolatedSkyCoord
 from trackstream._type_hints import FrameLikeType, QuantityType
-from trackstream.utils._framelike import resolve_framelike
+from trackstream.utils import resolve_framelike
 
 ##############################################################################
 # CODE
@@ -98,21 +90,20 @@ class Path:
         # -----------------------
         # Frame, name, & metadata
 
+        self._name = name
+
         if frame is None:
             # unless `path` has a frame (is not `BaseRepresentation`).
             if isinstance(path, BaseCoordinateFrame):
                 frame = path.replicate_without_data()
-            elif hasattr(path, "frame"):  # things like SkyCoord
+            elif isinstance(path, SkyCoord):  # things like SkyCoord
                 frame = path.frame.replicate_without_data()
-
-        self.name = name
         self._frame = resolve_framelike(frame)  # (an instance, not class)
-        # self.meta.update(meta)
 
         # --------------
         # path
 
-        self._original_path = path.copy()  # original path. For safekeeping.
+        self._original_path = path.copy()  # original path, for safekeeping.
 
         # options are: BaseRepresentation, InterpolatedRepresentation
         #              BaseCoordinateFrame, InterpolatedCoordinateFrame
@@ -136,28 +127,24 @@ class Path:
         if width is not None:
             self._initialize_width(path, width)
 
-    # /def
+    @property
+    def name(self):
+        return self._name
 
     @property  # read-only
     def frame(self):
         """The preferred frame (instance) of the Footprint."""
         return self._frame
 
-    # /def
-
     @property
     def path(self):
         """The path, protected."""
         return self._path
 
-    # /def
-
     @property
     def affine(self):
         """Affine parameter along ``path``."""
         return self.path.affine
-
-    # /def
 
     # ---------------------------------------------------------------
 
@@ -190,14 +177,10 @@ class Path:
         self._original_width = copy.deepcopy(o_w)
         self._width_fn = width
 
-    # /def
-
     def width(self, affine: T.Optional[QuantityType] = None):
         if affine is None:
             affine = self.affine
         return self._width_fn(u.Quantity(affine, copy=False))
-
-    # /def
 
     #################################################################
     # Math on the Track!
@@ -209,8 +192,6 @@ class Path:
         # TODO allow for higher moments
 
         return meanpath, width  # TODO! see FootprintsPackage
-
-    # /def
 
     # def separation(self, c):
     #     raise NotImplementedError("TODO")
@@ -240,10 +221,6 @@ class Path:
 
     #     return resolve_framelike(frame)
 
-    # # /def
-
-
-# /class
 
 ##############################################################################
 # END

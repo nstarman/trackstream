@@ -57,6 +57,7 @@ import typing as T
 # THIRD PARTY
 import astropy.coordinates as coord
 import astropy.units as u
+import numpy as np
 from astropy import table
 
 ##############################################################################
@@ -65,6 +66,12 @@ from astropy import table
 
 NoneType = type(None)
 EllipsisType = type(Ellipsis)
+
+# -------------------------------------
+# NumPy types
+
+ArrayLike = T.Union[float, np.generic, np.ndarray]
+
 
 # -------------------------------------
 # Astropy types

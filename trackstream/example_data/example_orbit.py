@@ -29,7 +29,7 @@ from galpy.orbit import Orbit
 
 # LOCAL
 from trackstream._type_hints import FrameLikeType, RepresentationType, UnitType
-from trackstream.utils.utils import make_shuffler
+from trackstream.utils.misc import make_shuffler
 
 ##############################################################################
 # PARAMETERS

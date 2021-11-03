@@ -27,10 +27,10 @@ import scipy.optimize as opt
 from astropy.utils.decorators import lazyproperty
 
 # LOCAL
-from .utils import cartesian_to_spherical, reference_to_skyoffset_matrix
 from trackstream._type_hints import QuantityType
 from trackstream.config import conf
 from trackstream.setup_package import HAS_LMFIT
+from trackstream.utils import cartesian_to_spherical, reference_to_skyoffset_matrix
 
 if HAS_LMFIT:
     # THIRD PARTY
@@ -141,7 +141,7 @@ def cartesian_model(
     rot_matrix = reference_to_skyoffset_matrix(lon, lat, rotation)
     rot_xyz = np.dot(rot_matrix, data.xyz.value).reshape(-1, len(data))
 
-    r, lat, lon = cartesian_to_spherical(*rot_xyz, deg=deg)
+    lon, lat, r = cartesian_to_spherical(*rot_xyz, deg=deg)
 
     return r, lon, lat
 

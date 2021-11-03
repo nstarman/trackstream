@@ -20,10 +20,6 @@ import pytest
 from trackstream.utils import generic_coordinates as gcoord
 
 ##############################################################################
-# PARAMETERS
-
-
-##############################################################################
 # TESTS
 ##############################################################################
 
@@ -45,8 +41,6 @@ def test__GENERIC_REGISTRY():
             (gcoord.GenericRepresentation, gcoord.GenericDifferential),
         )
 
-
-# /def
 
 #####################################################################
 
@@ -84,10 +78,6 @@ class Test_GenericRepresentation:
         # works as instance attribute
         assert tuple(rep.attr_classes.keys()) == ("q1", "q2", "q3")
 
-    # /def
-
-
-# /class
 
 # -------------------------------------------------------------------
 # TODO tests for all the dynamically-defined subclasses
@@ -118,8 +108,6 @@ def test__make_generic_representation():
     assert got is expected
     assert got is gcoord.GenericCartesianRepresentation  # cached
 
-
-# /def
 
 #####################################################################
 
@@ -161,10 +149,6 @@ class TestGenericDifferential:
         # works as instance attribute
         assert dif.base_representation == gcoord.GenericRepresentation
 
-    # /def
-
-
-# /class
 
 # -------------------------------------------------------------------
 # TODO tests for all the dynamically-defined subclasses
@@ -202,8 +186,6 @@ def test__make_generic_differential():
     got = gcoord._make_generic_differential(coord.SphericalDifferential, n=1)
     assert got is gcoord.GenericSphericalDifferential  # cached
 
-
-# /def
 
 # -------------------------------------------------------------------
 
@@ -246,8 +228,6 @@ def test__make_generic_differential_for_representation():
     )
     assert got is gcoord.GenericPhysicsSpherical2ndDifferential
 
-
-# /def
 
 ##############################################################################
 # END

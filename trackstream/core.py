@@ -28,6 +28,7 @@ from . import _type_hints as TH
 from .stream import Stream
 from trackstream.preprocess.rotated_frame import FitResult, RotatedFrameFitter
 from trackstream.preprocess.som import order_data, prepare_SOM, reorder_visits
+from trackstream.utils import resolve_framelike
 from trackstream.utils.path import Path
 
 ##############################################################################

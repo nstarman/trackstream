@@ -42,61 +42,32 @@ from trackstream.tests.helper import TypeVarTests
 ##############################################################################
 
 
-class Test_RepresentationOrDifferentialType(
-    TypeVarTests,
-    klass=_type_hints.RepresentationOrDifferentialType,
-):
+class Test_RepresentationOrDifferentialType(TypeVarTests):
     @classmethod
-    def setup_class(cls):
+    def setup_class(self):
         """Setup fixtures for testing."""
-        cls.bound = coord.BaseRepresentationOrDifferential
-
-    # /def
+        self.bound = coord.BaseRepresentationOrDifferential
 
 
-# /class
-
-# -------------------------------------------------------------------
-
-
-class Test_RepresentationType(
-    TypeVarTests,
-    klass=_type_hints.RepresentationType,
-):
+class Test_RepresentationType(TypeVarTests):
     @classmethod
     def setup_class(cls):
         """Setup fixtures for testing."""
         cls.bound = coord.BaseRepresentation
 
-    # /def
 
-
-# /class
-
-# -------------------------------------------------------------------
-
-
-class Test_DifferentialType(TypeVarTests, klass=_type_hints.DifferentialType):
+class Test_DifferentialType(TypeVarTests):
     @classmethod
     def setup_class(cls):
         """Setup fixtures for testing."""
         cls.bound = coord.BaseDifferential
 
-    # /def
 
-
-# /class
-
-# -------------------------------------------------------------------
-
-
-class Test_FrameType(TypeVarTests, klass=_type_hints.FrameType):
+class Test_FrameType(TypeVarTests):
     @classmethod
     def setup_class(cls):
         """Setup fixtures for testing."""
         cls.bound = coord.BaseCoordinateFrame
-
-    # /def
 
     def test_name(self):
         """Test that name is {bound}."""
@@ -106,26 +77,12 @@ class Test_FrameType(TypeVarTests, klass=_type_hints.FrameType):
 
         assert name == "CoordinateFrame"
 
-    # /def
 
-
-# /class
-
-# -------------------------------------------------------------------
-
-
-class Test_SkyCoordType(TypeVarTests, klass=_type_hints.SkyCoordType):
+class Test_SkyCoordType(TypeVarTests):
     @classmethod
     def setup_class(cls):
         """Setup fixtures for testing."""
         cls.bound = coord.SkyCoord
-
-    # /def
-
-
-# /class
-
-# -------------------------------------------------------------------
 
 
 @pytest.mark.skip("TODO")
@@ -133,19 +90,9 @@ class Test_CoordinateType:
     """Test CoordinateType."""
 
 
-# /class
-
-# -------------------------------------------------------------------
-
-
 @pytest.mark.skip("TODO")
 class Test_GenericPositionType:
     """Test GenericPositionType."""
-
-
-# /class
-
-# -------------------------------------------------------------------
 
 
 @pytest.mark.skip("TODO")
@@ -153,37 +100,18 @@ class Test_FrameLikeType:
     """Test FrameLikeType."""
 
 
-# /class
-
-# -------------------------------------------------------------------
-
-
-class Test_TableType(TypeVarTests, klass=_type_hints.TableType):
+class Test_TableType(TypeVarTests):
     @classmethod
     def setup_class(cls):
         """Setup fixtures for testing."""
         cls.bound = table.Table
 
-    # /def
 
-
-# /class
-
-# -------------------------------------------------------------------
-
-
-class Test_QTableType(TypeVarTests, klass=_type_hints.QTableType):
+class Test_QTableType(TypeVarTests):
     @classmethod
     def setup_class(cls):
         """Setup fixtures for testing."""
         cls.bound = table.QTable
-
-    # /def
-
-
-# /class
-
-# -------------------------------------------------------------------
 
 
 @pytest.mark.skip("TODO")
@@ -191,45 +119,21 @@ class Test_UnitType:
     """Test UnitType."""
 
 
-# /class
-
-
-# -------------------------------------------------------------------
-
-
 @pytest.mark.skip("TODO")
 class Test_UnitLkeType:
     """Test UnitLkeType."""
 
 
-# /class
-
-
-# -------------------------------------------------------------------
-
-
-class Test_QuantityType(TypeVarTests, klass=_type_hints.QuantityType):
+class Test_QuantityType(TypeVarTests):
     @classmethod
     def setup_class(cls):
         """Setup fixtures for testing."""
         cls.bound = u.Quantity
 
-    # /def
-
-
-# /class
-
-# -------------------------------------------------------------------
-
 
 @pytest.mark.skip("TODO")
 class Test_QuantityLkeType:
     """Test QuantityLkeType."""
-
-
-# /class
-
-# -------------------------------------------------------------------
 
 
 ##############################################################################

@@ -121,7 +121,7 @@ class Test_StreamTrack:
     @classmethod
     def setup_class(self):
         """Setup fixtures for testing."""
-        # TODO! move to 
+        # TODO! move to
         num = 40
         self.arclength = np.linspace(0, 10, num=num) * u.deg
 
@@ -160,12 +160,7 @@ class Test_StreamTrack:
 
     def test_init(self, track_cls, frame):
         """Test instantiation."""
-        track = StreamTrack(
-            self.interps,
-            stream_data=self.data,
-            origin=self.origin,
-            frame = frame
-        )
+        track = StreamTrack(self.interps, stream_data=self.data, origin=self.origin, frame=frame)
 
         assert hasattr(track, "_data")
         assert hasattr(track, "_track")

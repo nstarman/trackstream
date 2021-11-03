@@ -460,7 +460,9 @@ class InterpolatedRepresentationOrDifferential:
         return object.__class__(self)
 
     def _realize_class(self, rep, affine):
-        return self._class_(rep, affine, derivative_type=self.derivative_type, **self._interp_kwargs)
+        return self._class_(
+            rep, affine, derivative_type=self.derivative_type, **self._interp_kwargs
+        )
 
     #################################################################
     # Interpolation Methods

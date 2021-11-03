@@ -2,9 +2,7 @@
 
 """`~typing.TypeVar` Tests."""
 
-__all__ = [
-    "TypeVarTests",
-]
+__all__ = ["TypeVarTests"]
 
 
 ##############################################################################
@@ -13,6 +11,9 @@ __all__ = [
 # STDLIB
 import abc
 import typing as T
+
+# THIRD PARTY
+import pytest
 
 ##############################################################################
 # CODE
@@ -28,8 +29,6 @@ class TypeVarTests:
         """Setup fixtures for testing."""
         pass
 
-    # /def
-
     @pytest.fixture
     def type_cls(self):
         return T.TypeVar
@@ -40,13 +39,9 @@ class TypeVarTests:
         """Test that this is a TypeVar."""
         assert isinstance(type_cls, T.TypeVar)
 
-    # /def
-
     def test_bound(self, type_cls):
         """Test TypeVar is correctly bound."""
         assert type_cls.__bound__ is self.bound
-
-    # /def
 
     def test_name(self, type_cls):
         """Test that name is [bound]."""
@@ -58,13 +53,6 @@ class TypeVarTests:
 
         assert name == f"{boundname}", f"{name} != {boundname}"
 
-    # /def
-
-
-# /class
-
-
-# -------------------------------------------------------------------
 
 ##############################################################################
 # END

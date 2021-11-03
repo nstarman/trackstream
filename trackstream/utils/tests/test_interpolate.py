@@ -140,9 +140,6 @@ class Test_UnivariateSplinewithUnits:
             assert antideriv._yunit == y.unit * x.unit ** 2
 
 
-# /class
-
-
 # -------------------------------------------------------------------
 
 
@@ -182,7 +179,9 @@ class Test_LSQUnivariateSplinewithUnits(Test_UnivariateSplinewithUnits):
 
     @pytest.fixture
     def t(self, ispline_cls, x, y, extra_args):
-        spl = interpolate.InterpolatedUnivariateSplinewithUnits(x, y, w=None, bbox=[None] * 2, **extra_args)
+        spl = interpolate.InterpolatedUnivariateSplinewithUnits(
+            x, y, w=None, bbox=[None] * 2, **extra_args
+        )
         return spl.get_knots().value[1:-1]
 
     @pytest.fixture
