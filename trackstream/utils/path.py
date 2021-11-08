@@ -21,12 +21,17 @@ from astropy.coordinates import BaseCoordinateFrame, SkyCoord
 # LOCAL
 from .interpolate import InterpolatedUnivariateSplinewithUnits as IUSU
 from .interpolated_coordinates import InterpolatedCoordinateFrame, InterpolatedSkyCoord
-from trackstream._type_hints import FrameLikeType, QuantityType
+from trackstream._type_hints import FrameLikeType
 from trackstream.utils import resolve_framelike
 
 ##############################################################################
 # CODE
 ##############################################################################
+
+
+class path_moments(T.NamedTuple):
+    mean: SkyCoord
+    width: u.Quantity
 
 
 class Path:
@@ -79,19 +84,15 @@ class Path:
     def __init__(
         self,
         path: T.Union[InterpolatedCoordinateFrame, InterpolatedSkyCoord],
-        width: T.Union[QuantityType, T.Callable, None] = None,  # func(affine)
+        width: T.Union[u.Quantity, T.Callable, None] = None,  # func(affine)
         *,
         name: str = None,
-        affine: T.Optional[QuantityType] = None,
+        affine: T.Optional[u.Quantity] = None,
         frame: T.Optional[FrameLikeType] = None,
     ):
-        super().__init__()
-
-        # -----------------------
-        # Frame, name, & metadata
-
         self._name = name
 
+        # Frame
         if frame is None:
             # unless `path` has a frame (is not `BaseRepresentation`).
             if isinstance(path, BaseCoordinateFrame):
@@ -116,7 +117,7 @@ class Path:
             path = InterpolatedCoordinateFrame(path, affine=affine)
 
         path = InterpolatedSkyCoord(path, affine=affine)
-        self._path = path.transform_to(self.frame)
+        self._iscrd = path.transform_to(self.frame)
 
         # --------------
         # Width
@@ -137,14 +138,14 @@ class Path:
         return self._frame
 
     @property
-    def path(self):
+    def data(self):
         """The path, protected."""
-        return self._path
+        return self._iscrd
 
     @property
     def affine(self):
         """Affine parameter along ``path``."""
-        return self.path.affine
+        return self.data.affine
 
     # ---------------------------------------------------------------
 
@@ -177,7 +178,7 @@ class Path:
         self._original_width = copy.deepcopy(o_w)
         self._width_fn = width
 
-    def width(self, affine: T.Optional[QuantityType] = None):
+    def width(self, affine: T.Optional[u.Quantity] = None):
         if affine is None:
             affine = self.affine
         return self._width_fn(u.Quantity(affine, copy=False))
@@ -185,13 +186,15 @@ class Path:
     #################################################################
     # Math on the Track!
 
-    def __call__(self, affine: QuantityType):
+    def __call__(self, affine: T.Optional[u.Quantity] = None):
         """Call."""
-        meanpath = self.path(affine)
-        width = self.width(affine)
+        mean = self.data(affine)
+        width = self.width(affine)  # 1-sigma
+
+        # TODO? add a directionality?
         # TODO allow for higher moments
 
-        return meanpath, width  # TODO! see FootprintsPackage
+        return path_moments(mean, width)
 
     # def separation(self, c):
     #     raise NotImplementedError("TODO")
@@ -199,27 +202,6 @@ class Path:
     # def likelihood_distance(self, c, errs, method="kullback_leibler"):
     #     """the likelihood distance."""
     #     raise NotImplementedError("TODO")
-
-    #################################################################
-    # Miscellaneous
-
-    # def _preferred_frame_resolve(self, frame):
-    #     """Call `resolve_framelike`, but default to preferred frame.
-
-    #     For frame is None ``resolve_framelike`` returns the default
-    #     frame from the config file. Instead, we want the default
-    #     frame of the footprint.
-
-    #     Returns
-    #     -------
-    #     `BaseCoordinateFrame` subclass instance
-    #         Has no data.
-
-    #     """
-    #     if frame is None:
-    #         frame = self.frame
-
-    #     return resolve_framelike(frame)
 
 
 ##############################################################################

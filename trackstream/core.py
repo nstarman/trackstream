@@ -345,22 +345,22 @@ class TrackStream:
         #     frame=self.frame,
         # )
 
-        # # construct interpolation
-        track = StreamTrack(
-            mean_path1,  # TODO!
-            stream_data=stream.data,
-            origin=stream.origin,
-            frame=frame,
-            # extra
-            frame_fit=frame_fit,
-            visit_order=visit_order,
-            som=dict(
-                arm1=self._cache.get("arm1_SOM", None),
-                arm2=self._cache.get("arm2_SOM", None),
-            ),
-            kalman=dict(arm1=kalman_filter1, arm2=kalman_filter2),  # TODO!
-        )
-        return track
+        # # # construct interpolation
+        # track = StreamTrack(
+        #     mean_path1,  # TODO!
+        #     stream_data=stream.data,
+        #     origin=stream.origin,
+        #     frame=frame,
+        #     # extra
+        #     frame_fit=frame_fit,
+        #     visit_order=visit_order,
+        #     som=dict(
+        #         arm1=self._cache.get("arm1_SOM", None),
+        #         arm2=self._cache.get("arm2_SOM", None),
+        #     ),
+        #     kalman=dict(arm1=kalman_filter1, arm2=kalman_filter2),  # TODO!
+        # )
+        # return track
 
     # /def
 
@@ -472,8 +472,6 @@ class StreamTrack:
         frame: TH.FrameLikeType,
         **metadata,
     ):
-        super().__init__()
-
         # validation of types
         if not isinstance(path, Path):
             raise TypeError("`path` must be <Path>.")
@@ -492,10 +490,8 @@ class StreamTrack:
             descr = getattr(self.__class__, attr, None)
             if isinstance(descr, MetaAttribute):
                 setattr(self, attr, metadata.pop(attr))
-
+        # and the metadata
         self.meta.update(metadata)
-
-    # /def
 
     @property
     def path(self):
@@ -504,7 +500,7 @@ class StreamTrack:
     @property
     def track(self):
         """The path's central track."""
-        return self._path.path
+        return self._path.data
 
     @property
     def affine(self):

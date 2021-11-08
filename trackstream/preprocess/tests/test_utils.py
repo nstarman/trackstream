@@ -7,8 +7,6 @@
 # IMPORTS
 
 # THIRD PARTY
-import astropy.coordinates as coord
-import astropy.units as u
 import pytest
 
 ##############################################################################

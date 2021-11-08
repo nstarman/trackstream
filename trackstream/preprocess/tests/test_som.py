@@ -61,7 +61,7 @@ class TestSelfOrganizingMap1D:
         assert som.nlattice is som._nlattice
         assert som.nlattice == self.nlattice
 
-    def test_nlattice(self, som):
+    def test_nfeature(self, som):
         """Test :attr:`trackstream.preprocess.som.SelfOrganizingMap1D.nfeature`."""
         assert som.nfeature is som._nfeature
         assert som.nfeature == self.nfeature

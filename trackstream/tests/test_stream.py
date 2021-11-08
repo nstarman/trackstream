@@ -13,12 +13,10 @@ __all__ = [
 # THIRD PARTY
 import astropy.coordinates as coord
 import astropy.table as table
-import astropy.units as u
 import numpy as np
 import pytest
 
 # LOCAL
-from trackstream.core import StreamTrack, TrackStream
 from trackstream.example_data import get_example_pal5
 from trackstream.stream import Stream
 
@@ -55,7 +53,7 @@ class TestStream:
     def test_init_fail_numargs(self, stream_cls):
         """Test with wrong number of arguments. A reminder to include ``origin``."""
         with pytest.raises(TypeError, match="origin"):
-            stream = stream_cls(self.data)
+            stream_cls(self.data)
 
     def test_init(self, stream_cls):
         """Test initialization."""
@@ -99,14 +97,14 @@ class TestStream:
             got = stream.arm1.data
             assert all(got == expected)
 
+    def test_arm1_coords(self, stream):
+        index = stream.data["tail"] == "arm1"
+        expected = stream.coords[index]
+        got = stream.arm1.coords
+        assert all(got == expected)
+
     # -------------------------------------------
     # arm2
-
-    def test_arm2_coords(self, stream):
-        index = stream.data["tail"] == "arm2"
-        expected = stream.coords[index]
-        got = stream.arm2.coords
-        assert all(got == expected)
 
     def test_arm2_index(self, stream):
         expected = stream.data["tail"] == "arm2"

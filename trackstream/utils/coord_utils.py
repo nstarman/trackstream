@@ -18,6 +18,7 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import BaseCoordinateFrame, SkyCoord, sky_coordinate_parsers
 from astropy.coordinates.matrix_utilities import matrix_product, rotation_matrix
+from erfa import ufunc as erfa_ufunc
 
 # LOCAL
 from trackstream._type_hints import ArrayLike
@@ -53,8 +54,7 @@ def cartesian_to_spherical(
     r, lat, lon : scalar or ndarray
     """
     r = np.sqrt(x ** 2.0 + y ** 2.0 + z ** 2.0)
-    lat = np.arctan2(np.sqrt(x ** 2.0 + y ** 2.0), z) - np.pi / 2  # to match astropy
-    lon = np.arctan2(y, x) + np.pi  # to match astropy
+    lon, lat = erfa_ufunc.c2s(np.c_[x, y, z])
 
     if deg:
         lat *= 180.0 / np.pi
@@ -152,7 +152,7 @@ def resolve_framelike(frame, error_if_not_type: bool = True):
         raise TypeError(
             "Input coordinate frame must be an astropy "
             "coordinates frame subclass *instance*, not a "
-            "'{}'".format(frame.__class__.__name__)
+            "'{}'".format(frame.__class__.__name__),
         )
     return frame
 
@@ -172,13 +172,13 @@ def _(frame: str, error_if_not_type: bool = True) -> BaseCoordinateFrame:
 
 
 @resolve_framelike.register
-def _(frame: str, rror_if_not_type: bool = True) -> BaseCoordinateFrame:
+def _(frame: BaseCoordinateFrame, error_if_not_type: bool = True) -> BaseCoordinateFrame:
     out: BaseCoordinateFrame = frame.replicate_without_data()
     return out
 
 
 @resolve_framelike.register
-def _(frame: SkyCoord, rror_if_not_type: bool = True) -> BaseCoordinateFrame:
+def _(frame: SkyCoord, error_if_not_type: bool = True) -> BaseCoordinateFrame:
     out: BaseCoordinateFrame = frame.frame.replicate_without_data()
     return out
 

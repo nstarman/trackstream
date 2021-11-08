@@ -26,7 +26,6 @@ __all__ = [
 from ._astropy_init import *  # noqa: F401, F403  # isort:skip
 
 # LOCAL
-from . import core
 from . import example_data as examples
 from . import preprocess
 from .config import conf

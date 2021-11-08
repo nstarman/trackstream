@@ -8,7 +8,7 @@ This sub-module is destined for common non-package specific utility functions.
 """
 
 
-__all__ = ["cartesian_to_spherical", "reference_to_skyoffset_matrix"]
+__all__ = ["find_closest_point", "set_starting_point"]
 
 
 ###############################################################################

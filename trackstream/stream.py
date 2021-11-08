@@ -12,7 +12,6 @@ __all__ = [
 
 # STDLIB
 import typing as T
-import warnings
 import weakref
 
 # THIRD PARTY
@@ -20,17 +19,15 @@ import astropy.coordinates as coord
 import astropy.units as u
 import numpy as np
 from astropy import table
-from astropy.table import QTable, Table
+from astropy.table import QTable
 from astropy.utils.decorators import lazyproperty
-from astropy.utils.metadata import MetaAttribute, MetaData
-from astropy.utils.misc import indent
-from scipy.linalg import block_diag
 
 # LOCAL
 from . import _type_hints as TH
-from trackstream.utils import resolve_framelike
-from trackstream.utils.misc import intermix_arrays
-from trackstream.utils.path import Path
+
+# from scipy.linalg import block_diag
+
+# from trackstream.utils.path import Path
 
 ##############################################################################
 # CODE
@@ -410,7 +407,7 @@ class Stream:
 
         Parameters
         ----------
-        arm1SOM, arm2SOM : `~trackstream.preprocess.SelfOrganizingMap` or None (optional, keyword-only)
+        arm1SOM, arm2SOM : `~trackstream.preprocess.SelfOrganizingMap` (optional, keyword-only)
             Fiducial SOMs for stream arms 1 and 2, respectively.
         force : bool
             Whether to force a fit if already fit.

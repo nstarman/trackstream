@@ -94,8 +94,8 @@ def make_example_pal5_data() -> None:
         RvR_l, dt = spdf_l.sample(n=300, returndt=True, integrate=True)
         RvR_t, dt = spdf_t.sample(n=300, returndt=True, integrate=True)
 
-    with warnings.catch_warnings():
-        origin = o.SkyCoord()  # todo be careful about GC-ICRS conversion
+    # with warnings.catch_warnings():
+    #     origin = o.SkyCoord()  # todo be careful about GC-ICRS conversion
 
     # get coordinates
     data_l = Orbit(RvR_l.T, ro=ro, vo=vo).SkyCoord()

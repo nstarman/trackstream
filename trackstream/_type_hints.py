@@ -22,8 +22,6 @@ As a trivial example,
 """
 
 __all__ = [
-    "NoneType",
-    "EllipsisType",
     # Astropy types
     # coordinates
     "RepresentationOrDifferentialType",
@@ -63,9 +61,6 @@ from astropy import table
 ##############################################################################
 # TYPES
 ##############################################################################
-
-NoneType = type(None)
-EllipsisType = type(Ellipsis)
 
 # -------------------------------------
 # NumPy types

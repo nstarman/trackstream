@@ -13,7 +13,6 @@ __all__ = [
 
 # STDLIB
 import typing as T
-import warnings
 
 # THIRD PARTY
 import numpy as np

@@ -241,7 +241,7 @@ class Test_InterpolatedRepresentationOrDifferential(InterpolatedCoordinatesBase)
 
         # will fail until cache in "differentials"
         if hasattr(irep, "_derivatives"):  # skip differentials
-            assert not any(["lambda " in irep._derivatives.keys()])
+            assert not any(["affine " in irep._derivatives.keys()])
 
     def test_derivative(self, irep, affine) -> None:
         """Test method ``derivative``.
@@ -303,7 +303,7 @@ class Test_InterpolatedRepresentationOrDifferential(InterpolatedCoordinatesBase)
         s = repr(irep)
 
         assert isinstance(s, str)
-        assert "lambda" in s
+        assert "affine" in s
 
         # Also need to test a dimensionless case
         # This is done in InterpolatedCartesianRepresentation
@@ -317,10 +317,10 @@ class Test_InterpolatedRepresentationOrDifferential(InterpolatedCoordinatesBase)
 
         # comparisons are wonky when differentials are attached
         assert np.all(
-            newrep.data.without_differentials() == 1.1 * irep.data.without_differentials()
+            newrep.data.without_differentials() == 1.1 * irep.data.without_differentials(),
         )
         assert np.all(
-            newrep.data.differentials["s"].data == 1.1 * irep.data.differentials["s"].data
+            newrep.data.differentials["s"].data == 1.1 * irep.data.differentials["s"].data,
         )
 
     def test___add__(self, irep) -> None:
@@ -509,14 +509,14 @@ class Test_InterpolatedRepresentation(Test_InterpolatedRepresentationOrDifferent
         irep.derivative(n=1)
         irep.derivative(n=2)
 
-        assert "lambda 1" in irep._derivatives.keys()
-        assert "lambda 2" in irep._derivatives.keys()
+        assert "affine 1" in irep._derivatives.keys()
+        assert "affine 2" in irep._derivatives.keys()
 
         irep.clear_derivatives()
 
-        assert "lambda 1" not in irep._derivatives.keys()
-        assert "lambda 2" not in irep._derivatives.keys()
-        assert not any(["lambda " in irep._derivatives.keys()])
+        assert "affine 1" not in irep._derivatives.keys()
+        assert "affine 2" not in irep._derivatives.keys()
+        assert not any(["affine " in irep._derivatives.keys()])
 
     def test_derivative(self, irep, affine) -> None:
         """Test method ``derivative``."""
@@ -525,11 +525,11 @@ class Test_InterpolatedRepresentation(Test_InterpolatedRepresentationOrDifferent
         # Testing cache, it's the only thing different between
         # InterpolatedRepresentationOrDifferential and
         # InterpolatedRepresentation
-        assert "lambda 1" in irep._derivatives.keys()
-        assert "lambda 2" in irep._derivatives.keys()
+        assert "affine 1" in irep._derivatives.keys()
+        assert "affine 2" in irep._derivatives.keys()
 
-        assert irep.derivative(n=1) is irep._derivatives["lambda 1"]
-        assert irep.derivative(n=2) is irep._derivatives["lambda 2"]
+        assert irep.derivative(n=1) is irep._derivatives["affine 1"]
+        assert irep.derivative(n=2) is irep._derivatives["affine 2"]
 
     def test_headless_tangent_vector(self, irep) -> None:
         """Test method ``headless_tangent_vector."""

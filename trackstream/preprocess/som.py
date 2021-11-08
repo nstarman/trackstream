@@ -34,17 +34,16 @@ import typing as T
 import warnings
 
 # THIRD PARTY
-import astropy.coordinates as coord
 import numpy as np
 import typing_extensions as TE
 from numpy import linalg, pi, random
 from scipy.stats import binned_statistic
-from tqdm import tqdm
 
 # LOCAL
-from .utils import DataType  # , find_closest_point, set_starting_point
 from trackstream._type_hints import CoordinateType
 from trackstream.utils.pbar import get_progress_bar
+
+# from .utils import DataType  # , find_closest_point, set_starting_point
 
 ##############################################################################
 # PARAMETERS

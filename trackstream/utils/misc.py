@@ -10,23 +10,19 @@ __all__ = ["intermix_arrays", "make_shuffler"]
 # IMPORTS
 
 # STDLIB
-import functools
 import typing as T
 
 # THIRD PARTY
-import astropy.units as u
 import numpy as np
-from astropy.coordinates import BaseCoordinateFrame, SkyCoord, sky_coordinate_parsers
 from numpy.random import Generator
-
-# LOCAL
-from trackstream.config import conf
 
 ##############################################################################
 # CODE
 ##############################################################################
 
 # TODO stride option for block sizes
+
+
 def intermix_arrays(*arrs: T.Sequence, axis=-1):
     """Intermix arrays.
 
@@ -81,7 +77,8 @@ def intermix_arrays(*arrs: T.Sequence, axis=-1):
 
 
 def make_shuffler(
-    length: int, rng: T.Optional[Generator] = None
+    length: int,
+    rng: T.Optional[Generator] = None,
 ) -> T.Tuple[np.ndarray, np.ndarray]:
     """Shuffle and Unshuffle arrays.
 

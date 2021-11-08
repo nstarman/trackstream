@@ -15,7 +15,6 @@ import astropy.coordinates as coord
 import astropy.units as u
 import numpy as np
 import pytest
-from astropy.table import QTable
 from astropy.tests.helper import assert_quantity_allclose
 
 # LOCAL
@@ -118,76 +117,79 @@ class Test_TrackStream:
 class Test_StreamTrack:
     """Test :class:`~trackstream.core.StreamTrack`."""
 
-    @classmethod
-    def setup_class(self):
-        """Setup fixtures for testing."""
-        # TODO! move to
-        num = 40
-        self.arclength = np.linspace(0, 10, num=num) * u.deg
+    #     @classmethod
+    #     def setup_class(self):
+    #         """Setup fixtures for testing."""
+    #         # TODO! move to
+    #         num = 40
+    #         self.arclength = np.linspace(0, 10, num=num) * u.deg
+    #
+    #         lon = np.linspace(0, 25, num=num) * u.deg
+    #         lat = np.linspace(-10, 10, num=num) * u.deg
+    #         distance = np.linspace(8, 15, num=num) * u.kpc
+    #
+    #         self.data = coord.ICRS(
+    #             coord.SphericalRepresentation(lon=lon, lat=lat, distance=distance),
+    #         )
+    #         self.interps = dict(
+    #             lon=IUSU(self.arclength, lon),
+    #             lat=IUSU(self.arclength, lat),
+    #             distance=IUSU(self.arclength, distance),
+    #         )
+    #
+    #         # origin
+    #         i = num // 2
+    #         self.origin = coord.ICRS(ra=lon[i], dec=lat[i])
 
-        lon = np.linspace(0, 25, num=num) * u.deg
-        lat = np.linspace(-10, 10, num=num) * u.deg
-        distance = np.linspace(8, 15, num=num) * u.kpc
-
-        self.data = coord.ICRS(
-            coord.SphericalRepresentation(lon=lon, lat=lat, distance=distance),
-        )
-        self.interps = dict(
-            lon=IUSU(self.arclength, lon),
-            lat=IUSU(self.arclength, lat),
-            distance=IUSU(self.arclength, distance),
-        )
-
-        # origin
+    @pytest.fixture
+    def origin(self, scrd, num):
         i = num // 2
-        self.origin = coord.ICRS(ra=lon[i], dec=lat[i])
+        o = scrd[i]
+        return o
 
     @pytest.fixture
     def track_cls(self):
         return StreamTrack
 
     @pytest.fixture
-    def frame(self):
-        return self.data.replicate_without_data()
-
-    @pytest.fixture
-    def track(self, track_cls, frame):
-        track = track_cls(self.interps, stream_data=self.data, origin=self.origin, frame=frame)
+    def track(self, track_cls, path, scrd, origin, frame):
+        """path and stream_data don't have to match up this nicely."""
+        track = track_cls(path, stream_data=scrd, origin=origin, frame=frame)
         return track
 
     # ===============================================================
     # Method tests
 
-    def test_init(self, track_cls, frame):
-        """Test instantiation."""
-        track = StreamTrack(self.interps, stream_data=self.data, origin=self.origin, frame=frame)
-
-        assert hasattr(track, "_data")
-        assert hasattr(track, "_track")
-        assert hasattr(track, "origin")
-
-        # --------------
-        # Different argument types
-
-        # The data is an ICRS object
-        # we must also test passing in a BaseRepresentation
-        rep = self.data.represent_as(coord.SphericalRepresentation)
-
-        track = track_cls(self.interps, stream_data=rep, origin=self.origin)
-        assert isinstance(track._data_frame, coord.BaseCoordinateFrame)
-        assert track._data_rep == self.data.representation_type
-
-        # and a failed input type
-        with pytest.raises(TypeError) as e:
-            track_cls(None, None, None)
-
-        assert f"`stream_data` type <{type(None)}> is wrong." in str(e.value)
+#     def test_init(self, track_cls, frame):
+#         """Test instantiation."""
+#         track = StreamTrack(self.interps, stream_data=self.data, origin=self.origin, frame=frame)
+# 
+#         assert hasattr(track, "_data")
+#         assert hasattr(track, "_track")
+#         assert hasattr(track, "origin")
+# 
+#         # --------------
+#         # Different argument types
+# 
+#         # The data is an ICRS object
+#         # we must also test passing in a BaseRepresentation
+#         rep = self.data.represent_as(coord.SphericalRepresentation)
+# 
+#         track = track_cls(self.interps, stream_data=rep, origin=self.origin)
+#         assert isinstance(track._data_frame, coord.BaseCoordinateFrame)
+#         assert track._data_rep == self.data.representation_type
+# 
+#         # and a failed input type
+#         with pytest.raises(TypeError) as e:
+#             track_cls(None, None, None)
+# 
+#         assert f"`stream_data` type <{type(None)}> is wrong." in str(e.value)
 
     def test_path(self, track):
         assert track.path is track._path
 
     def test_track(self, track):
-        assert track.track is track.path.path
+        assert track.track is track.path.data
 
     def test_affine(self, track):
         assert track.affine is track.path.affine
@@ -202,37 +204,45 @@ class Test_StreamTrack:
         assert track.frame is track._frame
 
     def test_frame_fit(self, track):
-        assert track.frame_fit is track.meta["__attributes__"]["frame_fit"]
+        if "__attributes__" in track.meta and "frame_fit" in track.meta["__attributes__"]:
+            assert track.frame_fit is track.meta["__attributes__"]["frame_fit"]
+        else:
+            assert track.frame_fit is None
 
     def test_visit_order(self, track):
-        assert track.visit_order is track.meta["__attributes__"]["visit_order"]
+        if "__attributes__" in track.meta and "visit_order" in track.meta["__attributes__"]:
+            assert track.visit_order is track.meta["__attributes__"]["visit_order"]
+        else:
+            assert track.visit_order is None
 
     def test_som(self, track):
-        assert track.som is track.meta["__attributes__"]["som"]
+        if "__attributes__" in track.meta and "som" in track.meta["__attributes__"]:
+            assert track.som is track.meta["__attributes__"]["som"]
+        else:
+            assert track.som is None
 
     def test_kalman(self, track):
-        assert track.kalman is track.meta["__attributes__"]["kalman"]
+        if "__attributes__" in track.meta and "som" in track.meta["__attributes__"]:
+            assert track.kalman is track.meta["__attributes__"]["kalman"]
+        else:
+            assert track.kalman is None
 
-    def test_call(self, track):
+    def test_call(self, track, scrd, affine):
         """Test call method."""
-        data = track(self.arclength)
+        mean, width = track(affine)
 
-        assert isinstance(data, coord.ICRS)
-        assert data.representation_type == coord.SphericalRepresentation
-        assert_quantity_allclose(data.ra, self.data.ra, atol=1e-15 * u.deg)
-        assert_quantity_allclose(data.dec, self.data.dec, atol=1e-15 * u.deg)
-        assert_quantity_allclose(
-            data.distance,
-            self.data.distance,
-            atol=1e-15 * u.kpc,
-        )
+        assert isinstance(mean.frame, coord.ICRS)
+        assert mean.representation_type == coord.SphericalRepresentation
+        assert_quantity_allclose(mean.ra, scrd.ra, atol=1e-15 * u.deg)
+        assert_quantity_allclose(mean.dec, scrd.dec, atol=1e-15 * u.deg)
+        assert_quantity_allclose(mean.distance, scrd.distance, atol=1e-15 * u.kpc)
 
     def test_repr(self, track):
         """Test that the modified __repr__ method works."""
         s = track.__repr__()
 
-        frame_name = track._data_frame.__class__.__name__
-        rep_name = track._data_rep.__name__
+        frame_name = track.frame.__class__.__name__
+        rep_name = track.track.representation_type.__name__
         assert f"StreamTrack ({frame_name}|{rep_name})" in s
 
 
