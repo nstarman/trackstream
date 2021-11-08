@@ -70,12 +70,12 @@ def test_scipy_residual_to_lmfit():
     "test_data,lon,lat,rotation,deg,expected_data",
     [
         (
-            data.icrs,  # TODO fixtures
+            data.icrs,  # TODO as fixture
             example_coords.RA,
             example_coords.DEC,
             example_coords.ICRS_ROTATION,
             True,
-            data.ricrs,  # TODO fixtures
+            data.ricrs,  # TODO as fixture
         ),
         (
             data.icrs,  # TODO fixtures
@@ -83,23 +83,23 @@ def test_scipy_residual_to_lmfit():
             example_coords.DEC,
             example_coords.ICRS_ROTATION,
             False,
-            data.ricrs,  # TODO fixtures
+            data.ricrs,  # TODO as fixture
         ),
         (
-            data.gcentric,  # TODO fixtures
+            data.gcentric,  # TODO as fixture
             example_coords.LON,
             example_coords.LAT,
             example_coords.GALACTOCENTRIC_ROTATION,
             True,
-            data.rgcentric,  # TODO fixtures
+            data.rgcentric,  # TODO as fixture
         ),
         (
-            data.gcentric,  # TODO fixtures
+            data.gcentric,  # TODO as fixture
             example_coords.LON,
             example_coords.LAT,
             example_coords.GALACTOCENTRIC_ROTATION,
             False,
-            data.rgcentric,  # TODO fixtures
+            data.rgcentric,  # TODO as fixture
         ),
         # TODO the other datasets
     ],
@@ -146,8 +146,12 @@ def test_cartesian_model(
         np.mod(expected_lon, 180 * u.deg),
         atol=1e-10 * expected_lon.unit,
     )
+    # there's 1 that's almost 180 deg, but not quite and needs to get
+    # modded down.
+    i = np.isclose(lat, 180 * u.deg)
+    lat[i] = 180 * u.deg + np.abs(180 * u.deg - lat[i])
     assert_quantity_allclose(
-        lat,
+        np.mod(lat.to(u.deg), 180 * u.deg),
         np.mod(expected_lat, 180 * u.deg),
         atol=1e-10 * expected_lat.unit,
     )

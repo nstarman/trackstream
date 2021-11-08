@@ -9,7 +9,7 @@ __all__ = [
     "rotated_frame",
     # functions
     "RotatedFrameFitter",
-    "SelfOrganizingMap",
+    "SelfOrganizingMap1D",
 ]
 
 
@@ -19,7 +19,7 @@ __all__ = [
 # LOCAL
 from . import rotated_frame
 from .rotated_frame import RotatedFrameFitter
-from .som import SelfOrganizingMap
+from .som import SelfOrganizingMap1D
 
 ##############################################################################
 # END

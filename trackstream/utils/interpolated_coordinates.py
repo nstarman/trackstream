@@ -27,7 +27,7 @@ We will start with interpolated representations.
     ...         d_z=np.linspace(5, 6, num=num) * (u.km / u.s)))
     >>> irep = icoord.InterpolatedRepresentation(rep, affine)
     >>> irep[:4]
-    <InterpolatedCartesianRepresentation (lambda| x, y, z) in Myr| kpc
+    <InterpolatedCartesianRepresentation (affine| x, y, z) in Myr| kpc
         [(0.        , 0.        , 1.        , 2.        ),
          (0.25641026, 0.02564103, 1.02564103, 2.02564103),
          (0.51282051, 0.05128205, 1.05128205, 2.05128205),
@@ -51,7 +51,7 @@ class and supports all the expected operations, like changing representations,
 while maintaining the interpolation.
 
     >>> irep.represent_as(coord.SphericalRepresentation)[:4]
-    <InterpolatedSphericalRepresentation (lambda| lon, lat, distance) in ...
+    <InterpolatedSphericalRepresentation (affine| lon, lat, distance) in ...
         [(0.        , 1.57079633, 1.10714872, 2.23606798),
          (0.25641026, 1.54580153, 1.10197234, 2.27064276),
          (0.51282051, 1.52205448, 1.09671629, 2.30555457),
@@ -62,7 +62,7 @@ we can differentiate the interpolated coordinates with respect to the affine
 parameter.
 
     >>> irep.derivative()[:4]
-    <InterpolatedCartesianDifferential (lambda| d_x, d_y, d_z) in ...
+    <InterpolatedCartesianDifferential (affine| d_x, d_y, d_z) in ...
         [(0.        , 0.1, 0.1, 0.1), (0.25641026, 0.1, 0.1, 0.1),
          (0.51282051, 0.1, 0.1, 0.1), (0.76923077, 0.1, 0.1, 0.1)]>
 
@@ -71,7 +71,7 @@ derivatives can also be constructed, but they do not have a corresponding
 class in Astropy, so a "Generic" class is constructed.
 
     >>> irep.derivative(n=2)[:4]
-    <InterpolatedGenericCartesian2ndDifferential (lambda| d_x, d_y, d_z) in ...
+    <InterpolatedGenericCartesian2ndDifferential (affine| d_x, d_y, d_z) in ...
         [(0.        , -5.41233725e-16,  3.35564909e-15, -9.45535317e-14),
          (0.25641026,  1.80411242e-17, -2.88657986e-16, -1.91326122e-14),
          (0.51282051,  5.77315973e-16, -3.93296506e-15,  5.62883073e-14),
@@ -84,7 +84,7 @@ the transformation is often incorrect.
 
 Representations are all well and good, but what about coordinate frames?
 The interpolated representations can be used the same as Astropy's, including
-in a |CoordinateFrame|.
+in a |Frame|.
 
     >>> frame = coord.ICRS(irep)
     >>> frame[:1]
@@ -98,7 +98,7 @@ is even kept when transforming frames.
 
     >>> frame = frame.transform_to(coord.Galactic())
     >>> frame.data[:4]
-    <InterpolatedCartesianRepresentation (lambda| x, y, z) in Myr| kpc
+    <InterpolatedCartesianRepresentation (affine| x, y, z) in Myr| kpc
         [(0.        , -1.8411072 , 1.04913465, 0.71389129),
          (0.25641026, -1.87731612, 1.06955162, 0.69825645),
          (0.51282051, -1.91352503, 1.08996859, 0.68262162),
@@ -111,12 +111,12 @@ or not it contains an interpolated representation.
 
     >>> iframe = icoord.InterpolatedCoordinateFrame(frame)
     >>> iframe[:4]
-    <InterpolatedGalactic Coordinate: (lambda| l, b, distance) in ...
+    <InterpolatedGalactic Coordinate: (affine| l, b, distance) in ...
         [(0.        , 150.32382371, 18.61829304, 2.23606798),
          (0.25641026, 150.32880684, 17.90952972, 2.27064276),
          (0.51282051, 150.33360184, 17.22212858, 2.30555457),
          (0.76923077, 150.33821918, 16.55532737, 2.34078832)]
-     (lambda| pm_l, pm_b, radial_velocity) in (Myr| mas / yr, mas / yr, km / s)
+     (affine| pm_l, pm_b, radial_velocity) in (Myr| mas / yr, mas / yr, km / s)
         [(0.        , 0.00218867, -0.31002428, 6.26099034),
          (0.25641026, 0.00210526, -0.30065482, 6.33590983),
          (0.51282051, 0.00202654, -0.29161849, 6.40935614),
@@ -127,12 +127,12 @@ When wrapping an un-interpolated coordinate, the affine parameter is required.
     >>> frame = coord.ICRS(rep)  # no interp
     >>> iframe = icoord.InterpolatedCoordinateFrame(frame, affine=affine)
     >>> iframe[:4]
-    <InterpolatedICRS Coordinate: (lambda| ra, dec, distance) in ...
+    <InterpolatedICRS Coordinate: (affine| ra, dec, distance) in ...
         [(0.        , 90.        , 63.43494882, 2.23606798),
          (0.25641026, 88.56790382, 63.13836438, 2.27064276),
          (0.51282051, 87.20729763, 62.83721465, 2.30555457),
          (0.76923077, 85.91438322, 62.53280357, 2.34078832)]
-     (lambda| pm_ra, pm_dec, radial_velocity) in ...
+     (affine| pm_ra, pm_dec, radial_velocity) in ...
         [(0.        , -0.63284858, -0.12656972, 6.26099034),
          (0.25641026, -0.60122591, -0.12884151, 6.33590983),
          (0.51282051, -0.57125382, -0.13051534, 6.40935614),
@@ -158,7 +158,7 @@ exception is if SkyCoord is wrapping an interpolated CoordinateFrame.
     ...         frame="icrs", unit="deg",
     ...         affine=affine[:4])
     >>> isc
-    <InterpolatedSkyCoord (ICRS): (lambda| ra, dec) in Myr| deg
+    <InterpolatedSkyCoord (ICRS): (affine| ra, dec) in Myr| deg
         [(0.        , 1., -30.), (0.25641026, 2.,  45.),
          (0.51282051, 3.,   8.), (0.76923077, 4.,  16.)]>
 
@@ -387,9 +387,7 @@ class InterpolatedRepresentationOrDifferential:
         ):
             raise ValueError("Must instantiate `rep`.")
         elif not isinstance(rep, coord.BaseRepresentationOrDifferential):
-            raise TypeError(
-                "`rep` must be a `BaseRepresentationOrDifferential`.",
-            )
+            raise TypeError("`rep` must be a `BaseRepresentationOrDifferential`.")
 
         # Affine parameter
         affine = u.Quantity(affine, copy=False)  # ensure Quantity
@@ -452,24 +450,19 @@ class InterpolatedRepresentationOrDifferential:
                     # store in place of original
                     self.data.differentials[k] = dif
 
-        # /if
-
-    # /def
-
     @property
     def affine(self):  # read-only
         return self._affine
 
     @property
     def _class_(self):
+        """Get this object's true class, not the un-interpolated class."""
         return object.__class__(self)
 
-    # /def
-
-    def _realize_class(self, *args):
-        return self._class_(*args, derivative_type=self.derivative_type, **self._interp_kwargs)
-
-    # /def
+    def _realize_class(self, rep, affine):
+        return self._class_(
+            rep, affine, derivative_type=self.derivative_type, **self._interp_kwargs
+        )
 
     #################################################################
     # Interpolation Methods
@@ -508,7 +501,7 @@ class InterpolatedRepresentationOrDifferential:
         if hasattr(self, "_derivatives"):
             keys = tuple(self._derivatives.keys())
             for key in keys:
-                if key.startswith("lambda "):
+                if key.startswith("affine "):
                     self._derivatives.pop(key)
 
         return self
@@ -656,7 +649,7 @@ class InterpolatedRepresentationOrDifferential:
         else:
             unitstr = f"{aurep}| [dimensionless]"
 
-        return "<Interpolated{} (lambda| {}) {:s}\n{}{}{}>".format(
+        return "<Interpolated{} (affine| {}) {:s}\n{}{}{}>".format(
             self.__class__.__name__,
             ", ".join(self.data.components),
             unitstr,
@@ -667,8 +660,8 @@ class InterpolatedRepresentationOrDifferential:
 
     # /def
 
-    def _scale_operation(self, op, *args):
-        rep = self.data._scale_operation(op, *args)
+    def _scale_operation(self, op, *args, scaled_base=False):
+        rep = self.data._scale_operation(op, *args, scaled_base=scaled_base)
 
         return self._realize_class(rep, self.affine)
 
@@ -800,7 +793,7 @@ class InterpolatedRepresentationOrDifferential:
     #     rep = self.data._apply(method, *args, **kwargs)
 
     #     if callable(method):
-    #         apply_method = lambda array: method(array, *args, **kwargs)
+    #         apply_method = affine array: method(array, *args, **kwargs)
     #     else:
     #         apply_method = operator.methodcaller(method, *args, **kwargs)
 
@@ -1098,13 +1091,13 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
             Order of derivative to evaluate. Default: 1
 
         """
-        if f"lambda {n}" in self._derivatives:
-            return self._derivatives[f"lambda {n}"]
+        if f"affine {n}" in self._derivatives:
+            return self._derivatives[f"affine {n}"]
 
         ideriv = super().derivative(n=n)
 
         # cache in derivatives
-        self._derivatives[f"lambda {n}"] = ideriv
+        self._derivatives[f"affine {n}"] = ideriv
 
         return ideriv
 
@@ -1116,7 +1109,7 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
     def headless_tangent_vectors(self):
         r"""Headless tangent vector at each point in affine.
 
-        :math:`\vec{x} + \partial_{\lambda} \vec{x}(\lambda) \Delta\lambda`
+        :math:`\vec{x} + \partial_{\affine} \vec{x}(\affine) \Delta\affine`
 
         .. todo::
 
@@ -1136,7 +1129,7 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
     def tangent_vectors(self):
         r"""Tangent vectors along the curve, from the origin.
 
-        :math:`\vec{x} + \partial_{\lambda} \vec{x}(\lambda) \Delta\lambda`
+        :math:`\vec{x} + \partial_{\affine} \vec{x}(\affine) \Delta\affine`
 
         .. todo::
 
@@ -1232,7 +1225,9 @@ class InterpolatedCartesianRepresentation(InterpolatedRepresentation):
 
         return self._realize_class(newrep, self.affine)
 
-    # /def
+    def _scale_operation(self, op, *args):
+        rep = self.data._scale_operation(op, *args)
+        return self._realize_class(rep, self.affine)
 
 
 # /class
@@ -1452,8 +1447,8 @@ class InterpolatedCoordinateFrame:
 
     # /def
 
-    def _realize_class(self, *args):
-        return self._class_(*args, affine=self.affine, **self._interp_kwargs)
+    def _realize_class(self, data):
+        return self._class_(data, affine=self.affine, **self._interp_kwargs)
 
     # /def
 
@@ -1503,7 +1498,7 @@ class InterpolatedCoordinateFrame:
     def headless_tangent_vectors(self):
         r"""Headless tangent vector at each point in affine.
 
-        :math:`\vec{x} + \partial_{\lambda} \vec{x}(\lambda) \Delta\lambda`
+        :math:`\vec{x} + \partial_{\affine} \vec{x}(\affine) \Delta\affine`
 
         .. todo::
 
@@ -1518,7 +1513,7 @@ class InterpolatedCoordinateFrame:
     def tangent_vectors(self):
         r"""Tangent vectors along the curve, from the origin.
 
-        :math:`\vec{x} + \partial_{\lambda} \vec{x}(\lambda) \Delta\lambda`
+        :math:`\vec{x} + \partial_{\affine} \vec{x}(\affine) \Delta\affine`
 
         .. todo::
 
@@ -1812,11 +1807,8 @@ class InterpolatedSkyCoord(SkyCoord):
         -------
         `SkyCoord`
             CoordinateFrame of type ``self.frame`` evaluated with `affine`
-
         """
-        newsc = SkyCoord(self, copy=True)
-        newsc.frame = self.frame(affine)
-
+        newsc = SkyCoord(self.frame(affine))
         return newsc
 
     # /def
@@ -1867,313 +1859,314 @@ class InterpolatedSkyCoord(SkyCoord):
 
     # /def
 
-    # ---------------------------------------------------------------
-    # Mapping to Underlying SkyCoord
 
-    def separation(self, other):
-        """
-        Computes on-sky separation between this coordinate and another.
-
-        .. note::
-
-            If the ``other`` coordinate object is in a different frame, it is
-            first transformed to the frame of this object. This can lead to
-            unintuitive behavior if not accounted for. Particularly of note is
-            that ``self.separation(other)`` and ``other.separation(self)`` may
-            not give the same answer in this case.
-
-        For more on how to use this (and related) functionality, see the
-        examples in
-        https://docs.astropy.org/en/stable/coordinates/matchsep.html.
-
-        Parameters
-        ----------
-        other : |SkyCoord| or |CoordinateFrame|
-            The coordinate to get the separation to.
-
-        Returns
-        -------
-        sep : `~astropy.coordinates.Angle`
-            The on-sky separation between this and the ``other`` coordinate.
-
-        Notes
-        -----
-        The separation is calculated using the Vincenty formula, which
-        is stable at all locations, including poles and antipodes [1]_.
-
-        .. [1] https://en.wikipedia.org/wiki/Great-circle_distance
-
-        """
-        return super().separation(other)
-
-    # /def
-
-    def separation_3d(self, other):
-        """
-        Computes three dimensional separation between this coordinate
-        and another.
-
-        For more on how to use this (and related) functionality, see the
-        examples in
-        https://docs.astropy.org/en/stable/coordinates/matchsep.html.
-
-        Parameters
-        ----------
-        other : |SkyCoord| or |CoordinateFrame|
-            The coordinate to get the separation to.
-
-        Returns
-        -------
-        sep : `~astropy.coordinates.Distance`
-            The real-space distance between these two coordinates.
-
-        Raises
-        ------
-        ValueError
-            If this or the other coordinate do not have distances.
-
-        """
-        return super().separation_3d(other)
-
-    # /def
-
-    def match_to_catalog_sky(self, catalogcoord, nthneighbor=1):
-        """
-        Finds the nearest on-sky matches of this coordinate in a set of
-        catalog coordinates.
-
-        For more on how to use this (and related) functionality, see the
-        examples in
-        https://docs.astropy.org/en/stable/coordinates/matchsep.html.
-
-        Parameters
-        ----------
-        catalogcoord : |SkyCoord| or |CoordinateFrame|
-            The base catalog in which to search for matches. Typically this
-            will be a coordinate object that is an array (i.e.,
-            ``catalogcoord.isscalar == False``)
-        nthneighbor : int, optional
-            Which closest neighbor to search for.  Typically ``1`` is
-            desired here, as that is correct for matching one set of
-            coordinates to another. The next likely use case is ``2``,
-            for matching a coordinate catalog against *itself* (``1``
-            is inappropriate because each point will find itself as the
-            closest match).
-
-        Returns
-        -------
-        idx : integer array
-            Indices into ``catalogcoord`` to get the matched points for
-            each of this object's coordinates. Shape matches this
-            object.
-        sep2d : `~astropy.coordinates.Angle`
-            The on-sky separation between the closest match for each
-            element in this object in ``catalogcoord``. Shape matches
-            this object.
-        dist3d : `~astropy.units.Quantity`
-            The 3D distance between the closest match for each element
-            in this object in ``catalogcoord``. Shape matches this
-            object. Unless both this and ``catalogcoord`` have associated
-            distances, this quantity assumes that all sources are at a
-            distance of 1 (dimensionless).
-
-        Notes
-        -----
-        This method requires `SciPy <https://www.scipy.org/>`_ to be
-        installed or it will fail.
-
-        See Also
-        --------
-        astropy.coordinates.match_coordinates_sky
-        SkyCoord.match_to_catalog_3d
-
-        """
-        return super().match_coordinates_sky(
-            catalogcoord,
-            nthneighbor=nthneighbor,
-        )
-
-    # /def
-
-    def match_to_catalog_3d(self, catalogcoord, nthneighbor=1):
-        """
-        Finds the nearest 3-dimensional matches of this coordinate to a set
-        of catalog coordinates.
-
-        This finds the 3-dimensional closest neighbor, which is only different
-        from the on-sky distance if ``distance`` is set in this object or the
-        ``catalogcoord`` object.
-
-        For more on how to use this (and related) functionality, see the
-        examples in
-        https://docs.astropy.org/en/stable/coordinates/matchsep.html.
-
-        Parameters
-        ----------
-        catalogcoord : |SkyCoord| or |CoordinateFrame|
-            The base catalog in which to search for matches. Typically this
-            will be a coordinate object that is an array (i.e.,
-            ``catalogcoord.isscalar == False``)
-        nthneighbor : int, optional
-            Which closest neighbor to search for.  Typically ``1`` is
-            desired here, as that is correct for matching one set of
-            coordinates to another.  The next likely use case is
-            ``2``, for matching a coordinate catalog against *itself*
-            (``1`` is inappropriate because each point will find
-            itself as the closest match).
-
-        Returns
-        -------
-        idx : integer array
-            Indices into ``catalogcoord`` to get the matched points for
-            each of this object's coordinates. Shape matches this
-            object.
-        sep2d : `~astropy.coordinates.Angle`
-            The on-sky separation between the closest match for each
-            element in this object in ``catalogcoord``. Shape matches
-            this object.
-        dist3d : `~astropy.units.Quantity`
-            The 3D distance between the closest match for each element
-            in this object in ``catalogcoord``. Shape matches this
-            object.
-
-        Notes
-        -----
-        This method requires `SciPy <https://www.scipy.org/>`_ to be
-        installed or it will fail.
-
-        See Also
-        --------
-        astropy.coordinates.match_coordinates_3d
-        SkyCoord.match_to_catalog_sky
-
-        """
-        return super().match_to_catalog_3d(
-            catalogcoord,
-            nthneighbor=nthneighbor,
-        )
-
-    # just needed to modify the docstring
-    def search_around_sky(self, searcharoundcoords, seplimit):
-        """
-        Searches for all coordinates in this object around a supplied set of
-        points within a given on-sky separation.
-
-        This is intended for use on `~astropy.coordinates.SkyCoord` objects
-        with coordinate arrays, rather than a scalar coordinate.  For a scalar
-        coordinate, it is better to use
-        `~astropy.coordinates.SkyCoord.separation`.
-
-        For more on how to use this (and related) functionality, see the
-        examples in
-        https://docs.astropy.org/en/stable/coordinates/matchsep.html.
-
-        Parameters
-        ----------
-        searcharoundcoords : |SkyCoord| or |CoordinateFrame|
-            The coordinates to search around to try to find matching points in
-            this `SkyCoord`. This should be an object with array coordinates,
-            not a scalar coordinate object.
-        seplimit : `~astropy.units.Quantity` with angle units
-            The on-sky separation to search within.
-
-        Returns
-        -------
-        idxsearcharound : integer array
-            Indices into ``searcharoundcoords`` that match the
-            corresponding elements of ``idxself``. Shape matches
-            ``idxself``.
-        idxself : integer array
-            Indices into ``self`` that match the
-            corresponding elements of ``idxsearcharound``. Shape matches
-            ``idxsearcharound``.
-        sep2d : `~astropy.coordinates.Angle`
-            The on-sky separation between the coordinates. Shape matches
-            ``idxsearcharound`` and ``idxself``.
-        dist3d : `~astropy.units.Quantity`
-            The 3D distance between the coordinates. Shape matches
-            ``idxsearcharound`` and ``idxself``.
-
-        Notes
-        -----
-        This method requires `SciPy <https://www.scipy.org/>`_ to be
-        installed or it will fail.
-
-        In the current implementation, the return values are always sorted in
-        the same order as the ``searcharoundcoords`` (so ``idxsearcharound`` is
-        in ascending order).  This is considered an implementation detail,
-        though, so it could change in a future release.
-
-        See Also
-        --------
-        astropy.coordinates.search_around_sky
-        SkyCoord.search_around_3d
-
-        """
-        return super().search_around_sky(searcharoundcoords, seplimit)
-
-    # /def
-
-    # just needed to modify the docstring
-    def search_around_3d(self, searcharoundcoords, distlimit):
-        """
-        Searches for all coordinates in this object around a supplied set of
-        points within a given 3D radius.
-
-        This is intended for use on `~astropy.coordinates.SkyCoord` objects
-        with coordinate arrays, rather than a scalar coordinate.  For a scalar
-        coordinate, it is better to use
-        `~astropy.coordinates.SkyCoord.separation_3d`.
-
-        For more on how to use this (and related) functionality, see the
-        examples in
-        https://docs.astropy.org/en/stable/coordinates/matchsep.html.
-
-        Parameters
-        ----------
-        searcharoundcoords : |SkyCoord| or |CoordinateFrame|
-            The coordinates to search around to try to find matching points in
-            this `SkyCoord`. This should be an object with array coordinates,
-            not a scalar coordinate object.
-        distlimit : `~astropy.units.Quantity` with distance units
-            The physical radius to search within.
-
-        Returns
-        -------
-        idxsearcharound : integer array
-            Indices into ``searcharoundcoords`` that match the
-            corresponding elements of ``idxself``. Shape matches
-            ``idxself``.
-        idxself : integer array
-            Indices into ``self`` that match the
-            corresponding elements of ``idxsearcharound``. Shape matches
-            ``idxsearcharound``.
-        sep2d : `~astropy.coordinates.Angle`
-            The on-sky separation between the coordinates. Shape matches
-            ``idxsearcharound`` and ``idxself``.
-        dist3d : `~astropy.units.Quantity`
-            The 3D distance between the coordinates. Shape matches
-            ``idxsearcharound`` and ``idxself``.
-
-        Notes
-        -----
-        This method requires `SciPy <https://www.scipy.org/>`_ to be
-        installed or it will fail.
-
-        In the current implementation, the return values are always sorted in
-        the same order as the ``searcharoundcoords`` (so ``idxsearcharound`` is
-        in ascending order).  This is considered an implementation detail,
-        though, so it could change in a future release.
-
-        See Also
-        --------
-        astropy.coordinates.search_around_3d
-        SkyCoord.search_around_sky
-
-        """
-        return super().search_around_3d(searcharoundcoords, distlimit)
-
-    # /def
+#     # ---------------------------------------------------------------
+#     # Mapping to Underlying SkyCoord
+#
+#     def separation(self, other):
+#         """
+#         Computes on-sky separation between this coordinate and another.
+#
+#         .. note::
+#
+#             If the ``other`` coordinate object is in a different frame, it is
+#             first transformed to the frame of this object. This can lead to
+#             unintuitive behavior if not accounted for. Particularly of note is
+#             that ``self.separation(other)`` and ``other.separation(self)`` may
+#             not give the same answer in this case.
+#
+#         For more on how to use this (and related) functionality, see the
+#         examples in
+#         https://docs.astropy.org/en/stable/coordinates/matchsep.html.
+#
+#         Parameters
+#         ----------
+#         other : |SkyCoord| or |Frame|
+#             The coordinate to get the separation to.
+#
+#         Returns
+#         -------
+#         sep : `~astropy.coordinates.Angle`
+#             The on-sky separation between this and the ``other`` coordinate.
+#
+#         Notes
+#         -----
+#         The separation is calculated using the Vincenty formula, which
+#         is stable at all locations, including poles and antipodes [1]_.
+#
+#         .. [1] https://en.wikipedia.org/wiki/Great-circle_distance
+#
+#         """
+#         return super().separation(other)
+#
+#     # /def
+#
+#     def separation_3d(self, other):
+#         """
+#         Computes three dimensional separation between this coordinate
+#         and another.
+#
+#         For more on how to use this (and related) functionality, see the
+#         examples in
+#         https://docs.astropy.org/en/stable/coordinates/matchsep.html.
+#
+#         Parameters
+#         ----------
+#         other : |SkyCoord| or |Frame|
+#             The coordinate to get the separation to.
+#
+#         Returns
+#         -------
+#         sep : `~astropy.coordinates.Distance`
+#             The real-space distance between these two coordinates.
+#
+#         Raises
+#         ------
+#         ValueError
+#             If this or the other coordinate do not have distances.
+#
+#         """
+#         return super().separation_3d(other)
+#
+#     # /def
+#
+#     def match_to_catalog_sky(self, catalogcoord, nthneighbor=1):
+#         """
+#         Finds the nearest on-sky matches of this coordinate in a set of
+#         catalog coordinates.
+#
+#         For more on how to use this (and related) functionality, see the
+#         examples in
+#         https://docs.astropy.org/en/stable/coordinates/matchsep.html.
+#
+#         Parameters
+#         ----------
+#         catalogcoord : |SkyCoord| or |Frame|
+#             The base catalog in which to search for matches. Typically this
+#             will be a coordinate object that is an array (i.e.,
+#             ``catalogcoord.isscalar == False``)
+#         nthneighbor : int, optional
+#             Which closest neighbor to search for.  Typically ``1`` is
+#             desired here, as that is correct for matching one set of
+#             coordinates to another. The next likely use case is ``2``,
+#             for matching a coordinate catalog against *itself* (``1``
+#             is inappropriate because each point will find itself as the
+#             closest match).
+#
+#         Returns
+#         -------
+#         idx : integer array
+#             Indices into ``catalogcoord`` to get the matched points for
+#             each of this object's coordinates. Shape matches this
+#             object.
+#         sep2d : `~astropy.coordinates.Angle`
+#             The on-sky separation between the closest match for each
+#             element in this object in ``catalogcoord``. Shape matches
+#             this object.
+#         dist3d : `~astropy.units.Quantity`
+#             The 3D distance between the closest match for each element
+#             in this object in ``catalogcoord``. Shape matches this
+#             object. Unless both this and ``catalogcoord`` have associated
+#             distances, this quantity assumes that all sources are at a
+#             distance of 1 (dimensionless).
+#
+#         Notes
+#         -----
+#         This method requires `SciPy <https://www.scipy.org/>`_ to be
+#         installed or it will fail.
+#
+#         See Also
+#         --------
+#         astropy.coordinates.match_coordinates_sky
+#         SkyCoord.match_to_catalog_3d
+#
+#         """
+#         return super().match_coordinates_sky(
+#             catalogcoord,
+#             nthneighbor=nthneighbor,
+#         )
+#
+#     # /def
+#
+#     def match_to_catalog_3d(self, catalogcoord, nthneighbor=1):
+#         """
+#         Finds the nearest 3-dimensional matches of this coordinate to a set
+#         of catalog coordinates.
+#
+#         This finds the 3-dimensional closest neighbor, which is only different
+#         from the on-sky distance if ``distance`` is set in this object or the
+#         ``catalogcoord`` object.
+#
+#         For more on how to use this (and related) functionality, see the
+#         examples in
+#         https://docs.astropy.org/en/stable/coordinates/matchsep.html.
+#
+#         Parameters
+#         ----------
+#         catalogcoord : |SkyCoord| or |Frame|
+#             The base catalog in which to search for matches. Typically this
+#             will be a coordinate object that is an array (i.e.,
+#             ``catalogcoord.isscalar == False``)
+#         nthneighbor : int, optional
+#             Which closest neighbor to search for.  Typically ``1`` is
+#             desired here, as that is correct for matching one set of
+#             coordinates to another.  The next likely use case is
+#             ``2``, for matching a coordinate catalog against *itself*
+#             (``1`` is inappropriate because each point will find
+#             itself as the closest match).
+#
+#         Returns
+#         -------
+#         idx : integer array
+#             Indices into ``catalogcoord`` to get the matched points for
+#             each of this object's coordinates. Shape matches this
+#             object.
+#         sep2d : `~astropy.coordinates.Angle`
+#             The on-sky separation between the closest match for each
+#             element in this object in ``catalogcoord``. Shape matches
+#             this object.
+#         dist3d : `~astropy.units.Quantity`
+#             The 3D distance between the closest match for each element
+#             in this object in ``catalogcoord``. Shape matches this
+#             object.
+#
+#         Notes
+#         -----
+#         This method requires `SciPy <https://www.scipy.org/>`_ to be
+#         installed or it will fail.
+#
+#         See Also
+#         --------
+#         astropy.coordinates.match_coordinates_3d
+#         SkyCoord.match_to_catalog_sky
+#
+#         """
+#         return super().match_to_catalog_3d(
+#             catalogcoord,
+#             nthneighbor=nthneighbor,
+#         )
+#
+#     # just needed to modify the docstring
+#     def search_around_sky(self, searcharoundcoords, seplimit):
+#         """
+#         Searches for all coordinates in this object around a supplied set of
+#         points within a given on-sky separation.
+#
+#         This is intended for use on `~astropy.coordinates.SkyCoord` objects
+#         with coordinate arrays, rather than a scalar coordinate.  For a scalar
+#         coordinate, it is better to use
+#         `~astropy.coordinates.SkyCoord.separation`.
+#
+#         For more on how to use this (and related) functionality, see the
+#         examples in
+#         https://docs.astropy.org/en/stable/coordinates/matchsep.html.
+#
+#         Parameters
+#         ----------
+#         searcharoundcoords : |SkyCoord| or |Frame|
+#             The coordinates to search around to try to find matching points in
+#             this `SkyCoord`. This should be an object with array coordinates,
+#             not a scalar coordinate object.
+#         seplimit : `~astropy.units.Quantity` with angle units
+#             The on-sky separation to search within.
+#
+#         Returns
+#         -------
+#         idxsearcharound : integer array
+#             Indices into ``searcharoundcoords`` that match the
+#             corresponding elements of ``idxself``. Shape matches
+#             ``idxself``.
+#         idxself : integer array
+#             Indices into ``self`` that match the
+#             corresponding elements of ``idxsearcharound``. Shape matches
+#             ``idxsearcharound``.
+#         sep2d : `~astropy.coordinates.Angle`
+#             The on-sky separation between the coordinates. Shape matches
+#             ``idxsearcharound`` and ``idxself``.
+#         dist3d : `~astropy.units.Quantity`
+#             The 3D distance between the coordinates. Shape matches
+#             ``idxsearcharound`` and ``idxself``.
+#
+#         Notes
+#         -----
+#         This method requires `SciPy <https://www.scipy.org/>`_ to be
+#         installed or it will fail.
+#
+#         In the current implementation, the return values are always sorted in
+#         the same order as the ``searcharoundcoords`` (so ``idxsearcharound`` is
+#         in ascending order).  This is considered an implementation detail,
+#         though, so it could change in a future release.
+#
+#         See Also
+#         --------
+#         astropy.coordinates.search_around_sky
+#         SkyCoord.search_around_3d
+#
+#         """
+#         return super().search_around_sky(searcharoundcoords, seplimit)
+#
+#     # /def
+#
+#     # just needed to modify the docstring
+#     def search_around_3d(self, searcharoundcoords, distlimit):
+#         """
+#         Searches for all coordinates in this object around a supplied set of
+#         points within a given 3D radius.
+#
+#         This is intended for use on `~astropy.coordinates.SkyCoord` objects
+#         with coordinate arrays, rather than a scalar coordinate.  For a scalar
+#         coordinate, it is better to use
+#         `~astropy.coordinates.SkyCoord.separation_3d`.
+#
+#         For more on how to use this (and related) functionality, see the
+#         examples in
+#         https://docs.astropy.org/en/stable/coordinates/matchsep.html.
+#
+#         Parameters
+#         ----------
+#         searcharoundcoords : |SkyCoord| or |Frame|
+#             The coordinates to search around to try to find matching points in
+#             this `SkyCoord`. This should be an object with array coordinates,
+#             not a scalar coordinate object.
+#         distlimit : `~astropy.units.Quantity` with distance units
+#             The physical radius to search within.
+#
+#         Returns
+#         -------
+#         idxsearcharound : integer array
+#             Indices into ``searcharoundcoords`` that match the
+#             corresponding elements of ``idxself``. Shape matches
+#             ``idxself``.
+#         idxself : integer array
+#             Indices into ``self`` that match the
+#             corresponding elements of ``idxsearcharound``. Shape matches
+#             ``idxsearcharound``.
+#         sep2d : `~astropy.coordinates.Angle`
+#             The on-sky separation between the coordinates. Shape matches
+#             ``idxsearcharound`` and ``idxself``.
+#         dist3d : `~astropy.units.Quantity`
+#             The 3D distance between the coordinates. Shape matches
+#             ``idxsearcharound`` and ``idxself``.
+#
+#         Notes
+#         -----
+#         This method requires `SciPy <https://www.scipy.org/>`_ to be
+#         installed or it will fail.
+#
+#         In the current implementation, the return values are always sorted in
+#         the same order as the ``searcharoundcoords`` (so ``idxsearcharound`` is
+#         in ascending order).  This is considered an implementation detail,
+#         though, so it could change in a future release.
+#
+#         See Also
+#         --------
+#         astropy.coordinates.search_around_3d
+#         SkyCoord.search_around_sky
+#
+#         """
+#         return super().search_around_3d(searcharoundcoords, distlimit)
+#
+#     # /def
 
 
 # /class

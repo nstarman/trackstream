@@ -2,9 +2,7 @@
 
 """`~typing.TypeVar` Tests."""
 
-__all__ = [
-    "TypeVarTests",
-]
+__all__ = ["TypeVarTests"]
 
 
 ##############################################################################
@@ -14,15 +12,15 @@ __all__ = [
 import abc
 import typing as T
 
-# LOCAL
-from .baseclassdependent import BaseClassDependentTests
+# THIRD PARTY
+import pytest
 
 ##############################################################################
 # CODE
 ##############################################################################
 
 
-class TypeVarTests(BaseClassDependentTests, klass=T.TypeVar):
+class TypeVarTests:
     """Type Testing Framework."""
 
     @classmethod
@@ -31,25 +29,23 @@ class TypeVarTests(BaseClassDependentTests, klass=T.TypeVar):
         """Setup fixtures for testing."""
         pass
 
-    # /def
+    @pytest.fixture
+    def type_cls(self):
+        return T.TypeVar
 
     # -------------------------------
 
-    def test_isTypeVar(self):
+    def test_isTypeVar(self, type_cls):
         """Test that this is a TypeVar."""
-        assert isinstance(self.klass, T.TypeVar)
+        assert isinstance(type_cls, T.TypeVar)
 
-    # /def
-
-    def test_bound(self):
+    def test_bound(self, type_cls):
         """Test TypeVar is correctly bound."""
-        assert self.klass.__bound__ is self.bound
+        assert type_cls.__bound__ is self.bound
 
-    # /def
-
-    def test_name(self):
+    def test_name(self, type_cls):
         """Test that name is [bound]."""
-        name: str = self.klass.__name__
+        name: str = type_cls.__name__
         if name.startswith("~"):
             name = name[1:]
 
@@ -57,13 +53,6 @@ class TypeVarTests(BaseClassDependentTests, klass=T.TypeVar):
 
         assert name == f"{boundname}", f"{name} != {boundname}"
 
-    # /def
-
-
-# /class
-
-
-# -------------------------------------------------------------------
 
 ##############################################################################
 # END

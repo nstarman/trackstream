@@ -20,6 +20,7 @@ __all__ = [
     # functions & classes
     "get_stream_data",
     "get_nbody_array",
+    "get_example_pal5",
     "get_nbody",
     "RotatedICRS",
     "get_orbit",
@@ -43,6 +44,7 @@ from .example_orbit import (
     make_ordered_orbit_data,
     make_unordered_orbit_data,
 )
+from .example_pal5 import get_example_pal5
 
 ##############################################################################
 # END

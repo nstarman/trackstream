@@ -10,6 +10,10 @@ __all__ = [
     # modules
     "examples",
     "preprocess",
+    # classes
+    "Stream",
+    "TrackStream",
+    "StreamTrack",
     # instances
     "conf",
 ]
@@ -18,19 +22,15 @@ __all__ = [
 ##############################################################################
 # IMPORTS
 
-# Packages may add whatever they like to this file, but
-# should keep this content at the top.
+# keep this content at the top.
 from ._astropy_init import *  # noqa: F401, F403  # isort:skip
 
 # LOCAL
-from . import core
 from . import example_data as examples
 from . import preprocess
 from .config import conf
-from .core import *  # noqa: F401, F403
-
-# ALL
-__all__ += core.__all__
+from .core import StreamTrack, TrackStream
+from .stream import Stream
 
 ##############################################################################
 # END

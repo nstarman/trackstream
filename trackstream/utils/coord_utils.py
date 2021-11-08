@@ -1,26 +1,32 @@
 # -*- coding: utf-8 -*-
-# see LICENSE.rst
 
-"""Coordinate Utilities."""
+"""Coordinates Utilities."""
 
 
-__all__ = [
-    # functions
-    "cartesian_to_spherical",
-    "reference_to_skyoffset_matrix",
-]
+__all__ = ["cartesian_to_spherical", "reference_to_skyoffset_matrix", "resolve_framelike"]
 
 
 ##############################################################################
 # IMPORTS
 
 # STDLIB
+import functools
 import typing as T
 
 # THIRD PARTY
 import astropy.units as u
 import numpy as np
+from astropy.coordinates import BaseCoordinateFrame, SkyCoord, sky_coordinate_parsers
 from astropy.coordinates.matrix_utilities import matrix_product, rotation_matrix
+from erfa import ufunc as erfa_ufunc
+
+# LOCAL
+from trackstream._type_hints import ArrayLike
+from trackstream.config import conf
+
+##############################################################################
+# PARAMETERS
+
 
 ##############################################################################
 # CODE
@@ -28,48 +34,40 @@ from astropy.coordinates.matrix_utilities import matrix_product, rotation_matrix
 
 
 def cartesian_to_spherical(
-    x: T.Sequence,
-    y: T.Sequence,
-    z: T.Sequence,
+    x: ArrayLike,
+    y: ArrayLike,
+    z: ArrayLike,
     deg: bool = False,
-) -> T.Tuple[T.Sequence, T.Sequence, T.Sequence]:
+) -> T.Tuple[ArrayLike, ArrayLike, ArrayLike]:
     """Cartesian to Spherical.
 
     Adopts the Astropy ranges for `lon` and `lat`.
 
     Parameters
     ----------
-    x, y, z : Sequence
+    x, y, z : scalar or ndarray
     deg : bool
         Whether to return in degrees or radians -- default radians.
 
     Returns
     -------
-    r, lat, lon : Sequence
-
+    r, lat, lon : scalar or ndarray
     """
-    r: T.Sequence = np.sqrt(x ** 2.0 + y ** 2.0 + z ** 2.0)
-    lat: T.Sequence = np.arctan2(np.sqrt(x ** 2.0 + y ** 2.0), z) - np.pi / 2  # to match astropy
-    lon: T.Sequence = np.arctan2(y, x) + np.pi  # to match astropy
+    r = np.sqrt(x ** 2.0 + y ** 2.0 + z ** 2.0)
+    lon, lat = erfa_ufunc.c2s(np.c_[x, y, z])
 
     if deg:
         lat *= 180.0 / np.pi
         lon *= 180.0 / np.pi
 
-    return r, lat, lon
-
-
-# /def
-
-
-# -------------------------------------------------------------------
+    return lon, lat, r
 
 
 def reference_to_skyoffset_matrix(
     lon: T.Union[float, u.Quantity],
     lat: T.Union[float, u.Quantity],
     rotation: T.Union[float, u.Quantity],
-) -> T.Sequence:
+) -> np.ndarray:
     """Convert a reference coordinate to an sky offset frame [astropy].
 
     Cartesian to Cartesian matrix transform.
@@ -125,10 +123,65 @@ def reference_to_skyoffset_matrix(
     return M
 
 
-# /def
+@functools.singledispatch
+def resolve_framelike(frame, error_if_not_type: bool = True):
+    """Determine the frame and return a blank instance.
+
+    Parameters
+    ----------
+    frame : frame-like instance or None (optional)
+        If BaseCoordinateFrame, replicates without data.
+        If str, uses astropy parsers to determine frame class
+        If None (default), gets default frame name from config, and parses.
+
+    error_if_not_type : bool
+        Whether to raise TypeError if `frame` is not one of the allowed types.
+
+    Returns
+    -------
+    frame : `~astropy.coordinates.BaseCoordinateFrame` instance
+        Replicated without data.
+
+    Raises
+    ------
+    TypeError
+        If `frame` is not one of the allowed types and 'error_if_not_type' is
+        True.
+    """
+    if error_if_not_type:
+        raise TypeError(
+            "Input coordinate frame must be an astropy "
+            "coordinates frame subclass *instance*, not a "
+            "'{}'".format(frame.__class__.__name__),
+        )
+    return frame
 
 
-# -------------------------------------------------------------------
+@resolve_framelike.register
+def _(frame: None, error_if_not_type: bool = True) -> BaseCoordinateFrame:
+    # If no frame is specified, assume that the input footprint is in a
+    # frame specified in the configuration
+    return resolve_framelike(conf.default_frame)
+
+
+@resolve_framelike.register
+def _(frame: str, error_if_not_type: bool = True) -> BaseCoordinateFrame:
+    # strings can be turned into frames using the private SkyCoord parsers
+    out: BaseCoordinateFrame = sky_coordinate_parsers._get_frame_class(frame.lower())()
+    return out
+
+
+@resolve_framelike.register
+def _(frame: BaseCoordinateFrame, error_if_not_type: bool = True) -> BaseCoordinateFrame:
+    out: BaseCoordinateFrame = frame.replicate_without_data()
+    return out
+
+
+@resolve_framelike.register
+def _(frame: SkyCoord, error_if_not_type: bool = True) -> BaseCoordinateFrame:
+    out: BaseCoordinateFrame = frame.frame.replicate_without_data()
+    return out
+
 
 ##############################################################################
 # END

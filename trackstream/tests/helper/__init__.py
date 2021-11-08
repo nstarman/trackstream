@@ -3,17 +3,5 @@
 
 """Test helper functions."""
 
-__all__ = [
-    "BaseClassDependentTests",
-    "TypeVarTests",
-]
-
-##############################################################################
-# IMPORTS
-
 # LOCAL
-from .baseclassdependent import BaseClassDependentTests
 from .typevar_tests import TypeVarTests
-
-##############################################################################
-# END

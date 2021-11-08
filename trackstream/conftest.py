@@ -12,7 +12,14 @@ packagename.test
 import os
 
 # THIRD PARTY
+import astropy.coordinates as coord
+import astropy.units as u
+import numpy as np
 import pytest
+
+# LOCAL
+import trackstream.utils.interpolated_coordinates as icoord
+from trackstream.utils.path import Path
 
 try:
     # THIRD PARTY
@@ -56,6 +63,7 @@ def pytest_configure(config):
 
 
 # ------------------------------------------------------
+# doctest fixtures
 
 
 @pytest.fixture(autouse=True)
@@ -72,9 +80,6 @@ def add_numpy(doctest_namespace):
 
     # add to namespace
     doctest_namespace["np"] = numpy
-
-
-# def
 
 
 @pytest.fixture(autouse=True)
@@ -102,4 +107,87 @@ def add_astropy(doctest_namespace):
     time_support()
 
 
-# def
+# ------------------------------------------------------
+
+
+@pytest.fixture
+def num():
+    return 40
+
+
+@pytest.fixture
+def affine(num):
+    return np.linspace(0, 10, num=num) * u.deg
+
+
+@pytest.fixture
+def frame():
+    return coord.ICRS()
+
+
+@pytest.fixture
+def dif(num):
+    d = coord.CartesianDifferential(
+        d_x=np.linspace(3, 4, num=num) * (u.km / u.s),
+        d_y=np.linspace(4, 5, num=num) * (u.km / u.s),
+        d_z=np.linspace(5, 6, num=num) * (u.km / u.s),
+    )
+    return d
+
+
+@pytest.fixture
+def idif(dif, affine):
+    return icoord.InterpolatedDifferential(dif, affine=affine)
+
+
+@pytest.fixture
+def rep(dif, num):
+    r = coord.CartesianRepresentation(
+        x=np.linspace(0, 1, num=num) * u.kpc,
+        y=np.linspace(1, 2, num=num) * u.kpc,
+        z=np.linspace(2, 3, num=num) * u.kpc,
+        differentials=dif,
+    )
+    return r
+
+
+@pytest.fixture
+def irep(rep, affine):
+    return icoord.InterpolatedRepresentation(rep, affine=affine)
+
+
+@pytest.fixture
+def crd(frame, rep):
+    c = frame.realize_frame(rep)
+    return c
+
+
+@pytest.fixture
+def icrd(crd, affine):
+    return icoord.InterpolatedCoordinateFrame(crd, affine=affine)
+
+
+@pytest.fixture
+def scrd(crd):
+    return coord.SkyCoord(crd)
+
+
+@pytest.fixture
+def iscrd(scrd, affine):
+    return icoord.InterpolatedSkyCoord(scrd, affine=affine)
+
+
+@pytest.fixture
+def path_cls():
+    return Path
+
+
+@pytest.fixture
+def path(path_cls, iscrd, width):
+    p = path_cls(iscrd, width, name="conftest")
+    return p
+
+
+@pytest.fixture
+def width():
+    return 100 * u.pc  # TODO! have variable function

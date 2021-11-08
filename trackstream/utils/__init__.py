@@ -9,12 +9,12 @@ This sub-module is destined for common non-package specific utility functions.
 
 
 __all__ = [
-    # modules
-    "coordinates",
     # classes
     "InterpolatedUnivariateSplinewithUnits",
     # functions
     "resolve_framelike",
+    "cartesian_to_spherical",
+    "reference_to_skyoffset_matrix",
 ]
 
 
@@ -22,8 +22,7 @@ __all__ = [
 # IMPORTS
 
 # LOCAL
-from . import coordinates
-from ._framelike import resolve_framelike
+from .coord_utils import cartesian_to_spherical, reference_to_skyoffset_matrix, resolve_framelike
 from .interpolate import InterpolatedUnivariateSplinewithUnits
 
 ##############################################################################

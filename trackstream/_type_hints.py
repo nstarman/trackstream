@@ -22,8 +22,6 @@ As a trivial example,
 """
 
 __all__ = [
-    "NoneType",
-    "EllipsisType",
     # Astropy types
     # coordinates
     "RepresentationOrDifferentialType",
@@ -57,14 +55,18 @@ import typing as T
 # THIRD PARTY
 import astropy.coordinates as coord
 import astropy.units as u
+import numpy as np
 from astropy import table
 
 ##############################################################################
 # TYPES
 ##############################################################################
 
-NoneType = type(None)
-EllipsisType = type(Ellipsis)
+# -------------------------------------
+# NumPy types
+
+ArrayLike = T.Union[float, np.generic, np.ndarray]
+
 
 # -------------------------------------
 # Astropy types
@@ -88,22 +90,22 @@ DifferentialType = T.TypeVar("BaseDifferential", bound=coord.BaseDifferential)
 """|Differential|"""
 
 FrameType = T.TypeVar("CoordinateFrame", bound=coord.BaseCoordinateFrame)
-"""|CoordinateFrame|"""
+"""|Frame|"""
 
 SkyCoordType = T.TypeVar("SkyCoord", bound=coord.SkyCoord)
 """|SkyCoord|"""
 
 CoordinateType = T.Union[FrameType, SkyCoordType]
-"""|CoordinateFrame| or |SkyCoord|"""
+"""|Frame| or |SkyCoord|"""
 
 PositionType = T.Union[RepresentationType, CoordinateType]
-"""|BaseRepresentation|, |CoordinateFrame|, or |SkyCoord|"""
+"""|BaseRepresentation|, |Frame|, or |SkyCoord|"""
 
 GenericPositionType = T.Union[RepresentationOrDifferentialType, CoordinateType]
-"""|BaseRepresentationOrDifferential|, |CoordinateFrame|, or |SkyCoord|"""
+"""|BaseRepresentationOrDifferential|, |Frame|, or |SkyCoord|"""
 
 FrameLikeType = T.Union[CoordinateType, str]
-"""|CoordinateFrame| or |SkyCoord| or `str`"""
+"""|Frame| or |SkyCoord| or `str`"""
 
 # -----------------
 # table

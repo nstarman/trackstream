@@ -50,9 +50,7 @@ def plot_rotation_frame_residual(
     """
     # Get data
     frame = data.replicate_without_data()
-    origin = origin.transform_to(frame).represent_as(
-        coord.SphericalRepresentation,
-    )
+    origin = origin.transform_to(frame).represent_as(coord.SphericalRepresentation)
     lon = origin.lon.to_value(u.deg)
     lat = origin.lat.to_value(u.deg)
 
@@ -74,14 +72,20 @@ def plot_rotation_frame_residual(
 
     if scalar:
         ax.scatter(rs, res)
-        ax.set_xlabel(r"$\theta$")
+        ax.set_xlabel(r"Rotation angle $\theta$")
         ax.set_ylabel(r"residual")
 
     else:
         im, norm = imshow_norm(res.T, ax=ax, aspect="auto", origin="lower")
-        ax.set_xlabel(r"$\theta$/10 + 180 [deg]")
+        # xticks
+        locs = ax.get_xticks()
+        xticks = [str(int(loc // 10)) for loc in locs]
+        plt.xticks(locs[1:-1], xticks[1:-1])
+        # labels
+        ax.set_xlabel(r"$\theta$ + 180 [deg]")
         ax.set_ylabel(r"phi2")
 
+        # colorbar
         cbar = fig.colorbar(im)
         cbar.ax.set_ylabel("residual")
 
@@ -93,6 +97,43 @@ def plot_rotation_frame_residual(
 
 # -------------------------------------------------------------------
 
+
+def plot_SOM(data, order):
+    """Plot SOM.
+
+    Parameters
+    ----------
+    data
+    order
+
+    returns
+
+    """
+    fig, ax = plt.subplots(figsize=(10, 9))
+
+    pts = ax.scatter(
+        data[order, 0],
+        data[order, 1],
+        c=np.arange(0, len(data)),
+        vmax=len(data),
+        cmap="plasma",
+        label="data",
+    )
+
+    ax.plot(data[order][:, 0], data[order][:, 1], c="gray")
+
+    cbar = plt.colorbar(pts, ax=ax)
+    cbar.ax.set_ylabel("SOM ordering")
+
+    fig.legend(loc="upper left")
+    fig.tight_layout()
+
+    return fig
+
+
+# /def
+
+# -------------------------------------------------------------------
 
 ##############################################################################
 # END

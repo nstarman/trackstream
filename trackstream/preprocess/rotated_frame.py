@@ -27,10 +27,10 @@ import scipy.optimize as opt
 from astropy.utils.decorators import lazyproperty
 
 # LOCAL
-from .utils import cartesian_to_spherical, reference_to_skyoffset_matrix
 from trackstream._type_hints import QuantityType
 from trackstream.config import conf
 from trackstream.setup_package import HAS_LMFIT
+from trackstream.utils import cartesian_to_spherical, reference_to_skyoffset_matrix
 
 if HAS_LMFIT:
     # THIRD PARTY
@@ -38,11 +38,26 @@ if HAS_LMFIT:
 
 
 ##############################################################################
+# PARAMETERS
+
+FT = T.TypeVar("FT")
+
+##############################################################################
 # CODE
 ##############################################################################
 
 
-def scipy_residual_to_lmfit(function=None, param_order=None):
+@T.overload
+def scipy_residual_to_lmfit(function: None, *, param_order: T.List[str]) -> functools.partial:
+    ...
+
+
+@T.overload
+def scipy_residual_to_lmfit(function: FT, *, param_order: T.List[str]) -> FT:
+    ...
+
+
+def scipy_residual_to_lmfit(function=None, *, param_order):
     """Decorator to make scipy residual functions compatible with lmfit.
 
     Parameters
@@ -53,20 +68,30 @@ def scipy_residual_to_lmfit(function=None, param_order=None):
         The variable order used by lmfit.
         Strings are the names of the lmfit parameters.
         Must be in the same order as the scipy residual function.
-    """
-    if param_order is None:
-        raise ValueError("`param_order` cannot be None")
 
+    Returns
+    -------
+    function : callable
+        The same as ``function``.
+    """
+    # allow for @-syntax
     if function is None:
         return functools.partial(scipy_residual_to_lmfit, param_order=param_order)
 
-    def lmfit(params, *args: T.Any, **kwargs: T.Any) -> T.Sequence:
-        """`lmfit` version of function."""
-        variables = [params[n].value for n in param_order]
+    def lmfit(params: T.Mapping[str, T.Any], *args: T.Any, **kwargs: T.Any) -> T.Sequence:
+        """:mod:`lmfit` version of function.
+
+        Parameters
+        ----------
+        params : `~lmfit.Parameters`
+        *args, **kwargs : Any
+        """
+        variables: T.List[T.Any] = [params[n].value for n in param_order]
         return function(variables, *args, **kwargs)
 
     # /def
 
+    # attach lmfit version to original function
     function.lmfit = lmfit
 
     return function
@@ -116,7 +141,7 @@ def cartesian_model(
     rot_matrix = reference_to_skyoffset_matrix(lon, lat, rotation)
     rot_xyz = np.dot(rot_matrix, data.xyz.value).reshape(-1, len(data))
 
-    r, lat, lon = cartesian_to_spherical(*rot_xyz, deg=deg)
+    lon, lat, r = cartesian_to_spherical(*rot_xyz, deg=deg)
 
     return r, lon, lat
 
@@ -690,17 +715,15 @@ class FitResult:
 
     # /def
 
-    @property
+    @lazyproperty
     def fit_values(self):
-        return MappingProxyType(
-            dict(origin=self.origin, rotation=self.rotation),
-        )
+        return MappingProxyType(dict(origin=self.origin, rotation=self.rotation))
 
     # /def
 
     @lazyproperty
     def frame(self):
-        """SkyOffsetFrame."""
+        """`~astropy.coordinates.SkyOffsetFrame`."""
         # make frame  # TODO ensure same as `make_frame`
         frame = coord.SkyOffsetFrame(**self.fit_values)
         frame.differential_type = coord.SphericalCosLatDifferential
@@ -708,8 +731,9 @@ class FitResult:
 
     # /def
 
-    @property
+    @lazyproperty
     def residual(self):
+        """Fit result residual."""
         return np.abs(self.data.lat - 0.0)
 
     # /def
