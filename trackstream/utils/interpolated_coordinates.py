@@ -194,13 +194,13 @@ from astropy.utils.decorators import format_doc
 from numpy import array_equal
 
 # LOCAL
+import trackstream._type_hints as TH
 from .generic_coordinates import (
     GenericDifferential,
     _make_generic_differential,
     _make_generic_differential_for_representation,
 )
 from .interpolate import InterpolatedUnivariateSplinewithUnits as IUSU
-from trackstream._type_hints import DifferentialType, QuantityType, RepresentationType
 
 ##############################################################################
 # PARAMETERS
@@ -1383,13 +1383,13 @@ class InterpolatedCoordinateFrame:
 
     def __init__(
         self,
-        data,
+        data: TH.CoordinateType,
         affine=None,
         *,
         interps=None,
         **interp_kwargs,
     ):
-
+        # get rep from CoordinateType
         rep = data.data
 
         if isinstance(rep, InterpolatedRepresentation):
@@ -1490,7 +1490,7 @@ class InterpolatedCoordinateFrame:
     # /def
 
     @property
-    def affine(self) -> QuantityType:  # read-only
+    def affine(self) -> TH.QuantityType:  # read-only
         return self.frame.data.affine
 
     # /def
@@ -1558,21 +1558,21 @@ class InterpolatedCoordinateFrame:
     # /def
 
     @property
-    def representation_type(self) -> RepresentationType:
+    def representation_type(self) -> TH.RepresentationType:
         return self.frame.representation_type
 
     @representation_type.setter
-    def representation_type(self, value: RepresentationType) -> None:
+    def representation_type(self, value: TH.RepresentationType) -> None:
         self.frame.representation_type = value
 
     # /def
 
     def represent_as(
         self,
-        base: T.Union[RepresentationType, str],
-        s: T.Union[str, DifferentialType] = "base",
+        base: T.Union[TH.RepresentationType, str],
+        s: T.Union[str, TH.DifferentialType] = "base",
         in_frame_units: bool = False,
-    ) -> RepresentationType:
+    ) -> TH.RepresentationType:
         """Generate and return a new representation of this frame's `data`
         as a Representation object.
 

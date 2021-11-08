@@ -113,7 +113,10 @@ class Path:
         if isinstance(path, coord.BaseRepresentation):  # works for interp
             path = self.frame.realize_frame(path)
 
-        if isinstance(path, coord.BaseCoordinateFrame):  # works for interp
+        if isinstance(path, InterpolatedCoordinateFrame):
+            pass
+        # TODO! work for interp
+        elif isinstance(path, coord.BaseCoordinateFrame):
             path = InterpolatedCoordinateFrame(path, affine=affine)
 
         path = InterpolatedSkyCoord(path, affine=affine)
@@ -125,6 +128,9 @@ class Path:
         # the initialization is separated out so that base classes can pass
         # `None` here and outside do stuff like have angular widths.
 
+        self._original_width = None
+        self._width_fn = None
+
         if width is not None:
             self._initialize_width(path, width)
 
@@ -134,7 +140,7 @@ class Path:
 
     @property  # read-only
     def frame(self):
-        """The preferred frame (instance) of the Footprint."""
+        """The preferred frame (instance) of the Path."""
         return self._frame
 
     @property
