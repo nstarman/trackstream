@@ -20,9 +20,6 @@ import astropy.coordinates as coord
 import astropy.units as u
 from astropy.coordinates.representation import DIFFERENTIAL_CLASSES
 
-# LOCAL
-from trackstream._type_hints import RepresentationType
-
 ##############################################################################
 # PARAMETERS
 
@@ -97,7 +94,7 @@ class GenericDifferential(coord.BaseDifferential):
 
     """
 
-    base_representation: RepresentationType = GenericRepresentation
+    base_representation: coord.BaseRepresentation = GenericRepresentation
 
 
 # /class
@@ -108,7 +105,7 @@ class GenericDifferential(coord.BaseDifferential):
 
 
 def _make_generic_representation(
-    rep_cls: T.Union[RepresentationType, GenericRepresentation],
+    rep_cls: T.Union[coord.BaseRepresentation, GenericRepresentation],
 ) -> GenericRepresentation:
     """Factory for making a generic form of a representation.
 
@@ -274,7 +271,7 @@ def _make_generic_differential(
 
 
 def _make_generic_differential_for_representation(
-    rep_cls: RepresentationType,
+    rep_cls: coord.BaseRepresentation,
     n: int = 1,
 ) -> GenericDifferential:
     """Make generic differential given a representation.

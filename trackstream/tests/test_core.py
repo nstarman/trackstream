@@ -160,30 +160,30 @@ class Test_StreamTrack:
     # ===============================================================
     # Method tests
 
-#     def test_init(self, track_cls, frame):
-#         """Test instantiation."""
-#         track = StreamTrack(self.interps, stream_data=self.data, origin=self.origin, frame=frame)
-# 
-#         assert hasattr(track, "_data")
-#         assert hasattr(track, "_track")
-#         assert hasattr(track, "origin")
-# 
-#         # --------------
-#         # Different argument types
-# 
-#         # The data is an ICRS object
-#         # we must also test passing in a BaseRepresentation
-#         rep = self.data.represent_as(coord.SphericalRepresentation)
-# 
-#         track = track_cls(self.interps, stream_data=rep, origin=self.origin)
-#         assert isinstance(track._data_frame, coord.BaseCoordinateFrame)
-#         assert track._data_rep == self.data.representation_type
-# 
-#         # and a failed input type
-#         with pytest.raises(TypeError) as e:
-#             track_cls(None, None, None)
-# 
-#         assert f"`stream_data` type <{type(None)}> is wrong." in str(e.value)
+    #     def test_init(self, track_cls, frame):
+    #         """Test instantiation."""
+    #         track = StreamTrack(self.interps, stream_data=self.data, origin=self.origin, frame=frame)
+    #
+    #         assert hasattr(track, "_data")
+    #         assert hasattr(track, "_track")
+    #         assert hasattr(track, "origin")
+    #
+    #         # --------------
+    #         # Different argument types
+    #
+    #         # The data is an ICRS object
+    #         # we must also test passing in a BaseRepresentation
+    #         rep = self.data.represent_as(coord.SphericalRepresentation)
+    #
+    #         track = track_cls(self.interps, stream_data=rep, origin=self.origin)
+    #         assert isinstance(track._data_frame, coord.BaseCoordinateFrame)
+    #         assert track._data_rep == self.data.representation_type
+    #
+    #         # and a failed input type
+    #         with pytest.raises(TypeError) as e:
+    #             track_cls(None, None, None)
+    #
+    #         assert f"`stream_data` type <{type(None)}> is wrong." in str(e.value)
 
     def test_path(self, track):
         assert track.path is track._path

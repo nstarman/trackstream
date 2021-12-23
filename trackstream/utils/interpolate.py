@@ -93,12 +93,12 @@ import scipy.interpolate as _interp
 from scipy.interpolate.fitpack2 import _curfit_messages, fitpack
 
 # LOCAL
-from trackstream._type_hints import QuantityType, UnitType
+from trackstream._type_hints import UnitType
 
 ##############################################################################
 # PARAMETERS
 
-_BBoxType = T.List[T.Optional[QuantityType]]
+_BBoxType = T.List[T.Optional[u.Quantity]]
 
 ##############################################################################
 # CODE
@@ -255,8 +255,8 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
 
     def __init__(
         self,
-        x: QuantityType,
-        y: QuantityType,
+        x: u.Quantity,
+        y: u.Quantity,
         w=None,
         bbox=[None] * 2,
         k: int = 3,
@@ -298,8 +298,8 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
 
     def validate_input(
         self,
-        x: T.Union[QuantityType, np.ndarray],
-        y: T.Union[QuantityType, np.ndarray],
+        x: T.Union[u.Quantity, np.ndarray],
+        y: T.Union[u.Quantity, np.ndarray],
         w,
         bbox,
         k: int,
@@ -769,8 +769,8 @@ class InterpolatedUnivariateSplinewithUnits(UnivariateSplinewithUnits):
 
     def __init__(
         self,
-        x: QuantityType,
-        y: QuantityType,
+        x: u.Quantity,
+        y: u.Quantity,
         w: T.Optional[np.ndarray] = None,
         bbox: _BBoxType = [None, None],
         k: int = 3,
@@ -935,9 +935,9 @@ class LSQUnivariateSplinewithUnits(UnivariateSplinewithUnits):
 
     def __init__(
         self,
-        x: QuantityType,
-        y: QuantityType,
-        t: QuantityType,
+        x: u.Quantity,
+        y: u.Quantity,
+        t: u.Quantity,
         w=None,
         bbox=[None] * 2,
         k: int = 3,

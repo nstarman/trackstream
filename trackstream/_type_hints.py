@@ -25,13 +25,8 @@ __all__ = [
     # Astropy types
     # coordinates
     "RepresentationOrDifferentialType",
-    "RepresentationType",
-    "DifferentialType",
     "FrameType",
-    "SkyCoordType",
     "CoordinateType",
-    "PositionType",
-    "GenericPositionType",
     "FrameLikeType",
     # tables
     "TableType",
@@ -39,7 +34,6 @@ __all__ = [
     # units
     "UnitType",
     "UnitLikeType",
-    "QuantityType",
     "QuantityLikeType",
 ]
 
@@ -74,35 +68,13 @@ ArrayLike = T.Union[float, np.generic, np.ndarray]
 # -----------------
 # coordinates
 
-RepresentationOrDifferentialType = T.TypeVar(
-    "BaseRepresentationOrDifferential",
-    bound=coord.BaseRepresentationOrDifferential,
-)
-"""|RepresentationOrDifferential|"""
-
-RepresentationType = T.TypeVar(
-    "BaseRepresentation",
-    bound=coord.BaseRepresentation,
-)
-"""|Representation|"""
-
-DifferentialType = T.TypeVar("BaseDifferential", bound=coord.BaseDifferential)
-"""|Differential|"""
+RepresentationLikeType = T.Union[coord.BaseRepresentation, str]
 
 FrameType = T.TypeVar("CoordinateFrame", bound=coord.BaseCoordinateFrame)
 """|Frame|"""
 
-SkyCoordType = T.TypeVar("SkyCoord", bound=coord.SkyCoord)
-"""|SkyCoord|"""
-
-CoordinateType = T.Union[FrameType, SkyCoordType]
+CoordinateType = T.Union[FrameType, coord.SkyCoord]
 """|Frame| or |SkyCoord|"""
-
-PositionType = T.Union[RepresentationType, CoordinateType]
-"""|BaseRepresentation|, |Frame|, or |SkyCoord|"""
-
-GenericPositionType = T.Union[RepresentationOrDifferentialType, CoordinateType]
-"""|BaseRepresentationOrDifferential|, |Frame|, or |SkyCoord|"""
 
 FrameLikeType = T.Union[CoordinateType, str]
 """|Frame| or |SkyCoord| or `str`"""
@@ -124,15 +96,6 @@ UnitType = T.Union[
     T.TypeVar("FunctionUnit", bound=u.FunctionUnitBase),
 ]
 """|Unit| or :class:`~astropy.units.FunctionUnitBase`"""
-
-UnitLikeType = T.Union[UnitType, str]
-"""|Unit|, :class:`~astropy.units.FunctionUnitBase`, or `str`"""
-
-QuantityType = T.TypeVar("Quantity", bound=u.Quantity)
-"""|Quantity|"""
-
-QuantityLikeType = T.Union[QuantityType, str]
-"""|Quantity| or `str`"""
 
 ##############################################################################
 # END

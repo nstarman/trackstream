@@ -18,21 +18,21 @@ import typing as T
 import astropy.coordinates as coord
 import astropy.units as u
 import numpy as np
-from astropy import table
+from astropy.table import Table
 from astropy.utils.metadata import MetaAttribute, MetaData
 from astropy.utils.misc import indent
 from scipy.linalg import block_diag
 
 # LOCAL
 from . import _type_hints as TH
-from trackstream.preprocess.rotated_frame import RotatedFrameFitter
-from trackstream.preprocess.som import order_data, prepare_SOM, reorder_visits
+from .stream import Stream
+from trackstream.preprocess.rotated_frame import FitResult, RotatedFrameFitter
+from trackstream.preprocess.som import SelfOrganizingMap1D, order_data, reorder_visits
 from trackstream.process.kalman import KalmanFilter
 from trackstream.process.utils import make_dts, make_F, make_H, make_Q, make_R
-from trackstream.utils._framelike import resolve_framelike
+from trackstream.utils import resolve_framelike
+from trackstream.utils.misc import intermix_arrays
 from trackstream.utils.path import Path
-from trackstream.utils.utils import intermix_arrays
-
 
 ##############################################################################
 # CODE
@@ -46,33 +46,23 @@ class TrackStream:
 
     Parameters
     ----------
-    SOM1 : `~trackstream.preprocess.SelfOrganizingMap` or None (optional, keyword-only)
-    SOM2 : `~trackstream.preprocess.SelfOrganizingMap` or None (optional, keyword-only)
-
-    Notes
-    -----
-    This method brings together a few different classes and techniques.
-    More granular control can be achieved by using each piece separately.
-
+    arm1SOM, arm2SOM : `~trackstream.preprocess.SelfOrganizingMap` or None (optional, keyword-only)
+        Fiducial SOMs for stream arms 1 and 2, respectively.
     """
 
-    def __init__(self, *, SOM=None, SOM2=None):
+    def __init__(self, *, arm1SOM=None, arm2SOM=None):
         self._cache: T.Dict[str, object] = {}
 
-        # ----------
         # SOM
+        self._arm1_SOM = arm1SOM
+        self._arm2_SOM = arm2SOM
 
-        self._arm1_SOM = SOM
-        self._arm2_SOM = SOM2
-
-        # self.visit_order = None
-
-    #################################################################
+    # ===============================================================
     # Fit
 
     def _fit_rotated_frame(
         self,
-        stream,
+        stream: Stream,
         rot0: T.Optional[u.Quantity] = 0 * u.deg,
         bounds: T.Optional[T.Sequence] = None,
         **kwargs,
@@ -125,11 +115,9 @@ class TrackStream:
             **kwargs,
         )
 
-        fit = fitter.fit(rot0=rot0, bounds=bounds)
+        fitted = fitter.fit(rot0=rot0, bounds=bounds)
 
-        return fit.frame, fit
-
-    # /def
+        return fitted.frame, fitted
 
     # -------------------------------------------
 
@@ -140,7 +128,7 @@ class TrackStream:
         *,
         learning_rate: float = 0.1,
         sigma: float = 1.0,
-        iterations: int = 10000,
+        iterations: int = 10_000,
         random_seed: T.Optional[int] = None,
         reorder: T.Optional[int] = None,
         progress: bool = False,
@@ -152,7 +140,6 @@ class TrackStream:
         .. todo::
 
             - iterative training
-            - reuse SOM
 
         Parameters
         ----------
@@ -170,28 +157,31 @@ class TrackStream:
         """
         # # TODO! iterative training
 
-        # we order the data by longitude
-        # and ensure it's oriented from the origin, outward
-        # order_by_lon = np.argsort(arm.lon)
-        # if arm.lon[order_by_lon[-1]] < 0:
-        #     order_by_lon = np.flip(order_by_lon)
-
         rep = arm.represent_as(coord.SphericalRepresentation)
         data = rep._values.view("f8").reshape(-1, len(rep.components))
         data[:, :2] *= u.rad.to(u.deg)  # rad -> deg
-        # data = data[order_by_lon]
 
         if som is None:
-            som = prepare_SOM(
-                data=data,
-                learning_rate=learning_rate,
+            data_len, nfeature = data.shape
+            if nlattice is None:
+                nlattice = data_len // 10  # allows to be variable
+            if nlattice == 0:
+                raise ValueError
+
+            som = SelfOrganizingMap1D(
+                nlattice,
+                nfeature,
                 sigma=sigma,
-                iterations=iterations,
+                learning_rate=learning_rate,
+                # decay_function=None,
+                neighborhood_function="gaussian",
+                activation_distance="euclidean",
                 random_seed=random_seed,
-                progress=progress,
-                nlattice=nlattice,
-                **kwargs,
             )
+
+            # call method to initialize SOM weights
+            weight_init_method = kwargs.get("weight_init_method", "binned_weights_init")
+            getattr(som, weight_init_method)(data, **kwargs)
 
         som.train(
             data,
@@ -210,21 +200,15 @@ class TrackStream:
 
         # then we need to change the visit order to
         # be applied to the original data, not ordered by lon
-        # visit_order = order_by_lon[visit_order]
+        # visit_order = order_by_lon[visit_order]  # FIXME!
 
         # ----------------------------
         # TODO! transition matrix
 
         return visit_order, som
 
-    # /def
-
-    def _run_kalman_filter(self, data: TH.SkyCoordType, w0=None):
+    def _fit_kalman_filter(self, data: coord.SkyCoord, w0=None):
         """Fit data with Kalman filter.
-
-        .. todo::
-
-            allow more user control
 
         Parameters
         ----------
@@ -257,7 +241,7 @@ class TrackStream:
         H0 = make_H()
         R0 = make_R([0.05, 0.05, 0.003])[0]  # TODO! actual errors
 
-        self.kalman_filter = kf = KalmanFilter(
+        kf = KalmanFilter(
             w0,
             P0,
             F0=make_F,
@@ -267,16 +251,14 @@ class TrackStream:
             q_kw=dict(var=0.01, n_dims=3),  # TODO! as options
         )
 
-        _, smooth_mean_path = kf.run(
+        smooth_mean_path = kf.fit(
             arr,
             dts,
             method="stepupdate",
             use_filterpy=None,
         )
 
-        return smooth_mean_path, kf
-
-    # /def
+        return smooth_mean_path, kf, dts
 
     # -------------------------------------------
 
@@ -316,19 +298,19 @@ class TrackStream:
 
         # 1) Already provided or in cache.
         #    Either way, don't need to repeat the process.
-        frame = stream._system_frame  # can be None
-        frame_fit = self._cache.get("frame_fit", None)
+        frame: T.Optional[BaseCoordinateFrame] = stream._system_frame
+        frame_fit: T.Optional[FitResult] = self._cache.get("frame_fit", None)
 
         # 2) Fit (& cache), if still None.
-        #    This can be turned off using `fit_frame_if_needed`, but is probably
-        #    more important than the following step of the SOM.
+        #    This can be turned off using `fit_frame_if_needed`, but is
+        #    probably more important than the following step of the SOM.
         if frame is None and fit_frame_if_needed:
-            rotated_frame_fit_kw = rotated_frame_fit_kw or {}
-            frame, frame_fit = self._fit_rotated_frame(stream, **rotated_frame_fit_kw)
+            kw: dict = rotated_frame_fit_kw or {}
+            frame, frame_fit = self._fit_rotated_frame(stream, **kw)
 
         # 3) if it's still None, give up
         if frame is None:
-            frame = stream.data_coord.frame.replicate_without_data()
+            frame: BaseCoordinateFrame = stream.data_coord.frame.replicate_without_data()
             frame_fit = None
 
         # Cache the fit frame on the stream. This is used for transforming the
@@ -339,14 +321,16 @@ class TrackStream:
         stream._cache["frame"] = frame
 
         # get arms, in frame
-        # do this after caching b/c coords_arm1 can use the cache
-        arm1 = stream.coords_arm1.transform_to(frame)
-        arm2 = stream.coords_arm2.transform_to(frame)
+        # do this after caching b/c coords can use the cache
+        arm1: coord.SkyCoord = stream.arm1.coords
+        arm2: coord.SkyCoord = stream.arm2.coords
 
         # -------------------
         # Self-Organizing Map
         # Unlike the previous step, we must do this for both arms.
 
+        # -----
+        # Arm 1
         som = self._arm1_SOM
         visit_order = None
 
@@ -361,15 +345,17 @@ class TrackStream:
         # 3) if it's still None, give up
         if visit_order is None:
             visit_order = np.argsort(arm1.lon)
+
         # now rearrange the data
-        arm1 = arm1[visit_order]
+        visit_order = np.array(visit_order, dtype=int)  # TODO? necessary
+        arm1 = arm1[visit_order]  # FIXME!
 
         # cache (even if None)
         self._cache["arm1_visit_order"] = visit_order
         self._cache["arm1_SOM"] = som
 
-        # Arm 2
         # -----
+        # Arm 2 (if not None)
         som = self._arm2_SOM
         visit_order = None
 
@@ -386,10 +372,9 @@ class TrackStream:
             # 3) if it's still None, give up
             if visit_order is None:
                 visit_order = np.argsort(arm2.lon)
+            visit_order = np.array(visit_order, dtype=int)
             # now rearrange the data
             arm2 = arm2[visit_order]
-
-        # /if
 
         # cache (even if None)
         self._cache["arm2_visit_order"] = visit_order
@@ -397,44 +382,92 @@ class TrackStream:
 
         # -------------------
         # Kalman Filter
+        # both arms start at 0 displacement wrt themselves, but not each other.
+        # e.g. the progenitor is cut out. To address this the start of affine
+        # is offset by epsilon = min(1e-10, 1e-10 * dp2p[0])
 
         # Arm 1  (never None)
         # -----
         kalman_fit_kw = kalman_fit_kw or {}
-        mean_path1, kalman_filter1 = self._run_kalman_filter(arm1, **kalman_fit_kw)
-        # cache (even if None)
-        self._cache["arm1_mean_path"] = mean_path1
-        self._cache["arm1_kalman"] = kalman_filter1
+        mean1, kf1, dts1 = self._fit_kalman_filter(arm1, **kalman_fit_kw)
+        # cache
+        self._cache["arm1_mean_path"] = mean1
+        self._cache["arm1_kalman"] = kf1
+
+        # TODO! make sure get the frame and units right
+        r1 = coord.CartesianRepresentation(mean1.Xs[:, ::2].T, unit=u.kpc)
+        c1 = frame.realize_frame(r1)  # (not interpolated)
+        sp2p1 = c1[:-1].separation(c1[1:])  # point-2-point sep
+        affine1 = np.concatenate(([min(1e-10 * sp2p1.unit, 1e-10 * sp2p1[0])], sp2p1.cumsum()))
+
+        # covariance matrix. select only the phase-space positions
+        # everything is Gaussian so there are no off-diagonal elements,
+        # so the 1-sigma error is quite easy.
+        cov = mean1.Ps[:, ::2, ::2]
+        var = np.diagonal(cov, axis1=1, axis2=2)
+        sigma1 = np.sqrt(np.sum(np.square(var), axis=-1)) * u.kpc
 
         # Arm 2
         # -----
-        if arm2 is not None:
-            mean_path2, kalman_filter2 = self._run_kalman_filter(arm2, **kalman_fit_kw)
+        if arm2 is None:
+            mean2 = kf2 = dts2 = None
         else:
-            mean_path2 = kalman_filter2 = None
-        # cache (even if None)
-        self._cache["arm2_mean_path"] = mean_path2
-        self._cache["arm2_kalman"] = kalman_filter2
+            mean2, kf2, dts2 = self._fit_kalman_filter(arm2, **kalman_fit_kw)
 
-        # FIXME!
-        return mean_path1, kalman_filter1, mean_path2, kalman_filter2
+            # TODO! make sure get the frame and units right
+            r2 = coord.CartesianRepresentation(mean2.Xs[:, ::2].T, unit=u.kpc)
+            c2 = frame.realize_frame(r2)  # (not interpolated)
+            sp2p2 = c2[:-1].separation(c2[1:])  # point-2-point sep
+            affine2 = np.concatenate(([min(1e-10 * sp2p2.unit, 1e-10 * sp2p2[0])], sp2p2.cumsum()))
+
+            cov = mean2.Ps[:, ::2, ::2]
+            var =  np.diagonal(cov, axis1=1, axis2=2)
+            sigma2 = np.sqrt(np.sum(np.square(var), axis=-1)) * u.kpc
+
+        # cache (even if None)
+        self._cache["arm2_mean_path"] = mean2
+        self._cache["arm2_kalman"] = kf2
 
         # -------------------
         # Combine together into a single path
-        # TODO!
+        # for this we need to detect proximity to the progenitor
 
-        # mean_path = self.points.transform_to(self.frame)  # FIXME!
+        affine = np.concatenate((-affine2[::-1], affine1))
+        c = coord.concatenate((c2[::-1], c1))
+        sigma = np.concatenate((sigma2[::-1], sigma1))
 
+        # TEMPORARY
+        path1 = Path(
+            path=c1,
+            width=sigma1,
+            affine=affine1,
+            frame=frame,
+        )
+        path2 = Path(
+            path=c2,
+            width=sigma2,
+            affine=affine2,
+            frame=frame,
+        )
         # path = Path(
-        #     path=mean_path,
-        #     width=100 * u.pc,  # FIXME!
-        #     affine=mean_path.spherical.lon,
-        #     frame=self.frame,
+        #     path=c,
+        #     width=sigma,
+        #     affine=affine,
+        #     frame=frame,
         # )
 
-        # # construct interpolation
+        return path1, path2
+
+        if arm2 is None:
+            affine = affine1
+        else:
+            # need to reverse order and get the negative of affine2
+            affine = np.concatenate((affine2 - affine2[-1], affine1))
+            # TODO! need to fix the double 0 in affine
+
+        # construct interpolation
         track = StreamTrack(
-            mean_path1,  # TODO!
+            path,  # TODO!
             stream_data=stream.data,
             origin=stream.origin,
             frame=frame,
@@ -445,14 +478,11 @@ class TrackStream:
                 arm1=self._cache.get("arm1_SOM", None),
                 arm2=self._cache.get("arm2_SOM", None),
             ),
-            kalman=dict(arm1=kalman_filter1, arm2=kalman_filter2),  # TODO!
+            kalman=dict(arm1=kf1, arm2=kf2),  # TODO!
         )
         return track
 
-    # /def
-
-    #################################################################
-    # Other methods
+    # ===============================================================
 
     def predict(self, arc_length):
         """Predict from a fit.
@@ -464,20 +494,16 @@ class TrackStream:
         """
         return self.track(arc_length)
 
-    # /def
-
-    def fit_predict(self, arc_length, **fit_kwargs):
+    def fit_predict(self, stream, arc_length, **fit_kwargs):
         """Fit and Predict."""
-        self.fit(**fit_kwargs)
+        self.fit(stream, **fit_kwargs)
         return self.predict(arc_length)
-
-    # /def
 
 
 # /class
 
 
-#####################################################################
+##############################################################################
 
 
 class StreamTrack:
@@ -492,7 +518,6 @@ class StreamTrack:
         Original stream data
     origin
         of the coordinate system (often the progenitor)
-
     """
 
     meta = MetaData()
@@ -500,23 +525,16 @@ class StreamTrack:
     def __init__(
         self,
         path: Path,
-        stream_data: T.Union[table.Table, TH.CoordinateType, None],
+        stream_data: T.Union[Table, TH.CoordinateType, None],
         origin: TH.CoordinateType,
         frame: TH.FrameLikeType,
         **metadata,
     ):
-        super().__init__()
-
         # validation of types
         if not isinstance(path, Path):
             raise TypeError("`path` must be <Path>.")
-        elif not isinstance(
-            origin,
-            (coord.SkyCoord, coord.BaseCoordinateFrame),
-        ):
-            raise TypeError(
-                "`origin` must be <|SkyCoord|, |Frame|>.",
-            )
+        elif not isinstance(origin, (coord.SkyCoord, coord.BaseCoordinateFrame)):
+            raise TypeError("`origin` must be <|SkyCoord|, |Frame|>.")
 
         # assign
         self._path: Path = path
@@ -530,21 +548,17 @@ class StreamTrack:
             descr = getattr(self.__class__, attr, None)
             if isinstance(descr, MetaAttribute):
                 setattr(self, attr, metadata.pop(attr))
-
+        # and the metadata
         self.meta.update(metadata)
-
-    # /def
 
     @property
     def path(self):
         return self._path
 
-    # /def
-
     @property
     def track(self):
         """The path's central track."""
-        return self._path.path
+        return self._path.data
 
     @property
     def affine(self):
@@ -570,12 +584,8 @@ class StreamTrack:
     #######################################################
     # Math on the Track
 
-    def __call__(self, arc_length: TH.QuantityType) -> TH.CoordinateType:
+    def __call__(self, arc_length: u.Quantity) -> TH.CoordinateType:
         """Get discrete points along interpolated stream track.
-
-        .. todo::
-
-            Implement astropy-style representation parsing
 
         Parameters
         ----------
@@ -586,13 +596,9 @@ class StreamTrack:
         |Frame|
             Realized from the ``.data`` attribute Frame and Representation
             from the interpolation (``.interp``).
-
         """
-#         rep = self._data_rep(**{k: v(arc_length) for k, v in self._track.items()})
-#         return self._data_frame.realize_frame(rep)
+        rep = self._data_rep(**{k: v(arc_length) for k, v in self._track.items()})
         return self.path(arc_length)
-
-    # /def
 
     #######################################################
     # misc
@@ -604,12 +610,9 @@ class StreamTrack:
         frame_name = self.frame.__class__.__name__
         rep_name = self.track.representation_type.__name__
         s = s.replace("StreamTrack", f"StreamTrack ({frame_name}|{rep_name})")
-
         s += "\n" + indent(repr(self._stream_data)[1:-1])
 
         return s
-
-    # /def
 
 
 # /class

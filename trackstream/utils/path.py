@@ -78,7 +78,6 @@ class Path:
     ------
     Exception
         if `path` is not already interpolated and affine is None
-
     """
 
     def __init__(
@@ -153,7 +152,7 @@ class Path:
         """Affine parameter along ``path``."""
         return self.data.affine
 
-    # ---------------------------------------------------------------
+    # -----------------------------------------------------
 
     def _initialize_width(self, path, width):
         # TODO clean this up and stuff
@@ -184,18 +183,73 @@ class Path:
         self._original_width = copy.deepcopy(o_w)
         self._width_fn = width
 
-    def width(self, affine: T.Optional[u.Quantity] = None):
+    #################################################################
+    # Math on the Track!
+
+    def position(self, affine: T.Optional[u.Quantity] = None) -> T.Union[InterpolatedSkyCoord, SkyCoord]:
+        """Return the position on the track.
+
+        The same as ``.data()``.
+
+        Parameters
+        ----------
+        affine : `~astropy.units.Quantity` array-like or None, optional
+            The affine interpolation parameter. If None (default), return
+            all positions.
+
+        Returns
+        -------
+        `~trackstream.utils.interpolated_coordinates.InterpolatedSkyCoord`
+            Path position at ``affine``.
+        """
+        return self.data(affine)
+
+    def width(self, affine: T.Optional[u.Quantity] = None) -> u.Quantity:
+        """Return the (1-sigma) width of the track at affine points.
+
+        Parameters
+        ----------
+        affine : `~astropy.units.Quantity` array-like or None, optional
+            The affine interpolation parameter. If None (default), return
+            width evaluated at all "tick" interpolation points.
+
+        Returns
+        -------
+        `~astropy.unitss.Quantity`
+            Path width evaluated at ``affine``.
+        """
         if affine is None:
             affine = self.affine
         return self._width_fn(u.Quantity(affine, copy=False))
 
-    #################################################################
-    # Math on the Track!
+    def width_angular(self, affine: T.Optional[u.Quantity] = None) -> u.Quantity:
+        """Return the (1-sigma) angulr width of the track at affine points.
 
-    def __call__(self, affine: T.Optional[u.Quantity] = None):
+        Parameters
+        ----------
+        affine : `~astropy.units.Quantity` array-like or None, optional
+            The affine interpolation parameter. If None (default), return
+            angular width evaluated at all "tick" interpolation points.
+
+        Returns
+        -------
+        `~astropy.unitss.Quantity`
+            Path angular width evaluated at ``affine``.
+        """
+        width = self.width(affine)
+        if width.unit.physical_type == "angle":
+            return width
+
+        # TODO! is there a more succinct Astropy func for this?
+        r = self.data(affine).represent_as(coord.SphericalRepresentation)
+        distance = r.distance.to_value(width.unit)
+    
+        return np.abs(np.arctan(width.value), distance) * u.rad
+
+    def __call__(self, affine: T.Optional[u.Quantity] = None, angular: bool=False) -> path_moments:
         """Call."""
-        mean = self.data(affine)
-        width = self.width(affine)  # 1-sigma
+        mean = self.position(affine)
+        width = self.width(affine) if not angular else self.width_angular(affine)
 
         # TODO? add a directionality?
         # TODO allow for higher moments

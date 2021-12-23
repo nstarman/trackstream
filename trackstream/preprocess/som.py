@@ -18,7 +18,7 @@ __all__ = [
     # functions
     # "apply_SOM",
     # "apply_SOM_repeat",
-    "prepare_SOM",
+    # "prepare_SOM",
     "order_data",
     "reorder_visits",
 ]
@@ -147,8 +147,6 @@ class SelfOrganizingMap1D:
         self._weights = 2 * self._rng.random((1, nlattice, nfeature)) - 1
         self._weights /= linalg.norm(self._weights, axis=-1, keepdims=True)
 
-    # /def
-
     @property
     def nlattice(self):
         """Number of lattice points."""
@@ -182,14 +180,10 @@ class SelfOrganizingMap1D:
         """
         self._activation_map = self._activation_distance(x, self._weights)
 
-    # /def
-
     def _activation_distance(self, x, w):
         return linalg.norm(np.subtract(x, w), axis=-1)
         # TODO! change to ChiSquare
         # REDUCES TO GAUSSIAN LIKELIHOOD
-
-    # /def
 
     def _distance_from_weights(self, data):
         """
@@ -203,9 +197,9 @@ class SelfOrganizingMap1D:
         cross_term = np.dot(input_data, weights_flat.T)
         return np.sqrt(input_data_sq + weights_flat_sq.T - (2 * cross_term))
 
-    # /def
+    # ---------------------------------------------------------------
 
-    def pca_weights_init(self, data):
+    def pca_weights_init(self, data, **kw):
         """Initializes the weights to span the first two principal components.
 
         This initialization doesn't depend on random processes and
@@ -213,7 +207,6 @@ class SelfOrganizingMap1D:
 
         It is strongly recommended to normalize the data before initializing
         the weights and use the same normalization for the training data.
-
         """
         pc_length, pc = linalg.eig(np.cov(np.transpose(data)))
         pc_order = np.argsort(-pc_length)
@@ -225,12 +218,22 @@ class SelfOrganizingMap1D:
             for j, c2 in enumerate(np.linspace(-1, 1, len(self._neigy))):
                 self._weights[i, j] = c1 * pc0 + c2 * pc1
 
-    # /def
+    def binned_weights_init(self, data, byphi=False, **kw):
+        """Initialize prototype vectors from binned data.
 
-    def binned_weights_init(self, data):
-        """Initialize prototype vectors from binned data."""
+        Paramters
+        ---------
+        data : (N, D) ndarray
+            D dimensions, the first is the longitude.
+        byphi : bool, optional
+            Whether to bin by the longitude, or by :math:`\phi=atan(lat/lon)`
+        """
         nbins = len(self._neigy)
-        x = data[:, 0]
+        if byphi:
+            print("order by phi")
+            x = np.arctan2(data[:, 1], data[:, 0])
+        else:
+            x = data[:, 0]
         xlen = len(x)
 
         # create equi-frequency bins
@@ -241,7 +244,7 @@ class SelfOrganizingMap1D:
         # TODO! just self._weights b/c 1D
         self._weights[0] = res.statistic.T
 
-    # /def
+    # ---------------------------------------------------------------
 
     def quantization(self, data):
         """Assigns a code book (weights vector of the winning neuron)
@@ -250,16 +253,12 @@ class SelfOrganizingMap1D:
         winners_coords = np.argmin(self._distance_from_weights(data), axis=1)
         return self._weights[np.unravel_index(winners_coords, self._weights.shape[:2])]
 
-    # /def
-
     def quantization_error(self, data):
         """
         Returns the quantization error computed as the average
         distance between each input sample and its best matching unit.
         """
         return linalg.norm(data - self.quantization(data), axis=1).mean()
-
-    # /def
 
     def train(
         self,
@@ -303,8 +302,6 @@ class SelfOrganizingMap1D:
                     num_iteration,
                 )
 
-    # /def
-
     # ---------------------------------
 
     def neighborhood(self, c, sigma) -> np.ndarray:
@@ -313,8 +310,6 @@ class SelfOrganizingMap1D:
         ax = np.exp(-np.power(self._xx - self._xx.T[c], 2) / d)
         ay = np.exp(-np.power(self._yy - self._yy.T[c], 2) / d)
         return (ax * ay).T  # the external product gives a matrix
-
-    # /def
 
     def update(self, x, win, t, max_iteration):
         """Updates the weights of the neurons.
@@ -339,8 +334,6 @@ class SelfOrganizingMap1D:
         # w_new = eta * neighborhood_function * (x-w)
         self._weights += np.einsum("ij, ijk->ijk", g, x - self._weights)
 
-    # /def
-
     def winner(self, x):
         """Computes the coordinates of the winning neuron for the sample x."""
         self._activate(x)
@@ -348,8 +341,6 @@ class SelfOrganizingMap1D:
             self._activation_map.argmin(),
             self._activation_map.shape,
         )
-
-    # /def
 
 
 # /class
@@ -448,68 +439,67 @@ def reorder_visits(
 ##############################################################################
 
 
-def prepare_SOM(
-    data: CoordinateType,
-    *,
-    learning_rate: float = 2.0,
-    sigma: float = 20.0,
-    iterations: int = 10000,
-    random_seed: T.Optional[int] = None,
-    progress: bool = False,
-    nlattice: T.Optional[int] = None,
-    **kwargs,
-) -> T.Callable:
-    """Apply Self Ordered Mapping to the data.
-
-    Currently only implemented for Spherical.
-
-    Parameters
-    ----------
-    data : ndarray
-        The data. (lon, lat, distance)
-    learning_rate : float (optional, keyword-only)
-        (at the iteration t we have
-        learning_rate(t) = learning_rate / (1 + t/T)
-        where T is #num_iteration/2)
-    sigma : float (optional, keyword-only)
-        Spread of the neighborhood function, needs to be adequate
-        to the dimensions of the map.
-        (at the iteration t we have sigma(t) = sigma / (1 + t/T)
-        where T is #num_iteration/2)
-    iterations : int (optional, keyword-only)
-        number of times the SOM is trained.
-    random_seed: int (optional, keyword-only)
-        Random seed to use. (default=None).
-
-    Returns
-    -------
-    som : SOM instance
-
-    """
-    # length of data, number of features: (x, y, z) or (ra, dec), etc.
-    data_len, nfeature = data.shape
-    if nlattice is None:
-        nlattice = data_len // 10  # allows to be variable
-
-    som = SelfOrganizingMap1D(
-        nlattice,
-        nfeature,
-        sigma=sigma,
-        learning_rate=learning_rate,
-        # decay_function=None,
-        neighborhood_function="gaussian",
-        activation_distance="euclidean",
-        random_seed=random_seed,
-    )
-
-    weight_init_method = kwargs.get("weight_init_method", "binned_weights_init")
-    getattr(som, weight_init_method)(data)
-
-    # return som, USING_MINISOM
-    return som
-
-
-# /def
+# def prepare_SOM(
+#     data: CoordinateType,
+#     *,
+#     learning_rate: float = 2.0,
+#     sigma: float = 20.0,
+#     iterations: int = 10000,
+#     random_seed: T.Optional[int] = None,
+#     progress: bool = False,
+#     nlattice: T.Optional[int] = None,
+#     **kwargs,
+# ) -> T.Callable:
+#     """Apply Self Ordered Mapping to the data.
+#
+#     Currently only implemented for Spherical.
+#
+#     Parameters
+#     ----------
+#     data : ndarray
+#         The data. (lon, lat, distance)
+#     learning_rate : float (optional, keyword-only)
+#         (at the iteration t we have
+#         learning_rate(t) = learning_rate / (1 + t/T)
+#         where T is #num_iteration/2)
+#     sigma : float (optional, keyword-only)
+#         Spread of the neighborhood function, needs to be adequate
+#         to the dimensions of the map.
+#         (at the iteration t we have sigma(t) = sigma / (1 + t/T)
+#         where T is #num_iteration/2)
+#     iterations : int (optional, keyword-only)
+#         number of times the SOM is trained.
+#     random_seed: int (optional, keyword-only)
+#         Random seed to use. (default=None).
+#
+#     Returns
+#     -------
+#     som : SOM instance
+#
+#     """
+#     # length of data, number of features: (x, y, z) or (ra, dec), etc.
+#     data_len, nfeature = data.shape
+#     if nlattice is None:
+#         nlattice = data_len // 10  # allows to be variable
+#
+#     som = SelfOrganizingMap1D(
+#         nlattice,
+#         nfeature,
+#         sigma=sigma,
+#         learning_rate=learning_rate,
+#         # decay_function=None,
+#         neighborhood_function="gaussian",
+#         activation_distance="euclidean",
+#         random_seed=random_seed,
+#     )
+#
+#     weight_init_method = kwargs.get("weight_init_method", "binned_weights_init")
+#     getattr(som, weight_init_method)(data)
+#
+#     return som
+#
+#
+# # /def
 
 
 # def apply_SOM(

@@ -90,7 +90,7 @@ class KalmanFilter:
     #######################################################
     # Run
 
-    def run(
+    def fit(
         self,
         data: T.Union[np.ndarray, T.Sequence],
         dts: np.ndarray,
@@ -110,27 +110,27 @@ class KalmanFilter:
         method : {"stepupdate"}
             Which method to use.
 
-            - "stepupdate" : ``run_with_stepupdate``
+            - "stepupdate" : ``fit_with_stepupdate``
 
 
         use_filterpy : bool or None, (optional, keyword-only)
             If none, uses configuration.
 
         **kwargs
+            Passed to fit method.
 
         Returns
         -------
-        output : `~kalman_output`
+        `~kalman_output`
             "Xs", "Ps", "Fs", "Qs"
-        smooth : `~kalman_output`
-            "Xs", "Ps", "Fs", "Qs"
-
         """
         kw = dict(self.options.items())  # copy
         kw.update(kwargs)
 
         if method == "stepupdate":
-            result = self.run_with_stepupdate(data, dts, use_filterpy=use_filterpy, **kw)
+            result = self.fit_with_stepupdate(
+                data, dts, use_filterpy=use_filterpy, full_output=False, **kw
+            )
 
         else:
             raise ValueError()
@@ -139,7 +139,7 @@ class KalmanFilter:
 
     # /def
 
-    def run_with_stepupdate(
+    def fit_with_stepupdate(
         self,
         data: T.Union[np.ndarray, T.Sequence],
         dts: np.ndarray,
@@ -147,6 +147,7 @@ class KalmanFilter:
         B: T.Union[np.ndarray, float] = 1.0,
         alpha: float = 1.0,
         *,
+        full_output: bool = False,
         use_filterpy: T.Optional[bool] = None,
         q_kw: T.Optional[T.Dict] = None
     ) -> T.Tuple[kalman_output, kalman_output]:
@@ -239,19 +240,18 @@ class KalmanFilter:
         Xs, Ps = np.array(Xs), np.array(Ps)
         Fs, Qs = np.array(Fs), np.array(Qs)
 
-        # smooth
+        # smoothed
         sXs, sPs, sFs, sQs = smoother(Xs, Ps, Fs, Qs)
-
-        # make namedtuples
-        output = kalman_output(Xs, Ps, Fs, Qs)
         smooth = kalman_output(sXs, sPs, sFs, sQs)
 
-        return output, smooth
+        if full_output:
+            output = kalman_output(Xs, Ps, Fs, Qs)
+            return smooth, output
 
-    # /def
+        return smooth
 
-    #######################################################
-    # Static Methods
+    # =================
+    # Misc
 
     @staticmethod
     def make_simple_dts(
@@ -266,11 +266,6 @@ class KalmanFilter:
         )
 
         return dts
-
-    # /def
-
-
-# /class
 
 
 ##############################################################################

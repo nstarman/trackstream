@@ -1490,7 +1490,7 @@ class InterpolatedCoordinateFrame:
     # /def
 
     @property
-    def affine(self) -> TH.QuantityType:  # read-only
+    def affine(self) -> u.Quantity:  # read-only
         return self.frame.data.affine
 
     # /def
@@ -1558,21 +1558,21 @@ class InterpolatedCoordinateFrame:
     # /def
 
     @property
-    def representation_type(self) -> TH.RepresentationType:
+    def representation_type(self) -> coord.BaseRepresentation:
         return self.frame.representation_type
 
     @representation_type.setter
-    def representation_type(self, value: TH.RepresentationType) -> None:
+    def representation_type(self, value: coord.BaseRepresentation) -> None:
         self.frame.representation_type = value
 
     # /def
 
     def represent_as(
         self,
-        base: T.Union[TH.RepresentationType, str],
-        s: T.Union[str, TH.DifferentialType] = "base",
+        base: TH.RepresentationLikeType,
+        s: T.Union[str, coord.BaseDifferential] = "base",
         in_frame_units: bool = False,
-    ) -> TH.RepresentationType:
+    ) -> coord.BaseRepresentation:
         """Generate and return a new representation of this frame's `data`
         as a Representation object.
 

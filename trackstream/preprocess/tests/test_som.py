@@ -173,13 +173,13 @@ def test_reorder_visits():
 # /def
 
 
-@pytest.mark.skip("TODO!")
-def test_prepare_SOM():
-    """Test :func:`trackstream.preprocess.som.prepare_SOM`."""
-    assert False
-
-
-# /def
+# @pytest.mark.skip("TODO!")
+# def test_prepare_SOM():
+#     """Test :func:`trackstream.preprocess.som.prepare_SOM`."""
+#     assert False
+#
+#
+# # /def
 
 
 @pytest.mark.skip("TODO!")
