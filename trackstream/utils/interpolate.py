@@ -294,8 +294,6 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
             check_finite=check_finite,
         )
 
-    # /def
-
     def validate_input(
         self,
         x: T.Union[u.Quantity, np.ndarray],
@@ -325,8 +323,6 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
         # then validate with UnivariateSpline method, which works with units!
         return super().validate_input(x, y, w, bbox, k, s, ext, check_finite)
 
-    # /def
-
     @classmethod
     def _from_tck(cls, tck, x_unit: UnitType, y_unit: UnitType, ext: int = 0):
         """Construct a spline object from given tck."""
@@ -335,8 +331,6 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
         self._yunit = y_unit
 
         return self
-
-    # /def
 
     def _reset_class(self):
         data = self._data
@@ -362,8 +356,6 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
             message = _curfit_messages.get(ier, "ier=%s" % (ier))
             warnings.warn(message)
 
-    # /def
-
     def _set_class(self, cls):
         self._spline_class = cls
         if self.__class__ in (
@@ -375,8 +367,6 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
         else:
             # It's an unknown subclass -- don't change class. cf. #731
             pass
-
-    # /def
 
     # def _reset_nest(self, data, nest=None):
     #     n = data[10]
@@ -446,10 +436,8 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
             Evaluated spline with units ``._yunit``. Same shape as `x`.
 
         """
-        y = super().__call__(x.to_value(self._xunit), nu=nu, ext=ext)
-        return y * self._yunit
-
-    # /def
+        y = super().__call__((x << self._xunit).value, nu=nu, ext=ext)
+        return y << self._yunit
 
     def get_knots(self):
         """Return positions of interior knots of the spline.
@@ -460,13 +448,9 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
         """
         return super().get_knots() * self._xunit
 
-    # /def
-
     def get_coeffs(self):
         """Return spline coefficients."""
-        return super().get_coeffs() * self._yunit
-
-    # /def
+        return super().get_coeffs() << self._yunit
 
     def get_residual(self):
         """Return weighted sum of squared residuals of spline approximation.
@@ -475,9 +459,7 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
             sum((w[i] * (y[i]-spl(x[i])))**2, axis=0)
 
         """
-        return super().get_residual() * self._yunit
-
-    # /def
+        return super().get_residual() << self._yunit
 
     def integral(self, a, b):
         r"""Return definite integral of the spline between two given points.
@@ -518,9 +500,7 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
         """
         a_val = a.to_value(self._xunit)
         b_val = b.to_value(self._xunit)
-        return super().integral(a_val, b_val) * self._xunit * self._yunit
-
-    # /def
+        return super().integral(a_val, b_val) << self._xunit * self._yunit
 
     def derivatives(self, x):
         """Return all derivatives of the spline at the point x.
@@ -552,8 +532,6 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
             dtype=u.Quantity,
         )
 
-    # /def
-
     def roots(self):
         """Return the zeros of the spline.
 
@@ -561,8 +539,6 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
 
         """
         return super().roots() * self._xunit
-
-    # /def
 
     def derivative(self, n=1):
         r"""Construct a new spline representing the derivative of this spline.
@@ -613,8 +589,6 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
             y_unit=y_unit,
             ext=ext,
         )
-
-    # /def
 
     def antiderivative(self, n=1):
         r"""Construct a new spline representing this spline's antiderivative.
@@ -671,10 +645,6 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
             ext=self.ext,
         )
 
-    # /def
-
-
-# /class
 
 # -------------------------------------------------------------------
 
@@ -805,11 +775,6 @@ class InterpolatedUnivariateSplinewithUnits(UnivariateSplinewithUnits):
             ext=ext,
             check_finite=check_finite,
         )
-
-    # /def
-
-
-# /class
 
 
 # -------------------------------------------------------------------
@@ -972,11 +937,6 @@ class LSQUnivariateSplinewithUnits(UnivariateSplinewithUnits):
             ext=ext,
             check_finite=check_finite,
         )
-
-    # /def
-
-
-# /class
 
 
 ##############################################################################

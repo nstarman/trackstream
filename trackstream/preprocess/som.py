@@ -230,7 +230,6 @@ class SelfOrganizingMap1D:
         """
         nbins = len(self._neigy)
         if byphi:
-            print("order by phi")
             x = np.arctan2(data[:, 1], data[:, 0])
         else:
             x = data[:, 0]

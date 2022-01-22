@@ -20,7 +20,9 @@ from astropy.table import Column, QTable, Table
 from astropy.utils.decorators import lazyproperty
 
 # LOCAL
-from ._type_hints import CoordinateType, FrameType
+from trackstream._type_hints import CoordinateType, FrameType
+from trackstream.preprocess.som import SelfOrganizingMap1D
+from trackstream.utils.path import path_moments
 
 ##############################################################################
 # CODE
@@ -112,7 +114,6 @@ class Stream:
 
     arm1 = StreamArmDescriptor()
     arm2 = StreamArmDescriptor()
-    # TODO! ability to add more arms
 
     # ===============================================================
 
@@ -137,7 +138,8 @@ class Stream:
         self._original_data: coord.SkyCoord = None
 
         # processed data -> QTable
-        self.data = self._normalize_data(data)
+        self.data: QTable = self._normalize_data(data)
+        self._data_max_lines = 10
 
     # -----------------------------------------------------
 
@@ -150,11 +152,10 @@ class Stream:
         then a system frame has been found and cached.
         """
         frame: T.Optional[coord.BaseCoordinateFrame]
-
         if self._system_frame is not None:
             frame = self._system_frame
         else:
-            frame = self._cache.get("frame", None)
+            frame = self._cache.get("frame")
 
         return frame
 
@@ -228,9 +229,7 @@ class Stream:
         # 3) SOM ordering
         self._normalize_data_arm_index(original, data)
 
-        # --------------
         # Metadata
-
         # TODO? selective, or just copy over?
         data.meta = original.meta.copy()  # TODO? deepcopy?
 
@@ -268,7 +267,7 @@ class Stream:
         self,
         original: Table,
         data: QTable,
-    ):
+    ) -> None:
         """Parse the data table.
 
         - the frame is stored in ``_data_frame``
@@ -337,7 +336,7 @@ class Stream:
         self,
         original: Table,
         data: QTable,
-    ):
+    ) -> None:
         """Data probability. Units of percent. Default is 100%.
 
         Parameters
@@ -356,57 +355,85 @@ class Stream:
     # Fitting
 
     @property
-    def track(self):
+    def track(self) -> "StreamTrack":
+        """Stream track.
+
+        Raises
+        ------
+        ValueError
+            If track is not fit.
+        """
         track = self._cache.get("track")
         if track is None:
             raise ValueError("need to fit track.")
-
         return track
 
-    def fit_track(self, arm1SOM=None, arm2SOM=None, *, force=False, **kw):
-        """Make a streak track.
+    def fit_track(
+        self,
+        arm1SOM: T.Optional[SelfOrganizingMap1D] = None,
+        arm2SOM: T.Optional[SelfOrganizingMap1D] = None,
+        *,
+        force: bool = False,
+        **kwargs,
+    ) -> "StreamTrack":
+        """Make a stream track.
 
         Parameters
         ----------
         arm1SOM, arm2SOM : `~trackstream.preprocess.SelfOrganizingMap` (optional, keyword-only)
             Fiducial SOMs for stream arms 1 and 2, respectively.
         force : bool
-            Whether to force a fit if already fit.
+            Whether to force a fit, even if already fit.
+        **kwargs
+            Passed to :meth:`trackstream.TrackStream.fit`.
 
         Returns
         -------
-        track
+        `trackstream.StreamTrack`
         """
         if not force and "tracker" in self._cache:
-            raise Exception("already fit. use ``force`` to force a re-fit.")
+            raise Exception("already fit. use ``force`` to re-fit.")
 
         # LOCAL
-        from trackstream.core import TrackStream
+        from trackstream.core import StreamTrack, TrackStream
 
         self._cache["tracker"] = tracker = TrackStream(arm1SOM=arm1SOM, arm2SOM=arm2SOM)
-        track = tracker.fit(self, **kw)
 
+        track: StreamTrack = tracker.fit(self, **kwargs)
         self._cache["track"] = track
 
-        # add SOM ordering to data
+        # Add SOM ordering to data
         self.data["SOM"] = np.empty(len(self.data), dtype=int)
         self.data["SOM"][self.arm1.index] = tracker._cache["arm1_visit_order"]
-        self.data["SOM"][self.arm2.index] = tracker._cache["arm2_visit_order"]  # TODO! if
+        self.data["SOM"][self.arm2.index] = tracker._cache["arm2_visit_order"]
 
         return track
 
     # ===============================================================
-    # misc
+    # Math on the Track (requires fitting track)
 
-    def __repr__(self):
-        header = super().__repr__()
-        frame = repr(self.frame)
-        table = "\n\t".join(repr(self.data).split("\n")[1:])
+    def predict_track(
+        self, affine: T.Optional[u.Quantity] = None, angular: bool = False
+    ) -> path_moments:
+        return self.track()
+
+    # ===============================================================
+    # Misc
+
+    def _base_repr_(self, max_lines=None):
+        """mirroring implementation in astropy Table."""
+        header: str = super().__repr__()
+        frame: str = repr(self.frame)
+
+        datarep: str = self.data._base_repr_(
+            html=False, max_width=None, max_lines=self._data_max_lines
+        )
+        table: str = "\n\t".join(datarep.split("\n")[1:])
 
         return header + "\n  Frame:\n\t" + frame + "\n  Data:\n\t" + table
 
-
-# /class
+    def __repr__(self) -> str:
+        return self._base_repr_(max_lines=self._data_max_lines)
 
 
 ##############################################################################

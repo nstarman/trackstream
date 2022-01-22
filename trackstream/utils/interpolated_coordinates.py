@@ -165,7 +165,6 @@ exception is if SkyCoord is wrapping an interpolated CoordinateFrame.
 """
 
 __all__ = [
-    # interpolation classes
     "InterpolatedRepresentationOrDifferential",
     "InterpolatedRepresentation",
     "InterpolatedDifferential",
@@ -220,7 +219,6 @@ def _find_first_best_compatible_differential(rep, n: int = 1):
     """Find a compatible differential.
 
     There can be more than one, so we select the first one.
-
 
     """
     # get names of derivatives wrt the affine parameter
@@ -369,8 +367,6 @@ class InterpolatedRepresentationOrDifferential:
 
         return super().__new__(cls)
 
-    # /def
-
     def __init__(
         self,
         rep: coord.BaseRepresentationOrDifferential,
@@ -380,7 +376,7 @@ class InterpolatedRepresentationOrDifferential:
         derivative_type: T.Optional[coord.BaseDifferential] = None,
         **interp_kwargs,
     ):
-        # Check its instantiated and right class
+        # Check it's instantiated and right class
         if inspect.isclass(rep) and issubclass(
             rep,
             coord.BaseRepresentationOrDifferential,
@@ -476,25 +472,18 @@ class InterpolatedRepresentationOrDifferential:
         affine : `~astropy.units.Quantity` array-like
             The affine interpolation parameter.
             If None, returns representation points.
-
         """
-
-    # /def
 
     @property
     def derivative_type(self):
         """The class used when taking a derivative."""
         return self._derivative_type
 
-    # /def
-
     @derivative_type.setter
     def derivative_type(self, value):
         """The class used when taking a derivative."""
         self._derivative_type = value
         self.clear_derivatives()
-
-    # /def
 
     def clear_derivatives(self):
         """Return self, clearing cached derivatives."""
@@ -505,8 +494,6 @@ class InterpolatedRepresentationOrDifferential:
                     self._derivatives.pop(key)
 
         return self
-
-    # /def
 
     def derivative(self, n=1):
         r"""Construct a new spline representing the derivative of this spline.
@@ -519,71 +506,54 @@ class InterpolatedRepresentationOrDifferential:
         ----------
         n : int, optional
             Order of derivative to evaluate. Default: 1
-
         """
         # evaluate the spline on each argument of the position
         params = {
-            (k if k.startswith("d_") else "d_" + k): interp.derivative(n=n)(
-                self.affine,
-            )
+            (k if k.startswith("d_") else "d_" + k): interp.derivative(n=n)(self.affine)
             for k, interp in self._interps.items()
         }
 
         if n == 1:
-            derivative_type = self.derivative_type
+            deriv_cls = self.derivative_type
         else:
-            derivative_type = _infer_derivative_type(
-                self.data,
-                self.affine.unit,
-                n=n,
-            )
+            deriv_cls = _infer_derivative_type(self.data, self.affine.unit, n=n)
 
         # make Differential
-        deriv = derivative_type(**params)
+        deriv = deriv_cls(**params)
 
         # interpolate
-        # derivative_type = _infer_derivative_type(
-        #     deriv, self.affine.unit, n=n + 1
-        # )
         ideriv = InterpolatedDifferential(
             deriv,
             self.affine,
-            # derivative_type=derivative_type,
             **self._interp_kwargs,
         )
-        # TODO rare case when differentiating an integral of a Representation
+        # TODO! rare case when differentiating an integral of a Representation
         # then want to return an interpolated Representation!
 
         return ideriv
 
-    # /def
+    def antiderivative(self, n=1):
+        r"""Construct a new spline representing the integral of this spline.
 
-    # def antiderivative(self, n=1):
-    #     r"""Construct a new spline representing the integral of this spline.
+        .. todo:
 
-    #     .. todo:
+            Allow for attaching the differentials?
 
-    #         Allow for attaching the differentials?
+            a differential should become a position!
 
-    #         a differential should become a position!
-
-    #     Parameters
-    #     ----------
-    #     n : int, optional
-    #         Order of derivative to evaluate. Default: 1
-
-    #     """
-    #     # evaluate the spline on each argument of the position
-    #     params = [
-    #         interp.antiderivative(n=n)(self.affine)
-    #         for k, interp in self._interps.items()
-    #     ]
-
-    #     deriv = GenericDifferential(*params)
-
-    #     return self._class_(deriv, self.affine, **self._interp_kwargs)
-
-    # # /def
+        Parameters
+        ----------
+        n : int, optional
+            Order of derivative to evaluate. Default: 1
+        """
+        # evaluate the spline on each argument of the position
+        params = {
+            k.lstrip("d_"): interp.antiderivative(n=n)(self.affine)
+            for k, interp in self._interps.items()
+        }
+        # deriv = GenericDifferential(*params)
+        # return self._class_(deriv, self.affine, **self._interp_kwargs)
+        return params
 
     # def integral(self, a, b):
     #     """Return definite integral between two given points."""
@@ -602,13 +572,9 @@ class InterpolatedRepresentationOrDifferential:
         """Make class appear the same as the underlying Representation."""
         return self.data.__class__
 
-    # /def
-
     def __getattr__(self, key):
         """Route everything to underlying Representation."""
         return getattr(self.data, key)
-
-    # /def
 
     def __getitem__(self, key):
         """Getitem on Representation, re-interpolating."""
@@ -616,12 +582,8 @@ class InterpolatedRepresentationOrDifferential:
         afn = self.affine[key]
         return self._realize_class(rep, afn)
 
-    # /def
-
     def __len__(self):
         return len(self.data)
-
-    # /def
 
     def __repr__(self):
         """String Representation, adding interpolation information."""
@@ -658,8 +620,6 @@ class InterpolatedRepresentationOrDifferential:
             diffstr,
         )
 
-    # /def
-
     def _scale_operation(self, op, *args, scaled_base=False):
         rep = self.data._scale_operation(op, *args, scaled_base=scaled_base)
 
@@ -675,7 +635,6 @@ class InterpolatedRepresentationOrDifferential:
         - point : add to data, keep affine the same, re-interpolate
         - vector : add to data, keep affine the same, re-interpolate
         - interpolated : must be same interpolation!
-
         """
         if isinstance(other, InterpolatedRepresentationOrDifferential):
             if not array_equal(other.affine, self.affine):
@@ -690,8 +649,6 @@ class InterpolatedRepresentationOrDifferential:
         # now re-interpolate
         return self._realize_class(newrep, self.affine)
 
-    # /def
-
     def __sub__(self, other):
         """Add other to an InterpolatedRepresentationOrDifferential
 
@@ -699,7 +656,6 @@ class InterpolatedRepresentationOrDifferential:
         - point : add to data, keep affine the same, re-interpolate
         - vector : add to data, keep affine the same, re-interpolate
         - interpolated : must be same interpolation!
-
         """
         if isinstance(other, InterpolatedRepresentationOrDifferential):
             if not array_equal(other.affine, self.affine):
@@ -714,8 +670,6 @@ class InterpolatedRepresentationOrDifferential:
         # now re-interpolate
         return self._realize_class(newrep, self.affine)
 
-    # /def
-
     def __mul__(self, other):
         """Add other to an InterpolatedRepresentationOrDifferential
 
@@ -723,7 +677,6 @@ class InterpolatedRepresentationOrDifferential:
         - point : add to data, keep affine the same, re-interpolate
         - vector : add to data, keep affine the same, re-interpolate
         - interpolated : must be same interpolation!
-
         """
         if isinstance(other, InterpolatedRepresentationOrDifferential):
             if not array_equal(other.affine, self.affine):
@@ -738,8 +691,6 @@ class InterpolatedRepresentationOrDifferential:
         # now re-interpolate
         return self._realize_class(newrep, self.affine)
 
-    # /def
-
     def __truediv__(self, other):
         """Add other to an InterpolatedRepresentationOrDifferential
 
@@ -747,7 +698,6 @@ class InterpolatedRepresentationOrDifferential:
         - point : add to data, keep affine the same, re-interpolate
         - vector : add to data, keep affine the same, re-interpolate
         - interpolated : must be same interpolation!
-
         """
         if isinstance(other, InterpolatedRepresentationOrDifferential):
             if not array_equal(other.affine, self.affine):
@@ -761,8 +711,6 @@ class InterpolatedRepresentationOrDifferential:
 
         # now re-interpolate
         return self._realize_class(newrep, self.affine)
-
-    # /def
 
     # def _apply(self, method, *args, **kwargs):
     #     """Create a new representation or differential with ``method`` applied
@@ -827,12 +775,9 @@ class InterpolatedRepresentationOrDifferential:
         ValueError
             If `other` is not same length as the this instance's affine
             parameter.
-
         """
         rep = self.data.from_cartesian(other)
         return self._class_(rep, self.affine, **self._interp_kwargs)
-
-    # /def
 
     # TODO just wrap self.data method with a wrapper?
     def to_cartesian(self):
@@ -859,12 +804,9 @@ class InterpolatedRepresentationOrDifferential:
         cartrepr : `CartesianRepresentation` or `CartesianDifferential`
             The representation in Cartesian form.
             If starting from a Cart
-
         """
         rep = self.data.to_cartesian()
         return self._class_(rep, self.affine, **self._interp_kwargs)
-
-    # /def
 
     def copy(self, *args, **kwargs):
         """Return an instance containing copies of the internal data.
@@ -880,7 +822,6 @@ class InterpolatedRepresentationOrDifferential:
         -------
         `InterpolatedRepresentationOrDifferential`
             Same type as this instance.
-
         """
         data = self.data.copy(*args, **kwargs)
         interps = copy.deepcopy(self._interps)
@@ -891,11 +832,6 @@ class InterpolatedRepresentationOrDifferential:
             derivative_type=self.derivative_type,
             **self._interp_kwargs,
         )
-
-    # /def
-
-
-# /class
 
 
 # -------------------------------------------------------------------
@@ -963,8 +899,6 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
 
         return self
 
-    # /def
-
     def __call__(self, affine=None):
         """Evaluate interpolated representation.
 
@@ -978,7 +912,6 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
         -------
         :class:`~astropy.coordinates.BaseRepresenation`
             Representation of type ``self.data`` evaluated with `affine`
-
         """
         if affine is None:  # If None, returns representation as-is.
             return self.data
@@ -994,8 +927,6 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
         params = {n: interp(affine) for n, interp in self._interps.items()}
 
         return self.data.__class__(**params, differentials=differentials)
-
-    # /def
 
     # ---------------------------------------------------------------
 
@@ -1019,7 +950,6 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
             Can be a single class if only a single differential is attached,
             otherwise it should be a `dict` keyed by the same keys as the
             differentials.
-
         """
         rep = self.data.represent_as(
             other_class,
@@ -1030,8 +960,6 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
         # can't do self._class_ since InterpolatedCartesianRepresentation
         # only accepts `rep` of Cartesian type.
         return InterpolatedRepresentation(rep, self.affine, **self._interp_kwargs)
-
-    # /def
 
     # TODO just wrap self.data method with a wrapper?
     def with_differentials(self, differentials):
@@ -1053,15 +981,12 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
         newrepr
             A copy of this representation, but with the ``differentials`` as
             its differentials.
-
         """
         if not differentials:  # (from source code)
             return self
 
         rep = self.data.with_differentials(differentials)
         return self._realize_class(rep, self.affine)
-
-    # /def
 
     # TODO just wrap self.data method with a wrapper?
     def without_differentials(self):
@@ -1072,15 +997,12 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
         newrepr
             A shallow copy of this representation, without any differentials.
             If no differentials were present, no copy is made.
-
         """
         if not self._differentials:  # from source code
             return self
 
         rep = self.data.without_differentials()
         return self._realize_class(rep, self.affine)
-
-    # /def
 
     def derivative(self, n=1):
         r"""Construct a new spline representing the derivative of this spline.
@@ -1089,7 +1011,6 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
         ----------
         n : int, optional
             Order of derivative to evaluate. Default: 1
-
         """
         if f"affine {n}" in self._derivatives:
             return self._derivatives[f"affine {n}"]
@@ -1100,8 +1021,6 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
         self._derivatives[f"affine {n}"] = ideriv
 
         return ideriv
-
-    # /def
 
     # ---------------------------------------------------------------
     # Convenience interpolation methods
@@ -1114,7 +1033,6 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
         .. todo::
 
             allow for passing my own points
-
         """
         irep = self.represent_as(CartesianRepresentation)
         ideriv = irep.derivative(n=1)  # (interpolated)
@@ -1124,8 +1042,6 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
 
         return self._realize_class(offset, self.affine)
 
-    # /def
-
     def tangent_vectors(self):
         r"""Tangent vectors along the curve, from the origin.
 
@@ -1134,7 +1050,6 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
         .. todo::
 
             allow for passing my own points
-
         """
         irep = self.represent_as(CartesianRepresentation)
         ideriv = irep.derivative(n=1)  # (interpolated)
@@ -1145,11 +1060,6 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
         newirep = newirep.represent_as(self.__class__)
 
         return self._realize_class(newirep, self.affine)
-
-    # /def
-
-
-# /class
 
 
 class InterpolatedCartesianRepresentation(InterpolatedRepresentation):
@@ -1179,8 +1089,6 @@ class InterpolatedCartesianRepresentation(InterpolatedRepresentation):
             derivative_type=derivative_type,
             **interp_kwargs,
         )
-
-    # /def
 
     # TODO just wrap self.data method with a wrapper?
     def transform(self, matrix):
@@ -1230,9 +1138,6 @@ class InterpolatedCartesianRepresentation(InterpolatedRepresentation):
         return self._realize_class(rep, self.affine)
 
 
-# /class
-
-
 # -------------------------------------------------------------------
 
 
@@ -1249,8 +1154,6 @@ class InterpolatedDifferential(InterpolatedRepresentationOrDifferential):
 
         return super().__new__(cls, rep, *args, **kwargs)
 
-    # /def
-
     # ---------------------------------------------------------------
 
     def __call__(self, affine=None):
@@ -1266,7 +1169,6 @@ class InterpolatedDifferential(InterpolatedRepresentationOrDifferential):
         -------
         BaseRepresenation
             Representation of type ``self.data`` evaluated with `affine`
-
         """
         if affine is None:  # If None, returns representation as-is.
             return self.data
@@ -1278,8 +1180,6 @@ class InterpolatedDifferential(InterpolatedRepresentationOrDifferential):
         params = {n: interp(affine) for n, interp in self._interps.items()}
 
         return self.data.__class__(**params)
-
-    # /def
 
     # ---------------------------------------------------------------
 
@@ -1303,8 +1203,6 @@ class InterpolatedDifferential(InterpolatedRepresentationOrDifferential):
 
         # don't pass on the derivative_type
         return self._class_(rep, self.affine, **self._interp_kwargs)
-
-    # /def
 
     def to_cartesian(self):
         """Convert the differential to its Cartesian form.
@@ -1331,15 +1229,10 @@ class InterpolatedDifferential(InterpolatedRepresentationOrDifferential):
             The representation in Cartesian form.
             On Differentials, ``to_cartesian`` returns a Representation
             https://github.com/astropy/astropy/issues/6215
-
         """
         rep = self.data.to_cartesian()
         return InterpolatedCartesianRepresentation(rep, self.affine, **self._interp_kwargs)
 
-    # /def
-
-
-# /class
 
 #####################################################################
 
@@ -1410,8 +1303,6 @@ class InterpolatedCoordinateFrame:
         self.frame = data.realize_frame(rep)
         self._interp_kwargs = interp_kwargs
 
-    # /def
-
     @property
     def _interp_kwargs(self) -> dict:
         return self.data._interp_kwargs
@@ -1419,8 +1310,6 @@ class InterpolatedCoordinateFrame:
     @_interp_kwargs.setter
     def _interp_kwargs(self, value: dict) -> None:
         self.data._interp_kwargs = value
-
-    # /def
 
     def __call__(self, affine=None):
         """Evaluate interpolated coordinate frame.
@@ -1435,22 +1324,15 @@ class InterpolatedCoordinateFrame:
         -------
         BaseRepresenation
             Representation of type ``self.data`` evaluated with `affine`
-
         """
         return self.frame.realize_frame(self.frame.data(affine))
-
-    # /def
 
     @property
     def _class_(self):
         return object.__class__(self)
 
-    # /def
-
     def _realize_class(self, data):
         return self._class_(data, affine=self.affine, **self._interp_kwargs)
-
-    # /def
 
     def realize_frame(self, data, affine=None, **kwargs):
         """Generates a new frame with new data from another frame (which may or
@@ -1471,12 +1353,9 @@ class InterpolatedCoordinateFrame:
         frameobj : same as this frame
             A new object with the same frame attributes as this one, but
             with the ``data`` as the coordinate data.
-
         """
         frame = self.frame.realize_frame(data, **kwargs)
         return self._class_(frame, affine=affine, **kwargs)
-
-    # /def
 
     #################################################################
     # Interpolation Methods
@@ -1487,13 +1366,9 @@ class InterpolatedCoordinateFrame:
         """Take nth derivative wrt affine parameter."""
         return self.frame.data.derivative(n=n)
 
-    # /def
-
     @property
     def affine(self) -> u.Quantity:  # read-only
         return self.frame.data.affine
-
-    # /def
 
     def headless_tangent_vectors(self):
         r"""Headless tangent vector at each point in affine.
@@ -1503,12 +1378,9 @@ class InterpolatedCoordinateFrame:
         .. todo::
 
             allow for passing my own points
-
         """
         rep = self.frame.data.headless_tangent_vectors()
         return self.realize_frame(rep)
-
-    # /def
 
     def tangent_vectors(self):
         r"""Tangent vectors along the curve, from the origin.
@@ -1518,12 +1390,9 @@ class InterpolatedCoordinateFrame:
         .. todo::
 
             allow for passing my own points
-
         """
         rep = self.frame.data.tangent_vectors()
         return self.realize_frame(rep)
-
-    # /def
 
     #################################################################
     # Mapping to Underlying CoordinateFrame
@@ -1533,18 +1402,12 @@ class InterpolatedCoordinateFrame:
         """Make class appear the same as the underlying CoordinateFrame."""
         return self.frame.__class__
 
-    # /def
-
     def __getattr__(self, key):
         """Route everything to underlying CoordinateFrame."""
         return getattr(self.frame, key)
 
-    # /def
-
     def __len__(self) -> int:
         return len(self.frame)
-
-    # /def
 
     def __getitem__(self, key):
         frame = self.frame[key]
@@ -1555,8 +1418,6 @@ class InterpolatedCoordinateFrame:
 
         return iframe
 
-    # /def
-
     @property
     def representation_type(self) -> coord.BaseRepresentation:
         return self.frame.representation_type
@@ -1565,11 +1426,9 @@ class InterpolatedCoordinateFrame:
     def representation_type(self, value: coord.BaseRepresentation) -> None:
         self.frame.representation_type = value
 
-    # /def
-
     def represent_as(
         self,
-        base: TH.RepresentationLikeType,
+        base: TH.RepLikeType,
         s: T.Union[str, coord.BaseDifferential] = "base",
         in_frame_units: bool = False,
     ) -> coord.BaseRepresentation:
@@ -1624,8 +1483,6 @@ class InterpolatedCoordinateFrame:
 
         return InterpolatedRepresentation(rep, affine=self.affine, **self._interp_kwargs)
 
-    # /def
-
     def transform_to(self, new_frame):
         """Transform this object's coordinate data to a new frame.
 
@@ -1644,12 +1501,9 @@ class InterpolatedCoordinateFrame:
         ------
         ValueError
             If there is no possible transformation route.
-
         """
         newframe = self.frame.transform_to(new_frame)
         return self._realize_class(newframe)
-
-    # /def
 
     def copy(self):
         interp_kwargs = self._interp_kwargs.copy()
@@ -1661,12 +1515,8 @@ class InterpolatedCoordinateFrame:
             **interp_kwargs,
         )
 
-    # /def
-
     def _frame_attrs_repr(self) -> str:  # FIXME!!
         return self.frame._frame_attrs_repr()
-
-    # /def
 
     def _data_repr(self) -> str:
         """Returns a string representation of the coordinate data.
@@ -1675,7 +1525,6 @@ class InterpolatedCoordinateFrame:
         -------
         str
             string representation of the data
-
         """
         # if not self.has_data:  # must have data to be interpolated
         #     return ""
@@ -1752,8 +1601,6 @@ class InterpolatedCoordinateFrame:
 
         return data_repr
 
-    # /def
-
     def __repr__(self):
         frameattrs = self._frame_attrs_repr()
         data_repr = self._data_repr()
@@ -1766,11 +1613,6 @@ class InterpolatedCoordinateFrame:
             return f"<Interpolated{cls_name} " f"Coordinate{frameattrs}: {data_repr}>"
         # else:  # uncomment when encounter
         #     return f"<Interpolated{cls_name} Frame{frameattrs}>"
-
-    # /def
-
-
-# /class
 
 
 #####################################################################
@@ -1792,8 +1634,6 @@ class InterpolatedSkyCoord(SkyCoord):
                 self.frame, affine=affine, **interp_kwargs
             )
 
-    # /def
-
     def __call__(self, affine=None):
         """Evaluate interpolated representation.
 
@@ -1810,8 +1650,6 @@ class InterpolatedSkyCoord(SkyCoord):
         """
         newsc = SkyCoord(self.frame(affine))
         return newsc
-
-    # /def
 
     def transform_to(self, frame, merge_attributes=True):
         """Transform this coordinate to a new frame.
@@ -1850,14 +1688,11 @@ class InterpolatedSkyCoord(SkyCoord):
         ------
         ValueError
             If there is no possible transformation route.
-
         """
         sc = coord.SkyCoord(self, copy=False)  # TODO, less jank
         nsc = sc.transform_to(frame, merge_attributes=merge_attributes)
 
         return self.__class__(nsc, affine=self.affine, copy=False)
-
-    # /def
 
 
 #     # ---------------------------------------------------------------
@@ -2167,9 +2002,6 @@ class InterpolatedSkyCoord(SkyCoord):
 #         return super().search_around_3d(searcharoundcoords, distlimit)
 #
 #     # /def
-
-
-# /class
 
 
 ##############################################################################

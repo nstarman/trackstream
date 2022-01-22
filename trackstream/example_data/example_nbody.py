@@ -25,14 +25,14 @@ from astropy.table import QTable
 from astropy.utils.data import get_pkg_data_filename
 
 # LOCAL
-from trackstream._type_hints import FrameType, TableType
+from trackstream._type_hints import FrameType
 
 ##############################################################################
 # CODE
 ##############################################################################
 
 
-def _load_nbody() -> TableType:
+def _load_nbody() -> QTable:
     """Get Palomar 5 at pericenter Nbody Data.
 
     TODO move to ZENODO and download to cache instead.
@@ -49,7 +49,7 @@ def _load_nbody() -> TableType:
         package="trackstream",
     )
 
-    data: TableType = QTable.read(fname, format="ascii.ecsv")
+    data: QTable = QTable.read(fname, format="ascii.ecsv")
 
     return data
 
@@ -71,8 +71,8 @@ def get_nbody(subsample: slice = slice(100, None, 400)) -> FrameType:
     `~astropy.coordinates.Galactocentric`
 
     """
-    full_data: TableType = _load_nbody()
-    sub_data: TableType = full_data[subsample][["x", "y", "z"]]
+    full_data: QTable = _load_nbody()
+    sub_data: QTable = full_data[subsample][["x", "y", "z"]]
 
     data: FrameType = coord.Galactocentric(
         x=sub_data["x"],
@@ -100,7 +100,7 @@ def get_nbody_array(subsample: slice = slice(100, None, 400)) -> np.ndarray:
         File location "data/00590_peri.dat". Shape (N, 3)
 
     """
-    full_data: TableType = _load_nbody()
+    full_data: QTable = _load_nbody()
 
     data: np.ndarray = (
         full_data[subsample][["x", "y", "z"]]  # 1) subsamples full_data`.

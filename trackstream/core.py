@@ -21,6 +21,7 @@ import numpy as np
 from astropy.table import Table
 from astropy.utils.metadata import MetaAttribute, MetaData
 from astropy.utils.misc import indent
+from scipy import stats
 from scipy.linalg import block_diag
 
 # LOCAL
@@ -32,7 +33,7 @@ from trackstream.process.kalman import KalmanFilter
 from trackstream.process.utils import make_dts, make_F, make_H, make_Q, make_R
 from trackstream.utils import resolve_framelike
 from trackstream.utils.misc import intermix_arrays
-from trackstream.utils.path import Path
+from trackstream.utils.path import Path, path_moments
 
 ##############################################################################
 # CODE
@@ -198,10 +199,6 @@ class TrackStream:
         if reorder is not None:
             visit_order = reorder_visits(rep, visit_order, start_ind=reorder)
 
-        # then we need to change the visit order to
-        # be applied to the original data, not ordered by lon
-        # visit_order = order_by_lon[visit_order]  # FIXME!
-
         # ----------------------------
         # TODO! transition matrix
 
@@ -347,8 +344,13 @@ class TrackStream:
             visit_order = np.argsort(arm1.lon)
 
         # now rearrange the data
-        visit_order = np.array(visit_order, dtype=int)  # TODO? necessary
-        arm1 = arm1[visit_order]  # FIXME!
+        visit_order = np.array(visit_order, dtype=int)
+        # the visit order can be backward so need to detect proximity to origin
+        # TODO! more careful if closest point not end point. & adjust SOM!
+        arm1ep = arm1[visit_order[[0, -1]]]  # end points
+        if np.argmin(arm1ep.separation_3d(stream.origin)) == 1:
+            visit_order = visit_order[::-1]
+        arm1 = arm1[visit_order]
 
         # cache (even if None)
         self._cache["arm1_visit_order"] = visit_order
@@ -374,6 +376,11 @@ class TrackStream:
                 visit_order = np.argsort(arm2.lon)
             visit_order = np.array(visit_order, dtype=int)
             # now rearrange the data
+            # the visit order can be backward so need to detect proximity to origin
+            # TODO! more careful if closest point not end point. & adjust SOM!
+            arm2ep = arm2[visit_order[[0, -1]]]  # end points
+            if np.argmin(arm2ep.separation_3d(stream.origin)) == 1:
+                visit_order = visit_order[::-1]
             arm2 = arm2[visit_order]
 
         # cache (even if None)
@@ -421,7 +428,7 @@ class TrackStream:
             affine2 = np.concatenate(([min(1e-10 * sp2p2.unit, 1e-10 * sp2p2[0])], sp2p2.cumsum()))
 
             cov = mean2.Ps[:, ::2, ::2]
-            var =  np.diagonal(cov, axis1=1, axis2=2)
+            var = np.diagonal(cov, axis1=1, axis2=2)
             sigma2 = np.sqrt(np.sum(np.square(var), axis=-1)) * u.kpc
 
         # cache (even if None)
@@ -430,61 +437,42 @@ class TrackStream:
 
         # -------------------
         # Combine together into a single path
-        # for this we need to detect proximity to the progenitor
-
-        affine = np.concatenate((-affine2[::-1], affine1))
-        c = coord.concatenate((c2[::-1], c1))
-        sigma = np.concatenate((sigma2[::-1], sigma1))
-
-        # TEMPORARY
-        path1 = Path(
-            path=c1,
-            width=sigma1,
-            affine=affine1,
-            frame=frame,
-        )
-        path2 = Path(
-            path=c2,
-            width=sigma2,
-            affine=affine2,
-            frame=frame,
-        )
-        # path = Path(
-        #     path=c,
-        #     width=sigma,
-        #     affine=affine,
-        #     frame=frame,
-        # )
-
-        return path1, path2
+        # Need to reverse order of one arm to be indexed toward origin, not away
 
         if arm2 is None:
-            affine = affine1
+            affine, c, sigma = affine1, c1, sigma1
         else:
-            # need to reverse order and get the negative of affine2
-            affine = np.concatenate((affine2 - affine2[-1], affine1))
-            # TODO! need to fix the double 0 in affine
+            affine = np.concatenate((-affine2[::-1], affine1))
+            c = coord.concatenate((c2[::-1], c1))
+            sigma = np.concatenate((sigma2[::-1], sigma1))
+
+        path = Path(
+            path=c,
+            width=sigma,
+            affine=affine,
+            frame=frame,
+        )
 
         # construct interpolation
         track = StreamTrack(
-            path,  # TODO!
+            path,
             stream_data=stream.data,
             origin=stream.origin,
-            frame=frame,
-            # extra
+            # frame=frame,
+            # metadata
             frame_fit=frame_fit,
-            visit_order=visit_order,
+            # visit_order=visit_order,  # TODO! not combined
             som=dict(
-                arm1=self._cache.get("arm1_SOM", None),
+                arm1=self._cache.get("arm1_SOM", None),  # TODO! fix ordering
                 arm2=self._cache.get("arm2_SOM", None),
             ),
-            kalman=dict(arm1=kf1, arm2=kf2),  # TODO!
+            kalman=dict(arm1=kf1, arm2=kf2),
         )
         return track
 
     # ===============================================================
 
-    def predict(self, arc_length):
+    def predict(self, affine):
         """Predict from a fit.
 
         Returns
@@ -492,12 +480,12 @@ class TrackStream:
         StreamTrack instance
 
         """
-        return self.track(arc_length)
+        return self.track(affine)
 
-    def fit_predict(self, stream, arc_length, **fit_kwargs):
+    def fit_predict(self, stream, affine, **fit_kwargs):
         """Fit and Predict."""
         self.fit(stream, **fit_kwargs)
-        return self.predict(arc_length)
+        return self.predict(affine)
 
 
 # /class
@@ -522,13 +510,18 @@ class StreamTrack:
 
     meta = MetaData()
 
+    frame_fit = MetaAttribute()
+    visit_order = MetaAttribute()
+    som = MetaAttribute()
+    kalman = MetaAttribute()
+
     def __init__(
         self,
         path: Path,
         stream_data: T.Union[Table, TH.CoordinateType, None],
         origin: TH.CoordinateType,
-        frame: TH.FrameLikeType,
-        **metadata,
+        # frame: T.Optional[TH.FrameLikeType] = None,
+        **meta,
     ):
         # validation of types
         if not isinstance(path, Path):
@@ -539,17 +532,17 @@ class StreamTrack:
         # assign
         self._path: Path = path
         self._origin = origin
-        self._frame = resolve_framelike(frame)
+        # self._frame = resolve_framelike(frame)
 
         self._stream_data = stream_data
 
         # set the MetaAttribute(s)
-        for attr in list(metadata):
+        for attr in list(meta):
             descr = getattr(self.__class__, attr, None)
             if isinstance(descr, MetaAttribute):
-                setattr(self, attr, metadata.pop(attr))
-        # and the metadata
-        self.meta.update(metadata)
+                setattr(self, attr, meta.pop(attr))
+        # and the meta
+        self.meta.update(meta)
 
     @property
     def path(self):
@@ -574,31 +567,30 @@ class StreamTrack:
 
     @property
     def frame(self):
-        return self._frame
-
-    frame_fit = MetaAttribute()
-    visit_order = MetaAttribute()
-    som = MetaAttribute()
-    kalman = MetaAttribute()
+        return self._path.frame
 
     #######################################################
     # Math on the Track
 
-    def __call__(self, arc_length: u.Quantity) -> TH.CoordinateType:
+    def __call__(
+        self, affine: T.Optional[u.Quantity] = None, angular: bool = False
+    ) -> path_moments:
         """Get discrete points along interpolated stream track.
 
         Parameters
         ----------
-        arc_length: Quantity
+        affine : `~astropy.units.Quantity` array-like or None, optional
+            The affine interpolation parameter. If None (default), return
+            path moments evaluated at all "tick" interpolation points.
 
         Returns
         -------
-        |Frame|
-            Realized from the ``.data`` attribute Frame and Representation
-            from the interpolation (``.interp``).
+        `trackstream.utils.path.path_moments`
+            Realized from the ``.path`` attribute.
         """
-        rep = self._data_rep(**{k: v(arc_length) for k, v in self._track.items()})
-        return self.path(arc_length)
+        return self.path(affine=affine, angular=angular)
+
+    # def
 
     #######################################################
     # misc

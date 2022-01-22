@@ -20,8 +20,6 @@ from numpy.random import Generator
 # CODE
 ##############################################################################
 
-# TODO stride option for block sizes
-
 
 def intermix_arrays(*arrs: T.Sequence, axis=-1):
     """Intermix arrays.
@@ -80,7 +78,7 @@ def make_shuffler(
     length: int,
     rng: T.Optional[Generator] = None,
 ) -> T.Tuple[np.ndarray, np.ndarray]:
-    """Shuffle and Unshuffle arrays.
+    """Shuffle and un-shuffle arrays.
 
     Parameters
     ----------
@@ -101,13 +99,10 @@ def make_shuffler(
     if rng is None:
         rng = np.random.default_rng()
 
-    # start with index array
-    shuffler = np.arange(length)
-    # now shuffle array (in-place)
-    rng.shuffle(shuffler)
+    shuffler = np.arange(length)  # start with index array
+    rng.shuffle(shuffler)  # shuffle array in-place
 
-    # and construct the unshuffler
-    undo = shuffler.argsort()
+    undo = shuffler.argsort()  # and construct the un-shuffler
 
     return shuffler, undo
 

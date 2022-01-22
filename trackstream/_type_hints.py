@@ -22,19 +22,14 @@ As a trivial example,
 """
 
 __all__ = [
-    # Astropy types
+    "ArrayLike",
     # coordinates
     "RepresentationOrDifferentialType",
     "FrameType",
     "CoordinateType",
     "FrameLikeType",
-    # tables
-    "TableType",
-    "QTableType",
     # units
     "UnitType",
-    "UnitLikeType",
-    "QuantityLikeType",
 ]
 
 __credits__ = ["Astropy"]
@@ -50,7 +45,6 @@ import typing as T
 import astropy.coordinates as coord
 import astropy.units as u
 import numpy as np
-from astropy import table
 
 ##############################################################################
 # TYPES
@@ -65,10 +59,7 @@ ArrayLike = T.Union[float, np.generic, np.ndarray]
 # -------------------------------------
 # Astropy types
 
-# -----------------
-# coordinates
-
-RepresentationLikeType = T.Union[coord.BaseRepresentation, str]
+RepLikeType = T.Union[coord.BaseRepresentation, str]
 
 FrameType = T.TypeVar("CoordinateFrame", bound=coord.BaseCoordinateFrame)
 """|Frame|"""
@@ -79,22 +70,7 @@ CoordinateType = T.Union[FrameType, coord.SkyCoord]
 FrameLikeType = T.Union[CoordinateType, str]
 """|Frame| or |SkyCoord| or `str`"""
 
-# -----------------
-# table
-
-TableType = T.TypeVar("Table", bound=table.Table)
-"""|Table|"""
-
-QTableType = T.TypeVar("QTable", bound=table.QTable)
-"""|QTable|"""
-
-# -----------------
-# units
-
-UnitType = T.Union[
-    T.TypeVar("Unit", bound=u.UnitBase),
-    T.TypeVar("FunctionUnit", bound=u.FunctionUnitBase),
-]
+UnitType = T.Union[u.UnitBase, u.FunctionUnitBase]
 """|Unit| or :class:`~astropy.units.FunctionUnitBase`"""
 
 ##############################################################################
