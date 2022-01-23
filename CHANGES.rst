@@ -36,12 +36,6 @@ trackstream.preprocess
 - Self-Organizing Maps (SOM) [#20]
 
 
-trackstream.tests.helper
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-- Baseclass-dependent test helper class [#23]
-
-
 trackstream.utils
 ^^^^^^^^^^^^^^^^^
 

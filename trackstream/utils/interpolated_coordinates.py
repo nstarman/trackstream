@@ -535,7 +535,7 @@ class InterpolatedRepresentationOrDifferential:
     def antiderivative(self, n=1):
         r"""Construct a new spline representing the integral of this spline.
 
-        .. todo:
+        .. todo::
 
             Allow for attaching the differentials?
 

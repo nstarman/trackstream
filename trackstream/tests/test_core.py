@@ -22,7 +22,8 @@ from trackstream.core import StreamTrack, TrackStream
 from trackstream.example_data import get_example_pal5
 from trackstream.preprocess.som import SelfOrganizingMap1D
 from trackstream.stream import Stream
-from trackstream.utils import InterpolatedUnivariateSplinewithUnits as IUSU
+
+# from trackstream.utils import InterpolatedUnivariateSplinewithUnits as IUSU
 
 ##############################################################################
 # TESTS
@@ -162,7 +163,8 @@ class Test_StreamTrack:
 
     #     def test_init(self, track_cls, frame):
     #         """Test instantiation."""
-    #         track = StreamTrack(self.interps, stream_data=self.data, origin=self.origin, frame=frame)
+    #         track = StreamTrack(self.interps, stream_data=self.data,
+    #                             origin=self.origin, frame=frame)
     #
     #         assert hasattr(track, "_data")
     #         assert hasattr(track, "_track")

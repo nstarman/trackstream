@@ -78,7 +78,7 @@ def predict(
 
 def update(
     x: np.ndarray, P: np.ndarray, z: np.ndarray, R: np.ndarray, H: np.ndarray, **kw
-) -> T.Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray,]:
+) -> T.Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Add a new measurement (z) to the Kalman filter.
 
     Implemented to be compatible with `filterpy`.

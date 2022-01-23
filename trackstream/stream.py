@@ -355,7 +355,7 @@ class Stream:
     # Fitting
 
     @property
-    def track(self) -> "StreamTrack":
+    def track(self) -> "StreamTrack":  # noqa: F821
         """Stream track.
 
         Raises
@@ -375,7 +375,7 @@ class Stream:
         *,
         force: bool = False,
         **kwargs,
-    ) -> "StreamTrack":
+    ) -> "StreamTrack":  # noqa: F821
         """Make a stream track.
 
         Parameters
@@ -413,7 +413,9 @@ class Stream:
     # Math on the Track (requires fitting track)
 
     def predict_track(
-        self, affine: T.Optional[u.Quantity] = None, angular: bool = False
+        self,
+        affine: T.Optional[u.Quantity] = None,
+        angular: bool = False,
     ) -> path_moments:
         return self.track()
 
@@ -426,7 +428,9 @@ class Stream:
         frame: str = repr(self.frame)
 
         datarep: str = self.data._base_repr_(
-            html=False, max_width=None, max_lines=self._data_max_lines
+            html=False,
+            max_width=None,
+            max_lines=self._data_max_lines,
         )
         table: str = "\n\t".join(datarep.split("\n")[1:])
 

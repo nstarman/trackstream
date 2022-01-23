@@ -10,11 +10,13 @@
 import astropy.coordinates as coord
 import astropy.units as u
 import numpy as np
-import pytest
 
 # LOCAL
-import trackstream.utils.interpolated_coordinates as icoord
+# import trackstream.utils.interpolated_coordinates as icoord
 from trackstream.utils.path import Path, path_moments
+
+# import pytest
+
 
 ##############################################################################
 # TESTS
@@ -30,6 +32,7 @@ class TestPath:
     def test_init(self, path_cls, iscrd, width, affine, frame):
         """Test initialization."""
         path = path_cls(iscrd, width, name="test_init", affine=affine, frame=frame)
+        assert isinstance(path, Path)
         assert hasattr(path, "_name")
         assert hasattr(path, "_frame")
         assert hasattr(path, "_original_path")

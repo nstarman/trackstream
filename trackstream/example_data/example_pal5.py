@@ -8,7 +8,6 @@
 
 # STDLIB
 import pathlib
-import warnings
 
 # THIRD PARTY
 import astropy.coordinates as coord
@@ -68,12 +67,24 @@ def make_stream_from_Vasiliev18(name) -> None:
     # Streamspray of the tidal arms
     # leading
     spdf_l = streamspraydf(
-        progenitor_mass=mass, progenitor=o, pot=lp, tdisrupt=tdisrupt, leading=True, ro=ro, vo=vo
+        progenitor_mass=mass,
+        progenitor=o,
+        pot=lp,
+        tdisrupt=tdisrupt,
+        leading=True,
+        ro=ro,
+        vo=vo,
     )
 
     # trailing
     spdf_t = streamspraydf(
-        progenitor_mass=mass, progenitor=o, pot=lp, tdisrupt=tdisrupt, leading=False, ro=ro, vo=vo
+        progenitor_mass=mass,
+        progenitor=o,
+        pot=lp,
+        tdisrupt=tdisrupt,
+        leading=False,
+        ro=ro,
+        vo=vo,
     )
 
     # make sample

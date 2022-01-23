@@ -4,27 +4,11 @@
 
 This project extensively uses :mod:`~typing` hints.
 Note that this is not (necessarily) static typing.
-
-
-**TypeVar**
-
-Most of the types are :class:`~typing.TypeVar` with a standard format: for an
-object X, the variable name and TypeVar name are "{X}Type" and the TypeVar is
-bound to X such that all subclasses of X permit the same type hint.
-
-As a trivial example,
-
-    >>> import typing as T
-    >>> IntType = T.TypeVar("Int", bound=int)
-
-``IntType`` works on any subclass (inclusive) of int.
-
 """
 
 __all__ = [
     "ArrayLike",
     # coordinates
-    "RepresentationOrDifferentialType",
     "FrameType",
     "CoordinateType",
     "FrameLikeType",

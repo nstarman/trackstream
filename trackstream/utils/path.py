@@ -214,16 +214,17 @@ class Path:
         """
         mean = self.position(affine)
         width = self.width(affine) if not angular else self.width_angular(affine)
-    
+
         # TODO? add a directionality?
         # TODO allow for higher moments
-    
+
         return path_moments(mean, width)
 
     # -----------------------
 
     def position(
-        self, affine: T.Optional[u.Quantity] = None
+        self,
+        affine: T.Optional[u.Quantity] = None,
     ) -> T.Union[InterpolatedSkyCoord, SkyCoord]:
         """Return the position on the track.
 
@@ -288,8 +289,9 @@ class Path:
 
     # -----------------------
 
-    def separation(self, point: SkyCoord, *, interpolate: bool = True,
-                   affine: T.Optional[u.Quantity] = None):
+    def separation(
+        self, point: SkyCoord, *, interpolate: bool = True, affine: T.Optional[u.Quantity] = None
+    ):
         """Return the angular separation.
 
         Parameters
@@ -305,8 +307,9 @@ class Path:
         """
         return self._separation(point, angular=True, interpolate=interpolate, affine=affine)
 
-    def separation_3d(self, point: SkyCoord, *, interpolate: bool = True,
-                      affine: T.Optional[u.Quantity] = None):
+    def separation_3d(
+        self, point: SkyCoord, *, interpolate: bool = True, affine: T.Optional[u.Quantity] = None
+    ):
         """Return the full separation.
 
         Parameters
@@ -322,7 +325,13 @@ class Path:
         """
         return self._separation(point, angular=False, interpolate=interpolate, affine=affine)
 
-    def _separation(self, point: SkyCoord, angular: bool, interpolate: bool, affine: T.Optional[u.Quantity]):
+    def _separation(
+        self,
+        point: SkyCoord,
+        angular: bool,
+        interpolate: bool,
+        affine: T.Optional[u.Quantity],
+    ):
         """Separation helper function."""
         affine = self.affine if affine is None else affine
 
@@ -336,26 +345,33 @@ class Path:
 
     # -----------------------
 
-    def _closest_res_to_point(self, point: SkyCoord, *, angular: bool=False, affine: T.Optional[u.Quantity] = None):
+    def _closest_res_to_point(
+        self, point: SkyCoord, *, angular: bool = False, affine: T.Optional[u.Quantity] = None
+    ):
         if angular:
             sep_fn = self.separation(point, interpolate=True, affine=affine)
         else:
             sep_fn = self.separation_3d(point, interpolate=True, affine=affine)
-        
+
         affine = self.affine if affine is None else affine
-        res = minimize_scalar(lambda afn: sep_fn(afn).value,
-                              bounds=[affine.value.min(), affine.value.max()])
+        res = minimize_scalar(
+            lambda afn: sep_fn(afn).value,
+            bounds=[affine.value.min(), affine.value.max()],
+        )
         return res
 
-    def closest_affine_to_point(self, point: SkyCoord, *, angular: bool=False, affine: T.Optional[u.Quantity] = None):
-        """Closest affine, ignoring width
-        """
+    def closest_affine_to_point(
+        self, point: SkyCoord, *, angular: bool = False, affine: T.Optional[u.Quantity] = None
+    ):
+        """Closest affine, ignoring width"""
         affine = self.affine if affine is None else affine
         res = self._closest_res_to_point(point, angular=angular, affine=affine)
         pt_affine = res.x << affine.unit
         return pt_affine
 
-    def closest_position_to_point(self, point: SkyCoord, *, angular: bool=False, affine: T.Optional[u.Quantity] = None):
+    def closest_position_to_point(
+        self, point: SkyCoord, *, angular: bool = False, affine: T.Optional[u.Quantity] = None
+    ):
         """Closest point, ignoring width"""
         return self.position(self.closest_affine_to_point(point, angular=angular, affine=affine))
 

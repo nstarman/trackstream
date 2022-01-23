@@ -219,7 +219,7 @@ class SelfOrganizingMap1D:
                 self._weights[i, j] = c1 * pc0 + c2 * pc1
 
     def binned_weights_init(self, data, byphi=False, **kw):
-        """Initialize prototype vectors from binned data.
+        r"""Initialize prototype vectors from binned data.
 
         Paramters
         ---------

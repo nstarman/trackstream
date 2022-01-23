@@ -52,11 +52,11 @@ def scipy_residual_to_lmfit(function: None, *, param_order: T.List[str]) -> func
 
 
 @T.overload
-def scipy_residual_to_lmfit(function: FT, *, param_order: T.List[str]) -> FT:
+def scipy_residual_to_lmfit(function: FT, *, param_order: T.List[str]) -> FT:  # noqa: F811
     ...
 
 
-def scipy_residual_to_lmfit(function=None, *, param_order):
+def scipy_residual_to_lmfit(function=None, *, param_order):  # noqa: F811
     """Decorator to make scipy residual functions compatible with lmfit.
 
     Parameters

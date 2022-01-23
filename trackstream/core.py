@@ -21,7 +21,6 @@ import numpy as np
 from astropy.table import Table
 from astropy.utils.metadata import MetaAttribute, MetaData
 from astropy.utils.misc import indent
-from scipy import stats
 from scipy.linalg import block_diag
 
 # LOCAL
@@ -31,7 +30,6 @@ from trackstream.preprocess.rotated_frame import FitResult, RotatedFrameFitter
 from trackstream.preprocess.som import SelfOrganizingMap1D, order_data, reorder_visits
 from trackstream.process.kalman import KalmanFilter
 from trackstream.process.utils import make_dts, make_F, make_H, make_Q, make_R
-from trackstream.utils import resolve_framelike
 from trackstream.utils.misc import intermix_arrays
 from trackstream.utils.path import Path, path_moments
 
@@ -295,7 +293,7 @@ class TrackStream:
 
         # 1) Already provided or in cache.
         #    Either way, don't need to repeat the process.
-        frame: T.Optional[BaseCoordinateFrame] = stream._system_frame
+        frame: T.Optional[coord.BaseCoordinateFrame] = stream._system_frame
         frame_fit: T.Optional[FitResult] = self._cache.get("frame_fit", None)
 
         # 2) Fit (& cache), if still None.
@@ -307,7 +305,7 @@ class TrackStream:
 
         # 3) if it's still None, give up
         if frame is None:
-            frame: BaseCoordinateFrame = stream.data_coord.frame.replicate_without_data()
+            frame: coord.BaseCoordinateFrame = stream.data_coord.frame.replicate_without_data()
             frame_fit = None
 
         # Cache the fit frame on the stream. This is used for transforming the
@@ -573,7 +571,9 @@ class StreamTrack:
     # Math on the Track
 
     def __call__(
-        self, affine: T.Optional[u.Quantity] = None, angular: bool = False
+        self,
+        affine: T.Optional[u.Quantity] = None,
+        angular: bool = False,
     ) -> path_moments:
         """Get discrete points along interpolated stream track.
 

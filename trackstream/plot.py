@@ -12,6 +12,7 @@ __all__ = [
 
 # THIRD PARTY
 import matplotlib.pyplot as plt
+import numpy as np
 
 ##############################################################################
 # PARAMETERS
