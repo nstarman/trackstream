@@ -164,17 +164,10 @@ exception is if SkyCoord is wrapping an interpolated CoordinateFrame.
 
 """
 
-__all__ = [
-    "InterpolatedRepresentationOrDifferential",
-    "InterpolatedRepresentation",
-    "InterpolatedDifferential",
-    "InterpolatedCoordinateFrame",
-    "InterpolatedSkyCoord",
-]
-
-
 ##############################################################################
 # IMPORTS
+
+from __future__ import annotations
 
 # STDLIB
 import abc
@@ -186,20 +179,32 @@ import typing as T
 import astropy.coordinates as coord
 import astropy.coordinates.representation as r
 import astropy.units as u
+import numpy as np
 import numpy.lib.recfunctions as rfn
-from astropy.coordinates import CartesianRepresentation, SkyCoord
+from astropy.coordinates import (
+    BaseDifferential,
+    BaseRepresentation,
+    BaseRepresentationOrDifferential,
+    CartesianDifferential,
+    CartesianRepresentation,
+    SkyCoord,
+)
 from astropy.coordinates.representation import _array2string
 from astropy.utils.decorators import format_doc
 from numpy import array_equal
 
 # LOCAL
 import trackstream._type_hints as TH
-from .generic_coordinates import (
-    GenericDifferential,
-    _make_generic_differential,
-    _make_generic_differential_for_representation,
-)
+from .generic_coordinates import GenericDifferential
 from .interpolate import InterpolatedUnivariateSplinewithUnits as IUSU
+
+__all__ = [
+    "InterpolatedBaseRepresentationOrDifferential",
+    "InterpolatedRepresentation",
+    "InterpolatedDifferential",
+    "InterpolatedCoordinateFrame",
+    "InterpolatedSkyCoord",
+]
 
 ##############################################################################
 # PARAMETERS
@@ -210,12 +215,22 @@ _UNIT_DIF_TYPES = (  # the unit-differentials
     r.RadialDifferential,
 )
 
+IRoDType = T.TypeVar("IRoDType", bound="InterpolatedBaseRepresentationOrDifferential")
+IRType = T.TypeVar("IRType", bound="InterpolatedRepresentation")
+ICRType = T.TypeVar("ICRType", bound="InterpolatedCartesianRepresentation")
+IDType = T.TypeVar("IDType", bound="InterpolatedDifferential")
+DType = T.TypeVar("DType", bound=BaseDifferential)
+
+
 ##############################################################################
 # CODE
 ##############################################################################
 
 
-def _find_first_best_compatible_differential(rep, n: int = 1):
+def _find_first_best_compatible_differential(
+    rep: BaseRepresentation,
+    n: int = 1,
+) -> T.Union[BaseDifferential, GenericDifferential]:
     """Find a compatible differential.
 
     There can be more than one, so we select the first one.
@@ -242,15 +257,16 @@ def _find_first_best_compatible_differential(rep, n: int = 1):
     #     )
 
     if n != 1:
-        derivative_type = _make_generic_differential(derivative_type, n=n)
+        derivative_type = GenericDifferential._make_generic_cls(derivative_type, n=n)
 
     return derivative_type
 
 
-# /def
-
-
-def _infer_derivative_type(rep, dif_unit, n: int = 1):
+def _infer_derivative_type(
+    rep: BaseRepresentationOrDifferential,
+    dif_unit: TH.UnitLikeType,
+    n: int = 1,
+) -> T.Union[BaseDifferential, GenericDifferential]:
     """Infer the Differential class used in a derivative wrt time.
 
     If it can't infer the correct differential class, defaults
@@ -262,28 +278,27 @@ def _infer_derivative_type(rep, dif_unit, n: int = 1):
 
     Parameters
     ----------
-    rep : `~astropy.coordinates.RepresentationOrDifferential` instance
+    rep : `~astropy.coordinates.BaseRepresentationOrDifferential` instance
         The representation object
     dif_unit : unit-like
         The differential unit
-
     n : int
+        The order of the derivative
 
+    Returns
+    -------
+    `astropy.coordinates.BaseDifferential` or `trackstream.utils.generic_coordinates.GenericDifferential`  # noqa: E501
     """
     unit = u.Unit(dif_unit)
     rep_cls = rep.__class__  # (store rep class for line length)
 
-    # start by assuming the worst: we can't infer anything
-    # this will never be returned
-    derivative_type = GenericDifferential
-
     # Now check we can even do this: if can't make a better Generic
     # 1) can't for `Differentials` and stuff without compatible diffs
-    if isinstance(rep, coord.BaseDifferential):
-        derivative_type = _make_generic_differential(rep_cls, n=n + 1)
+    if isinstance(rep, BaseDifferential):
+        derivative_type = GenericDifferential._make_generic_cls(rep_cls, n=n + 1)
     # 2) can't for non-time derivatives
     elif unit.physical_type != "time":
-        derivative_type = _make_generic_differential_for_representation(
+        derivative_type = GenericDifferential._make_generic_cls_for_representation(
             rep_cls,
             n=n,
         )
@@ -294,12 +309,10 @@ def _infer_derivative_type(rep, dif_unit, n: int = 1):
     return derivative_type
 
 
-# /def
-
 ##############################################################################
 
 
-class InterpolatedRepresentationOrDifferential:
+class InterpolatedBaseRepresentationOrDifferential:
     """Wrapper for Representations, adding affine interpolations.
 
     .. todo::
@@ -358,31 +371,31 @@ class InterpolatedRepresentationOrDifferential:
         If affine is not same length as `rep`
     TypeError
         If `rep` not not type BaseRepresentationOrDifferential
-
     """
 
-    def __new__(cls, *args, **kwargs):
-        if cls is InterpolatedRepresentationOrDifferential:
+    def __new__(cls: T.Type[IRoDType], *args: T.Any, **kwargs: T.Any) -> IRoDType:
+        if cls is InterpolatedBaseRepresentationOrDifferential:
             raise TypeError(f"Cannot instantiate a {cls}.")
 
-        return super().__new__(cls)
+        inst: IRoDType = super().__new__(cls)
+        return inst
 
     def __init__(
         self,
-        rep: coord.BaseRepresentationOrDifferential,
-        affine,
+        rep: BaseRepresentationOrDifferential,
+        affine: u.Quantity,
         *,
-        interps=None,
-        derivative_type: T.Optional[coord.BaseDifferential] = None,
-        **interp_kwargs,
-    ):
+        interps: T.Optional[T.Dict] = None,
+        derivative_type: T.Optional[BaseDifferential] = None,
+        **interp_kwargs: T.Any,
+    ) -> None:
         # Check it's instantiated and right class
         if inspect.isclass(rep) and issubclass(
             rep,
-            coord.BaseRepresentationOrDifferential,
+            BaseRepresentationOrDifferential,
         ):
             raise ValueError("Must instantiate `rep`.")
-        elif not isinstance(rep, coord.BaseRepresentationOrDifferential):
+        elif not isinstance(rep, BaseRepresentationOrDifferential):
             raise TypeError("`rep` must be a `BaseRepresentationOrDifferential`.")
 
         # Affine parameter
@@ -401,7 +414,7 @@ class InterpolatedRepresentationOrDifferential:
             derivative_type = _infer_derivative_type(rep, affine.unit)
         # TODO better detection if derivative_type doesn't work!
         self._derivative_type = derivative_type
-        self._derivatives = dict()
+        self._derivatives: T.Dict[str, T.Any] = dict()
 
         # -----------------------
         # Construct interpolation
@@ -424,6 +437,7 @@ class InterpolatedRepresentationOrDifferential:
             # ex : rep.differentials["s"] is a Velocity
             if hasattr(rep, "differentials"):
                 for k, differential in rep.differentials.items():
+                    d_derivative_type: T.Optional[type]
 
                     # Is this already an InterpolatedDifferential?
                     # then need to pop back to the Differential
@@ -447,24 +461,26 @@ class InterpolatedRepresentationOrDifferential:
                     self.data.differentials[k] = dif
 
     @property
-    def affine(self):  # read-only
+    def affine(self) -> u.Quantity:  # read-only
         return self._affine
 
     @property
-    def _class_(self):
+    def _class_(self: IRoDType) -> T.Type[IRoDType]:
         """Get this object's true class, not the un-interpolated class."""
-        return object.__class__(self)
+        cls: T.Type[IRoDType] = object.__class__(self)
+        return cls
 
-    def _realize_class(self, rep, affine):
-        return self._class_(
+    def _realize_class(self: IRoDType, rep: BaseRepresentation, affine: u.Quantity) -> IRoDType:
+        inst: IRoDType = self._class_(
             rep, affine, derivative_type=self.derivative_type, **self._interp_kwargs
         )
+        return inst
 
     #################################################################
     # Interpolation Methods
 
     @abc.abstractmethod
-    def __call__(self, affine=None):
+    def __call__(self, affine: T.Optional[u.Quantity] = None) -> IRoDType:
         """Evaluate interpolated representation.
 
         Parameters
@@ -475,17 +491,17 @@ class InterpolatedRepresentationOrDifferential:
         """
 
     @property
-    def derivative_type(self):
+    def derivative_type(self) -> type:
         """The class used when taking a derivative."""
         return self._derivative_type
 
     @derivative_type.setter
-    def derivative_type(self, value):
+    def derivative_type(self, value: type) -> None:
         """The class used when taking a derivative."""
         self._derivative_type = value
         self.clear_derivatives()
 
-    def clear_derivatives(self):
+    def clear_derivatives(self: IRoDType) -> IRoDType:
         """Return self, clearing cached derivatives."""
         if hasattr(self, "_derivatives"):
             keys = tuple(self._derivatives.keys())
@@ -495,7 +511,7 @@ class InterpolatedRepresentationOrDifferential:
 
         return self
 
-    def derivative(self, n=1):
+    def derivative(self, n: int = 1) -> InterpolatedDifferential:
         r"""Construct a new spline representing the derivative of this spline.
 
         .. todo::
@@ -532,7 +548,7 @@ class InterpolatedRepresentationOrDifferential:
 
         return ideriv
 
-    def antiderivative(self, n=1):
+    def antiderivative(self, n: int = 1) -> T.Any:
         r"""Construct a new spline representing the integral of this spline.
 
         .. todo::
@@ -568,24 +584,31 @@ class InterpolatedRepresentationOrDifferential:
     # hidden methods
 
     @property
-    def __class__(self):
+    def __class__(self) -> T.Type[BaseRepresentationOrDifferential]:
         """Make class appear the same as the underlying Representation."""
-        return self.data.__class__
+        cls: T.Type[BaseRepresentationOrDifferential] = self.data.__class__
+        return cls
 
-    def __getattr__(self, key):
+    @__class__.setter
+    def __class__(self, value: T.Any) -> None:  # needed for mypy  # noqa: F811
+        raise TypeError("cannot set attribute ``__class__``.")
+
+    def __getattr__(self, key: str) -> T.Any:
         """Route everything to underlying Representation."""
-        return getattr(self.data, key)
+        got: T.Any = getattr(self.data, key)
+        return got
 
-    def __getitem__(self, key):
+    def __getitem__(self: IRoDType, key: T.Union[str, slice, np.ndarray]) -> IRoDType:
         """Getitem on Representation, re-interpolating."""
-        rep = self.data[key]
-        afn = self.affine[key]
-        return self._realize_class(rep, afn)
+        rep: BaseRepresentation = self.data[key]
+        afn: u.Quantity = self.affine[key]
+        inst: IRoDType = self._realize_class(rep, afn)
+        return inst
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.data)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """String Representation, adding interpolation information."""
         prefixstr = "    "
         values = rfn.merge_arrays(
@@ -611,7 +634,7 @@ class InterpolatedRepresentationOrDifferential:
         else:
             unitstr = f"{aurep}| [dimensionless]"
 
-        return "<Interpolated{} (affine| {}) {:s}\n{}{}{}>".format(
+        s: str = "<Interpolated{} (affine| {}) {:s}\n{}{}{}>".format(
             self.__class__.__name__,
             ", ".join(self.data.components),
             unitstr,
@@ -619,24 +642,30 @@ class InterpolatedRepresentationOrDifferential:
             arrstr,
             diffstr,
         )
+        return s
 
-    def _scale_operation(self, op, *args, scaled_base=False):
+    def _scale_operation(
+        self: IRoDType, op: T.Callable, *args: T.Any, scaled_base: bool = False
+    ) -> IRoDType:
         rep = self.data._scale_operation(op, *args, scaled_base=scaled_base)
-
-        return self._realize_class(rep, self.affine)
+        inst: IRoDType = self._realize_class(rep, self.affine)
+        return inst
 
     # ---------------------------------------------------------------
     # math methods
 
-    def __add__(self, other):
-        """Add other to an InterpolatedRepresentationOrDifferential
+    def __add__(
+        self: IRoDType,
+        other: T.Union[BaseRepresentationOrDifferential, IRoDType],
+    ) -> IRoDType:
+        """Add other to an InterpolatedBaseRepresentationOrDifferential
 
         If other:
         - point : add to data, keep affine the same, re-interpolate
         - vector : add to data, keep affine the same, re-interpolate
         - interpolated : must be same interpolation!
         """
-        if isinstance(other, InterpolatedRepresentationOrDifferential):
+        if isinstance(other, InterpolatedBaseRepresentationOrDifferential):
             if not array_equal(other.affine, self.affine):
                 raise ValueError(
                     f"Can only add two {self._class_}"
@@ -649,15 +678,18 @@ class InterpolatedRepresentationOrDifferential:
         # now re-interpolate
         return self._realize_class(newrep, self.affine)
 
-    def __sub__(self, other):
-        """Add other to an InterpolatedRepresentationOrDifferential
+    def __sub__(
+        self: IRoDType,
+        other: T.Union[IRoDType, BaseRepresentationOrDifferential],
+    ) -> IRoDType:
+        """Add other to an InterpolatedBaseRepresentationOrDifferential
 
         If other:
         - point : add to data, keep affine the same, re-interpolate
         - vector : add to data, keep affine the same, re-interpolate
         - interpolated : must be same interpolation!
         """
-        if isinstance(other, InterpolatedRepresentationOrDifferential):
+        if isinstance(other, InterpolatedBaseRepresentationOrDifferential):
             if not array_equal(other.affine, self.affine):
                 raise ValueError(
                     f"Can only subtract two {self._class_}"
@@ -670,15 +702,18 @@ class InterpolatedRepresentationOrDifferential:
         # now re-interpolate
         return self._realize_class(newrep, self.affine)
 
-    def __mul__(self, other):
-        """Add other to an InterpolatedRepresentationOrDifferential
+    def __mul__(
+        self: IRoDType,
+        other: T.Union[IRoDType, BaseRepresentationOrDifferential],
+    ) -> IRoDType:
+        """Add other to an InterpolatedBaseRepresentationOrDifferential
 
         If other:
         - point : add to data, keep affine the same, re-interpolate
         - vector : add to data, keep affine the same, re-interpolate
         - interpolated : must be same interpolation!
         """
-        if isinstance(other, InterpolatedRepresentationOrDifferential):
+        if isinstance(other, InterpolatedBaseRepresentationOrDifferential):
             if not array_equal(other.affine, self.affine):
                 raise ValueError(
                     f"Can only multiply two {self._class_}"
@@ -691,15 +726,18 @@ class InterpolatedRepresentationOrDifferential:
         # now re-interpolate
         return self._realize_class(newrep, self.affine)
 
-    def __truediv__(self, other):
-        """Add other to an InterpolatedRepresentationOrDifferential
+    def __truediv__(
+        self: IRoDType,
+        other: T.Union[IRoDType, BaseRepresentationOrDifferential],
+    ) -> IRoDType:
+        """Add other to an InterpolatedBaseRepresentationOrDifferential
 
         If other:
         - point : add to data, keep affine the same, re-interpolate
         - vector : add to data, keep affine the same, re-interpolate
         - interpolated : must be same interpolation!
         """
-        if isinstance(other, InterpolatedRepresentationOrDifferential):
+        if isinstance(other, InterpolatedBaseRepresentationOrDifferential):
             if not array_equal(other.affine, self.affine):
                 raise ValueError(
                     f"Can only divide two {self._class_}"
@@ -754,7 +792,10 @@ class InterpolatedRepresentationOrDifferential:
     # ---------------------------------------------------------------
     # Specific wrappers
 
-    def from_cartesian(self, other):
+    def from_cartesian(
+        self: IRoDType,
+        other: T.Union[CartesianRepresentation, CartesianDifferential],
+    ) -> IRoDType:
         """Create a representation of this class from a Cartesian one.
 
         Parameters
@@ -780,7 +821,7 @@ class InterpolatedRepresentationOrDifferential:
         return self._class_(rep, self.affine, **self._interp_kwargs)
 
     # TODO just wrap self.data method with a wrapper?
-    def to_cartesian(self):
+    def to_cartesian(self: IRoDType) -> IRoDType:
         """Convert the representation to its Cartesian form.
 
         Note that any differentials get dropped. Also note that orientation
@@ -808,7 +849,7 @@ class InterpolatedRepresentationOrDifferential:
         rep = self.data.to_cartesian()
         return self._class_(rep, self.affine, **self._interp_kwargs)
 
-    def copy(self, *args, **kwargs):
+    def copy(self: IRoDType, *args: T.Any, **kwargs: T.Any) -> IRoDType:
         """Return an instance containing copies of the internal data.
 
         Parameters are as for :meth:`~numpy.ndarray.copy`.
@@ -820,7 +861,7 @@ class InterpolatedRepresentationOrDifferential:
 
         Returns
         -------
-        `InterpolatedRepresentationOrDifferential`
+        `InterpolatedBaseRepresentationOrDifferential`
             Same type as this instance.
         """
         data = self.data.copy(*args, **kwargs)
@@ -837,7 +878,7 @@ class InterpolatedRepresentationOrDifferential:
 # -------------------------------------------------------------------
 
 
-class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
+class InterpolatedRepresentation(InterpolatedBaseRepresentationOrDifferential):
     """Wrapper for Representations, adding affine interpolations.
 
     .. todo::
@@ -884,8 +925,10 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
 
     """
 
-    def __new__(cls, representation, *args, **kwargs):
-
+    def __new__(
+        cls: T.Type[IRType], representation: BaseRepresentation, *args: T.Any, **kwargs: T.Any
+    ) -> T.Union[IRType, InterpolatedCartesianRepresentation]:
+        self: T.Union[IRType, InterpolatedCartesianRepresentation]
         # need to special case since it has different methods
         if isinstance(representation, CartesianRepresentation):
             self = super().__new__(
@@ -899,7 +942,7 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
 
         return self
 
-    def __call__(self, affine=None):
+    def __call__(self, affine: T.Optional[u.Quantity] = None) -> BaseRepresentation:
         """Evaluate interpolated representation.
 
         Parameters
@@ -931,7 +974,11 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
     # ---------------------------------------------------------------
 
     # TODO just wrap self.data method with a wrapper?
-    def represent_as(self, other_class, differential_class=None):
+    def represent_as(
+        self: IRType,
+        other_class: BaseRepresentation,
+        differential_class: T.Optional[BaseDifferential] = None,
+    ) -> InterpolatedRepresentation:
         """Convert coordinates to another representation.
 
         If the instance is of the requested class, it is returned unmodified.
@@ -962,7 +1009,7 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
         return InterpolatedRepresentation(rep, self.affine, **self._interp_kwargs)
 
     # TODO just wrap self.data method with a wrapper?
-    def with_differentials(self, differentials):
+    def with_differentials(self: IRType, differentials: T.Sequence[BaseDifferential]) -> IRType:
         """Realize Representation, with new differentials.
 
         Create a new representation with the same positions as this
@@ -989,7 +1036,7 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
         return self._realize_class(rep, self.affine)
 
     # TODO just wrap self.data method with a wrapper?
-    def without_differentials(self):
+    def without_differentials(self: IRType) -> IRType:
         """Return a copy of the representation without attached differentials.
 
         Returns
@@ -1004,7 +1051,7 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
         rep = self.data.without_differentials()
         return self._realize_class(rep, self.affine)
 
-    def derivative(self, n=1):
+    def derivative(self: IRType, n: int = 1) -> InterpolatedDifferential:
         r"""Construct a new spline representing the derivative of this spline.
 
         Parameters
@@ -1012,8 +1059,10 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
         n : int, optional
             Order of derivative to evaluate. Default: 1
         """
+        ideriv: InterpolatedDifferential
         if f"affine {n}" in self._derivatives:
-            return self._derivatives[f"affine {n}"]
+            ideriv = self._derivatives[f"affine {n}"]
+            return ideriv
 
         ideriv = super().derivative(n=n)
 
@@ -1025,7 +1074,7 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
     # ---------------------------------------------------------------
     # Convenience interpolation methods
 
-    def headless_tangent_vectors(self):
+    def headless_tangent_vectors(self: IRType) -> IRType:
         r"""Headless tangent vector at each point in affine.
 
         :math:`\vec{x} + \partial_{\affine} \vec{x}(\affine) \Delta\affine`
@@ -1042,7 +1091,7 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
 
         return self._realize_class(offset, self.affine)
 
-    def tangent_vectors(self):
+    def tangent_vectors(self: IRType) -> IRType:
         r"""Tangent vectors along the curve, from the origin.
 
         :math:`\vec{x} + \partial_{\affine} \vec{x}(\affine) \Delta\affine`
@@ -1065,13 +1114,13 @@ class InterpolatedRepresentation(InterpolatedRepresentationOrDifferential):
 class InterpolatedCartesianRepresentation(InterpolatedRepresentation):
     def __init__(
         self,
-        rep: coord.CartesianRepresentation,
-        affine,
+        rep: CartesianRepresentation,
+        affine: T.Optional[u.Quantity],
         *,
-        interps=None,
-        derivative_type: T.Optional[coord.BaseDifferential] = None,
-        **interp_kwargs,
-    ):
+        interps: T.Optional[T.Dict] = None,
+        derivative_type: T.Optional[BaseDifferential] = None,
+        **interp_kwargs: T.Any,
+    ) -> None:
 
         # Check its instantiated and right class
         if inspect.isclass(rep) and issubclass(
@@ -1091,7 +1140,7 @@ class InterpolatedCartesianRepresentation(InterpolatedRepresentation):
         )
 
     # TODO just wrap self.data method with a wrapper?
-    def transform(self, matrix):
+    def transform(self: ICRType, matrix: np.ndarray) -> ICRType:
         """Transform the cartesian coordinates using a 3x3 matrix.
 
         This returns a new representation and does not modify the original one.
@@ -1133,7 +1182,7 @@ class InterpolatedCartesianRepresentation(InterpolatedRepresentation):
 
         return self._realize_class(newrep, self.affine)
 
-    def _scale_operation(self, op, *args):
+    def _scale_operation(self: ICRType, op: T.Callable, *args: T.Any) -> ICRType:  # type: ignore
         rep = self.data._scale_operation(op, *args)
         return self._realize_class(rep, self.affine)
 
@@ -1141,14 +1190,16 @@ class InterpolatedCartesianRepresentation(InterpolatedRepresentation):
 # -------------------------------------------------------------------
 
 
-class InterpolatedDifferential(InterpolatedRepresentationOrDifferential):
+class InterpolatedDifferential(InterpolatedBaseRepresentationOrDifferential):
 
     # ---------------------------------------------------------------
 
-    def __new__(cls, rep, *args, **kwargs):
+    def __new__(
+        cls: T.Type[IDType], rep: T.Union[IDType, DType], *args: T.Any, **kwargs: T.Any
+    ) -> IDType:
         if not isinstance(rep, InterpolatedDifferential) and not isinstance(
             rep,
-            coord.BaseDifferential,
+            BaseDifferential,
         ):
             raise TypeError("`rep` must be a differential type.")
 
@@ -1156,7 +1207,7 @@ class InterpolatedDifferential(InterpolatedRepresentationOrDifferential):
 
     # ---------------------------------------------------------------
 
-    def __call__(self, affine=None):
+    def __call__(self, affine: T.Optional[u.Quantity] = None) -> DType:
         """Evaluate interpolated representation.
 
         Parameters
@@ -1167,24 +1218,30 @@ class InterpolatedDifferential(InterpolatedRepresentationOrDifferential):
 
         Returns
         -------
-        BaseRepresenation
+        `~astropy.coordinates.BaseDifferential`
             Representation of type ``self.data`` evaluated with `affine`
         """
-        if affine is None:  # If None, returns representation as-is.
-            return self.data
-        # else:
+        data: DType
 
-        affine = u.Quantity(affine, copy=False)  # need to ensure Quantity
+        if affine is None:  # If None, returns representation as-is.
+            data = self.data
+            return data
 
         # evaluate the spline on each argument of the position
+        affine = u.Quantity(affine, copy=False)  # need to ensure Quantity
         params = {n: interp(affine) for n, interp in self._interps.items()}
 
-        return self.data.__class__(**params)
+        data = self.data.__class__(**params)
+        return data
 
     # ---------------------------------------------------------------
 
     # TODO just wrap self.data method with a wrapper?
-    def represent_as(self, other_class, base):
+    def represent_as(
+        self: IDType,
+        other_class: BaseDifferential,
+        base: BaseRepresentation,
+    ) -> IDType:
         """Convert coordinates to another representation.
 
         If the instance is of the requested class, it is returned unmodified.
@@ -1192,7 +1249,7 @@ class InterpolatedDifferential(InterpolatedRepresentationOrDifferential):
 
         Parameters
         ----------
-        other_class : `~astropy.coordinates.BaseRepresentation` subclass
+        other_class : `~astropy.coordinates.BaseDifferential` subclass
             The type of representation to turn the coordinates into.
         base : instance of ``self.base_representation``
             Base relative to which the differentials are defined.  If the other
@@ -1204,7 +1261,7 @@ class InterpolatedDifferential(InterpolatedRepresentationOrDifferential):
         # don't pass on the derivative_type
         return self._class_(rep, self.affine, **self._interp_kwargs)
 
-    def to_cartesian(self):
+    def to_cartesian(self) -> InterpolatedCartesianRepresentation:  # type: ignore
         """Convert the differential to its Cartesian form.
 
         Note that any differentials get dropped. Also note that orientation
@@ -1230,7 +1287,7 @@ class InterpolatedDifferential(InterpolatedRepresentationOrDifferential):
             On Differentials, ``to_cartesian`` returns a Representation
             https://github.com/astropy/astropy/issues/6215
         """
-        rep = self.data.to_cartesian()
+        rep: CartesianRepresentation = self.data.to_cartesian()
         return InterpolatedCartesianRepresentation(rep, self.affine, **self._interp_kwargs)
 
 
@@ -1271,23 +1328,22 @@ class InterpolatedCoordinateFrame:
         if `data` is not an interpolated type and `affine` is None
     TypeError
         if `data` is not one of types specified in Parameters.
-
     """
 
     def __init__(
         self,
         data: TH.CoordinateType,
-        affine=None,
+        affine: T.Optional[u.Quantity] = None,
         *,
-        interps=None,
-        **interp_kwargs,
-    ):
+        interps: T.Optional[T.Dict] = None,
+        **interp_kwargs: T.Any,
+    ) -> None:
         # get rep from CoordinateType
         rep = data.data
 
         if isinstance(rep, InterpolatedRepresentation):
             pass
-        elif isinstance(rep, coord.BaseRepresentation):
+        elif isinstance(rep, BaseRepresentation):
             if affine is None:
                 raise ValueError(
                     "`data` is not already interpolated. "
@@ -1304,14 +1360,15 @@ class InterpolatedCoordinateFrame:
         self._interp_kwargs = interp_kwargs
 
     @property
-    def _interp_kwargs(self) -> dict:
-        return self.data._interp_kwargs
+    def _interp_kwargs(self) -> T.Dict[str, T.Any]:
+        ikw: dict = self.data._interp_kwargs
+        return ikw
 
     @_interp_kwargs.setter
     def _interp_kwargs(self, value: dict) -> None:
         self.data._interp_kwargs = value
 
-    def __call__(self, affine=None):
+    def __call__(self, affine: T.Optional[u.Quantity] = None) -> BaseRepresentation:
         """Evaluate interpolated coordinate frame.
 
         Parameters
@@ -1328,13 +1385,15 @@ class InterpolatedCoordinateFrame:
         return self.frame.realize_frame(self.frame.data(affine))
 
     @property
-    def _class_(self):
+    def _class_(self) -> T.Type[InterpolatedCoordinateFrame]:
         return object.__class__(self)
 
-    def _realize_class(self, data):
+    def _realize_class(self, data: TH.CoordinateType) -> InterpolatedCoordinateFrame:
         return self._class_(data, affine=self.affine, **self._interp_kwargs)
 
-    def realize_frame(self, data, affine=None, **kwargs):
+    def realize_frame(
+        self, data: BaseRepresentation, affine: T.Optional[u.Quantity] = None, **kwargs: T.Any
+    ) -> InterpolatedCoordinateFrame:
         """Generates a new frame with new data from another frame (which may or
         may not have data). Roughly speaking, the converse of
         `replicate_without_data`.
@@ -1361,8 +1420,8 @@ class InterpolatedCoordinateFrame:
     # Interpolation Methods
     # Mapped to underlying Representation
 
-    @format_doc(InterpolatedRepresentationOrDifferential.derivative.__doc__)
-    def derivative(self, n: int = 1) -> coord.BaseRepresentationOrDifferential:
+    @format_doc(InterpolatedBaseRepresentationOrDifferential.derivative.__doc__)
+    def derivative(self, n: int = 1) -> BaseRepresentationOrDifferential:
         """Take nth derivative wrt affine parameter."""
         return self.frame.data.derivative(n=n)
 
@@ -1370,7 +1429,7 @@ class InterpolatedCoordinateFrame:
     def affine(self) -> u.Quantity:  # read-only
         return self.frame.data.affine
 
-    def headless_tangent_vectors(self):
+    def headless_tangent_vectors(self) -> InterpolatedCoordinateFrame:
         r"""Headless tangent vector at each point in affine.
 
         :math:`\vec{x} + \partial_{\affine} \vec{x}(\affine) \Delta\affine`
@@ -1382,7 +1441,7 @@ class InterpolatedCoordinateFrame:
         rep = self.frame.data.headless_tangent_vectors()
         return self.realize_frame(rep)
 
-    def tangent_vectors(self):
+    def tangent_vectors(self) -> InterpolatedCoordinateFrame:
         r"""Tangent vectors along the curve, from the origin.
 
         :math:`\vec{x} + \partial_{\affine} \vec{x}(\affine) \Delta\affine`
@@ -1398,18 +1457,23 @@ class InterpolatedCoordinateFrame:
     # Mapping to Underlying CoordinateFrame
 
     @property
-    def __class__(self):
+    def __class__(self) -> type:
         """Make class appear the same as the underlying CoordinateFrame."""
-        return self.frame.__class__
+        cls: type = self.frame.__class__
+        return cls
 
-    def __getattr__(self, key):
+    @__class__.setter
+    def __class__(self, value: T.Any) -> None:  # needed for mypy  # noqa: F811
+        raise TypeError("cannot set the `__class__` attribute.")
+
+    def __getattr__(self, key: str) -> T.Any:
         """Route everything to underlying CoordinateFrame."""
         return getattr(self.frame, key)
 
     def __len__(self) -> int:
         return len(self.frame)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: T.Union[int, slice, np.ndarray]) -> InterpolatedCoordinateFrame:
         frame = self.frame[key]
         affine = self.affine[key]
 
@@ -1419,19 +1483,19 @@ class InterpolatedCoordinateFrame:
         return iframe
 
     @property
-    def representation_type(self) -> coord.BaseRepresentation:
+    def representation_type(self) -> BaseRepresentation:
         return self.frame.representation_type
 
     @representation_type.setter
-    def representation_type(self, value: coord.BaseRepresentation) -> None:
+    def representation_type(self, value: BaseRepresentation) -> None:
         self.frame.representation_type = value
 
     def represent_as(
         self,
         base: TH.RepLikeType,
-        s: T.Union[str, coord.BaseDifferential] = "base",
+        s: T.Union[str, BaseDifferential] = "base",
         in_frame_units: bool = False,
-    ) -> coord.BaseRepresentation:
+    ) -> InterpolatedRepresentation:
         """Generate and return a new representation of this frame's `data`
         as a Representation object.
 
@@ -1483,7 +1547,10 @@ class InterpolatedCoordinateFrame:
 
         return InterpolatedRepresentation(rep, affine=self.affine, **self._interp_kwargs)
 
-    def transform_to(self, new_frame):
+    def transform_to(
+        self,
+        new_frame: T.Union[coord.BaseCoordinateFrame, SkyCoord],
+    ) -> InterpolatedCoordinateFrame:
         """Transform this object's coordinate data to a new frame.
 
         Parameters
@@ -1505,18 +1572,20 @@ class InterpolatedCoordinateFrame:
         newframe = self.frame.transform_to(new_frame)
         return self._realize_class(newframe)
 
-    def copy(self):
+    def copy(self) -> InterpolatedCoordinateFrame:
         interp_kwargs = self._interp_kwargs.copy()
         frame = self.frame.realize_frame(self.data)
-        return InterpolatedCoordinateFrame(
+        iframe: InterpolatedCoordinateFrame = self._class_(
             frame,
             affine=self.affine.copy(),
             interps=None,
             **interp_kwargs,
         )
+        return iframe
 
     def _frame_attrs_repr(self) -> str:  # FIXME!!
-        return self.frame._frame_attrs_repr()
+        s: str = self.frame._frame_attrs_repr()
+        return s
 
     def _data_repr(self) -> str:
         """Returns a string representation of the coordinate data.
@@ -1554,7 +1623,7 @@ class InterpolatedCoordinateFrame:
             part1, _, remainder = data_repr.partition("(")
             if remainder != "":
                 comp_str, _, part2 = remainder.partition(")")
-                comp_names: T.Tuple[str] = comp_str.split(", ")
+                comp_names: T.List[str] = comp_str.split(", ")
 
                 affine_name, comp_name_0 = comp_names[0].split("| ")
                 comp_names[0] = comp_name_0
@@ -1601,7 +1670,7 @@ class InterpolatedCoordinateFrame:
 
         return data_repr
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         frameattrs = self._frame_attrs_repr()
         data_repr = self._data_repr()
 
@@ -1614,6 +1683,106 @@ class InterpolatedCoordinateFrame:
         # else:  # uncomment when encounter
         #     return f"<Interpolated{cls_name} Frame{frameattrs}>"
 
+        return "TODO!"
+
+    # -----------------------------------------------------
+    # Separation
+
+    def separation(
+        self,
+        point: TH.CoordinateType,
+        *,
+        interpolate: bool = True,
+        affine: T.Optional[u.Quantity] = None,
+    ) -> T.Union[coord.Angle, IUSU]:
+        """Computes on-sky separation between this coordinate and another.
+
+        .. note::
+
+            If the ``other`` coordinate object is in a different frame, it is
+            first transformed to the frame of this object. This can lead to
+            unintuitive behavior if not accounted for. Particularly of note is
+            that ``self.separation(other)`` and ``other.separation(self)`` may
+            not give the same answer in this case.
+
+        Parameters
+        ----------
+        other : `~astropy.coordinates.BaseCoordinateFrame`
+            The coordinate to get the separation to.
+        interpolated : bool, optional keyword-only
+            Whether to return the separation as an interpolation, or as points.
+        affine : `~astropy.units.Quantity` array-like or None, optional
+            The affine interpolation parameter. If None (default), return
+            angular width evaluated at all "tick" interpolation points.
+
+        Returns
+        -------
+        sep : `~astropy.coordinates.Angle` or `~.interpolate.InterpolatedUnivariateSplinewithUnits`
+            The on-sky separation between this and the ``other`` coordinate.
+
+        Notes
+        -----
+        The separation is calculated using the Vincenty formula, which
+        is stable at all locations, including poles and antipodes [1]_.
+
+        .. [1] https://en.wikipedia.org/wiki/Great-circle_distance
+        """
+        return self._separation(point, angular=True, interpolate=interpolate, affine=affine)
+
+    def separation_3d(
+        self,
+        point: TH.CoordinateType,
+        *,
+        interpolate: bool = True,
+        affine: T.Optional[u.Quantity] = None,
+    ) -> T.Union[coord.Distance, IUSU]:
+        """
+        Computes three dimensional separation between this coordinate
+        and another.
+
+        For more on how to use this (and related) functionality, see the
+        examples in :doc:`astropy:/coordinates/matchsep`.
+
+        Parameters
+        ----------
+        other : `~astropy.coordinates.BaseCoordinateFrame`
+            The coordinate to get the separation to.
+        interpolated : bool, optional keyword-only
+            Whether to return the separation as an interpolation, or as points.
+        affine : `~astropy.units.Quantity` array-like or None, optional
+            The affine interpolation parameter. If None (default), return
+            angular width evaluated at all "tick" interpolation points.
+
+        Returns
+        -------
+        sep : `~astropy.coordinates.Distance` or `~.interpolate.InterpolatedUnivariateSplinewithUnits`  # noqa: E501
+            The real-space distance between these two coordinates.
+
+        Raises
+        ------
+        ValueError
+            If this or the other coordinate do not have distances.
+        """
+        return self._separation(point, angular=False, interpolate=interpolate, affine=affine)
+
+    def _separation(
+        self,
+        point: SkyCoord,
+        angular: bool,
+        interpolate: bool,
+        affine: T.Optional[u.Quantity],
+    ) -> T.Union[coord.Angle, coord.Distance, IUSU]:
+        """Separation helper function."""
+        affine = self.affine if affine is None else affine
+
+        c = self(affine=affine)
+        seps = getattr(c, "separation" if angular else "separation_3d")(point)
+
+        if not interpolate:
+            return seps
+
+        return IUSU(affine, seps)  # TODO! if 1 point
+
 
 #####################################################################
 
@@ -1621,7 +1790,13 @@ class InterpolatedCoordinateFrame:
 class InterpolatedSkyCoord(SkyCoord):
     """Interpolated SkyCoord."""
 
-    def __init__(self, *args, affine=None, copy=True, **kwargs):
+    def __init__(
+        self,
+        *args: T.Any,
+        affine: T.Optional[u.Quantity] = None,
+        copy: bool = True,
+        **kwargs: T.Any,
+    ) -> None:
 
         keys = tuple(kwargs.keys())  # needed b/c pop changes size
         interp_kwargs = {k: kwargs.pop(k) for k in keys if k.startswith("interp_")}
@@ -1634,7 +1809,7 @@ class InterpolatedSkyCoord(SkyCoord):
                 self.frame, affine=affine, **interp_kwargs
             )
 
-    def __call__(self, affine=None):
+    def __call__(self, affine: T.Optional[u.Quantity] = None) -> SkyCoord:
         """Evaluate interpolated representation.
 
         Parameters
@@ -1651,7 +1826,11 @@ class InterpolatedSkyCoord(SkyCoord):
         newsc = SkyCoord(self.frame(affine))
         return newsc
 
-    def transform_to(self, frame, merge_attributes=True):
+    def transform_to(
+        self,
+        frame: TH.FrameLikeType,
+        merge_attributes: bool = True,
+    ) -> InterpolatedSkyCoord:
         """Transform this coordinate to a new frame.
 
         The precise frame transformed to depends on ``merge_attributes``.
@@ -1694,314 +1873,104 @@ class InterpolatedSkyCoord(SkyCoord):
 
         return self.__class__(nsc, affine=self.affine, copy=False)
 
+    # -----------------------------------------------------
+    # Separation
 
-#     # ---------------------------------------------------------------
-#     # Mapping to Underlying SkyCoord
-#
-#     def separation(self, other):
-#         """
-#         Computes on-sky separation between this coordinate and another.
-#
-#         .. note::
-#
-#             If the ``other`` coordinate object is in a different frame, it is
-#             first transformed to the frame of this object. This can lead to
-#             unintuitive behavior if not accounted for. Particularly of note is
-#             that ``self.separation(other)`` and ``other.separation(self)`` may
-#             not give the same answer in this case.
-#
-#         For more on how to use this (and related) functionality, see the
-#         examples in
-#         https://docs.astropy.org/en/stable/coordinates/matchsep.html.
-#
-#         Parameters
-#         ----------
-#         other : |SkyCoord| or |Frame|
-#             The coordinate to get the separation to.
-#
-#         Returns
-#         -------
-#         sep : `~astropy.coordinates.Angle`
-#             The on-sky separation between this and the ``other`` coordinate.
-#
-#         Notes
-#         -----
-#         The separation is calculated using the Vincenty formula, which
-#         is stable at all locations, including poles and antipodes [1]_.
-#
-#         .. [1] https://en.wikipedia.org/wiki/Great-circle_distance
-#
-#         """
-#         return super().separation(other)
-#
-#     # /def
-#
-#     def separation_3d(self, other):
-#         """
-#         Computes three dimensional separation between this coordinate
-#         and another.
-#
-#         For more on how to use this (and related) functionality, see the
-#         examples in
-#         https://docs.astropy.org/en/stable/coordinates/matchsep.html.
-#
-#         Parameters
-#         ----------
-#         other : |SkyCoord| or |Frame|
-#             The coordinate to get the separation to.
-#
-#         Returns
-#         -------
-#         sep : `~astropy.coordinates.Distance`
-#             The real-space distance between these two coordinates.
-#
-#         Raises
-#         ------
-#         ValueError
-#             If this or the other coordinate do not have distances.
-#
-#         """
-#         return super().separation_3d(other)
-#
-#     # /def
-#
-#     def match_to_catalog_sky(self, catalogcoord, nthneighbor=1):
-#         """
-#         Finds the nearest on-sky matches of this coordinate in a set of
-#         catalog coordinates.
-#
-#         For more on how to use this (and related) functionality, see the
-#         examples in
-#         https://docs.astropy.org/en/stable/coordinates/matchsep.html.
-#
-#         Parameters
-#         ----------
-#         catalogcoord : |SkyCoord| or |Frame|
-#             The base catalog in which to search for matches. Typically this
-#             will be a coordinate object that is an array (i.e.,
-#             ``catalogcoord.isscalar == False``)
-#         nthneighbor : int, optional
-#             Which closest neighbor to search for.  Typically ``1`` is
-#             desired here, as that is correct for matching one set of
-#             coordinates to another. The next likely use case is ``2``,
-#             for matching a coordinate catalog against *itself* (``1``
-#             is inappropriate because each point will find itself as the
-#             closest match).
-#
-#         Returns
-#         -------
-#         idx : integer array
-#             Indices into ``catalogcoord`` to get the matched points for
-#             each of this object's coordinates. Shape matches this
-#             object.
-#         sep2d : `~astropy.coordinates.Angle`
-#             The on-sky separation between the closest match for each
-#             element in this object in ``catalogcoord``. Shape matches
-#             this object.
-#         dist3d : `~astropy.units.Quantity`
-#             The 3D distance between the closest match for each element
-#             in this object in ``catalogcoord``. Shape matches this
-#             object. Unless both this and ``catalogcoord`` have associated
-#             distances, this quantity assumes that all sources are at a
-#             distance of 1 (dimensionless).
-#
-#         Notes
-#         -----
-#         This method requires `SciPy <https://www.scipy.org/>`_ to be
-#         installed or it will fail.
-#
-#         See Also
-#         --------
-#         astropy.coordinates.match_coordinates_sky
-#         SkyCoord.match_to_catalog_3d
-#
-#         """
-#         return super().match_coordinates_sky(
-#             catalogcoord,
-#             nthneighbor=nthneighbor,
-#         )
-#
-#     # /def
-#
-#     def match_to_catalog_3d(self, catalogcoord, nthneighbor=1):
-#         """
-#         Finds the nearest 3-dimensional matches of this coordinate to a set
-#         of catalog coordinates.
-#
-#         This finds the 3-dimensional closest neighbor, which is only different
-#         from the on-sky distance if ``distance`` is set in this object or the
-#         ``catalogcoord`` object.
-#
-#         For more on how to use this (and related) functionality, see the
-#         examples in
-#         https://docs.astropy.org/en/stable/coordinates/matchsep.html.
-#
-#         Parameters
-#         ----------
-#         catalogcoord : |SkyCoord| or |Frame|
-#             The base catalog in which to search for matches. Typically this
-#             will be a coordinate object that is an array (i.e.,
-#             ``catalogcoord.isscalar == False``)
-#         nthneighbor : int, optional
-#             Which closest neighbor to search for.  Typically ``1`` is
-#             desired here, as that is correct for matching one set of
-#             coordinates to another.  The next likely use case is
-#             ``2``, for matching a coordinate catalog against *itself*
-#             (``1`` is inappropriate because each point will find
-#             itself as the closest match).
-#
-#         Returns
-#         -------
-#         idx : integer array
-#             Indices into ``catalogcoord`` to get the matched points for
-#             each of this object's coordinates. Shape matches this
-#             object.
-#         sep2d : `~astropy.coordinates.Angle`
-#             The on-sky separation between the closest match for each
-#             element in this object in ``catalogcoord``. Shape matches
-#             this object.
-#         dist3d : `~astropy.units.Quantity`
-#             The 3D distance between the closest match for each element
-#             in this object in ``catalogcoord``. Shape matches this
-#             object.
-#
-#         Notes
-#         -----
-#         This method requires `SciPy <https://www.scipy.org/>`_ to be
-#         installed or it will fail.
-#
-#         See Also
-#         --------
-#         astropy.coordinates.match_coordinates_3d
-#         SkyCoord.match_to_catalog_sky
-#
-#         """
-#         return super().match_to_catalog_3d(
-#             catalogcoord,
-#             nthneighbor=nthneighbor,
-#         )
-#
-#     # just needed to modify the docstring
-#     def search_around_sky(self, searcharoundcoords, seplimit):
-#         """
-#         Searches for all coordinates in this object around a supplied set of
-#         points within a given on-sky separation.
-#
-#         This is intended for use on `~astropy.coordinates.SkyCoord` objects
-#         with coordinate arrays, rather than a scalar coordinate.  For a scalar
-#         coordinate, it is better to use
-#         `~astropy.coordinates.SkyCoord.separation`.
-#
-#         For more on how to use this (and related) functionality, see the
-#         examples in
-#         https://docs.astropy.org/en/stable/coordinates/matchsep.html.
-#
-#         Parameters
-#         ----------
-#         searcharoundcoords : |SkyCoord| or |Frame|
-#             The coordinates to search around to try to find matching points in
-#             this `SkyCoord`. This should be an object with array coordinates,
-#             not a scalar coordinate object.
-#         seplimit : `~astropy.units.Quantity` with angle units
-#             The on-sky separation to search within.
-#
-#         Returns
-#         -------
-#         idxsearcharound : integer array
-#             Indices into ``searcharoundcoords`` that match the
-#             corresponding elements of ``idxself``. Shape matches
-#             ``idxself``.
-#         idxself : integer array
-#             Indices into ``self`` that match the
-#             corresponding elements of ``idxsearcharound``. Shape matches
-#             ``idxsearcharound``.
-#         sep2d : `~astropy.coordinates.Angle`
-#             The on-sky separation between the coordinates. Shape matches
-#             ``idxsearcharound`` and ``idxself``.
-#         dist3d : `~astropy.units.Quantity`
-#             The 3D distance between the coordinates. Shape matches
-#             ``idxsearcharound`` and ``idxself``.
-#
-#         Notes
-#         -----
-#         This method requires `SciPy <https://www.scipy.org/>`_ to be
-#         installed or it will fail.
-#
-#         In the current implementation, the return values are always sorted in
-#         the same order as the ``searcharoundcoords`` (so ``idxsearcharound`` is
-#         in ascending order).  This is considered an implementation detail,
-#         though, so it could change in a future release.
-#
-#         See Also
-#         --------
-#         astropy.coordinates.search_around_sky
-#         SkyCoord.search_around_3d
-#
-#         """
-#         return super().search_around_sky(searcharoundcoords, seplimit)
-#
-#     # /def
-#
-#     # just needed to modify the docstring
-#     def search_around_3d(self, searcharoundcoords, distlimit):
-#         """
-#         Searches for all coordinates in this object around a supplied set of
-#         points within a given 3D radius.
-#
-#         This is intended for use on `~astropy.coordinates.SkyCoord` objects
-#         with coordinate arrays, rather than a scalar coordinate.  For a scalar
-#         coordinate, it is better to use
-#         `~astropy.coordinates.SkyCoord.separation_3d`.
-#
-#         For more on how to use this (and related) functionality, see the
-#         examples in
-#         https://docs.astropy.org/en/stable/coordinates/matchsep.html.
-#
-#         Parameters
-#         ----------
-#         searcharoundcoords : |SkyCoord| or |Frame|
-#             The coordinates to search around to try to find matching points in
-#             this `SkyCoord`. This should be an object with array coordinates,
-#             not a scalar coordinate object.
-#         distlimit : `~astropy.units.Quantity` with distance units
-#             The physical radius to search within.
-#
-#         Returns
-#         -------
-#         idxsearcharound : integer array
-#             Indices into ``searcharoundcoords`` that match the
-#             corresponding elements of ``idxself``. Shape matches
-#             ``idxself``.
-#         idxself : integer array
-#             Indices into ``self`` that match the
-#             corresponding elements of ``idxsearcharound``. Shape matches
-#             ``idxsearcharound``.
-#         sep2d : `~astropy.coordinates.Angle`
-#             The on-sky separation between the coordinates. Shape matches
-#             ``idxsearcharound`` and ``idxself``.
-#         dist3d : `~astropy.units.Quantity`
-#             The 3D distance between the coordinates. Shape matches
-#             ``idxsearcharound`` and ``idxself``.
-#
-#         Notes
-#         -----
-#         This method requires `SciPy <https://www.scipy.org/>`_ to be
-#         installed or it will fail.
-#
-#         In the current implementation, the return values are always sorted in
-#         the same order as the ``searcharoundcoords`` (so ``idxsearcharound`` is
-#         in ascending order).  This is considered an implementation detail,
-#         though, so it could change in a future release.
-#
-#         See Also
-#         --------
-#         astropy.coordinates.search_around_3d
-#         SkyCoord.search_around_sky
-#
-#         """
-#         return super().search_around_3d(searcharoundcoords, distlimit)
-#
-#     # /def
+    def separation(
+        self,
+        point: TH.CoordinateType,
+        *,
+        interpolate: bool = True,
+        affine: T.Optional[u.Quantity] = None,
+    ) -> T.Union[coord.Angle, IUSU]:
+        """Computes on-sky separation between this coordinate and another.
+
+        .. note::
+
+            If the ``other`` coordinate object is in a different frame, it is
+            first transformed to the frame of this object. This can lead to
+            unintuitive behavior if not accounted for. Particularly of note is
+            that ``self.separation(other)`` and ``other.separation(self)`` may
+            not give the same answer in this case.
+
+        For more on how to use this (and related) functionality, see the
+        examples in :doc:`astropy:/coordinates/matchsep`.
+
+        Parameters
+        ----------
+        other : `~astropy.coordinates.SkyCoord` or `~astropy.coordinates.BaseCoordinateFrame`
+            The coordinate to get the separation to.
+        interpolated : bool, optional keyword-only
+            Whether to return the separation as an interpolation, or as points.
+        affine : `~astropy.units.Quantity` array-like or None, optional
+            The affine interpolation parameter. If None (default), return
+            angular width evaluated at all "tick" interpolation points.
+
+        Returns
+        -------
+        sep : ~astropy.coordinates.Angle` or `~.interpolate.InterpolatedUnivariateSplinewithUnits`
+            The on-sky separation between this and the ``other`` coordinate.
+
+        Notes
+        -----
+        The separation is calculated using the Vincenty formula, which
+        is stable at all locations, including poles and antipodes [1]_.
+
+        .. [1] https://en.wikipedia.org/wiki/Great-circle_distance
+        """
+        return self._separation(point, angular=True, interpolate=interpolate, affine=affine)
+
+    def separation_3d(
+        self,
+        point: TH.CoordinateType,
+        *,
+        interpolate: bool = True,
+        affine: T.Optional[u.Quantity] = None,
+    ) -> T.Union[coord.Distance, IUSU]:
+        """
+        Computes three dimensional separation between this coordinate
+        and another.
+
+        For more on how to use this (and related) functionality, see the
+        examples in :doc:`astropy:/coordinates/matchsep`.
+
+        Parameters
+        ----------
+        other : `~astropy.coordinates.SkyCoord` or `~astropy.coordinates.BaseCoordinateFrame`
+            The coordinate to get the separation to.
+        interpolated : bool, optional keyword-only
+            Whether to return the separation as an interpolation, or as points.
+        affine : `~astropy.units.Quantity` array-like or None, optional
+            The affine interpolation parameter. If None (default), return
+            angular width evaluated at all "tick" interpolation points.
+
+        Returns
+        -------
+        sep : `~astropy.coordinates.Distance` or `~.interpolate.InterpolatedUnivariateSplinewithUnits`  # noqa: E501
+            The real-space distance between these two coordinates.
+
+        Raises
+        ------
+        ValueError
+            If this or the other coordinate do not have distances.
+        """
+        return self._separation(point, angular=False, interpolate=interpolate, affine=affine)
+
+    def _separation(
+        self,
+        point: SkyCoord,
+        angular: bool,
+        interpolate: bool,
+        affine: T.Optional[u.Quantity],
+    ) -> T.Union[coord.Angle, coord.Distance, IUSU]:
+        """Separation helper function."""
+        return InterpolatedCoordinateFrame._separation(
+            self,
+            point,
+            angular=angular,
+            interpolate=interpolate,
+            affine=affine,
+        )
 
 
 ##############################################################################

@@ -17,12 +17,13 @@ import astropy.coordinates as coord
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import BaseCoordinateFrame, SkyCoord
-from scipy.optimize import minimize_scalar
+from astropy.utils.decorators import format_doc
+from scipy.optimize import OptimizeResult, minimize_scalar
 
 # LOCAL
 from .interpolate import InterpolatedUnivariateSplinewithUnits as IUSU
 from .interpolated_coordinates import InterpolatedCoordinateFrame, InterpolatedSkyCoord
-from trackstream._type_hints import FrameLikeType
+from trackstream._type_hints import CoordinateType, FrameLikeType
 from trackstream.utils import resolve_framelike
 
 ##############################################################################
@@ -81,32 +82,34 @@ class Path:
         if `path` is not already interpolated and affine is None
     """
 
-    _name: str
+    _name: T.Optional[str]
     _frame: coord.BaseCoordinateFrame
     _original_path: T.Any
     _iscrd: InterpolatedSkyCoord
     _original_width: T.Union[u.Quantity, T.Callable, None]
-    _width_fn: T.Callable
+    _width_fn: T.Optional[T.Callable]
+    _amplitude_fn: T.Optional[T.Callable]
 
     def __init__(
         self,
         path: T.Union[InterpolatedCoordinateFrame, InterpolatedSkyCoord],
         width: T.Union[u.Quantity, T.Callable, None] = None,  # func(affine)
-        amplitude=None,  # FIXME!
+        amplitude: T.Union[u.Quantity, T.Callable, None] = None,  # FIXME!
         *,
-        name: str = None,
+        name: T.Optional[str] = None,
         affine: T.Optional[u.Quantity] = None,
         frame: T.Optional[FrameLikeType] = None,
-    ):
-        self._name = name
+    ) -> None:
+        self._name = str(name) if name is not None else name
 
         # Frame
         if frame is None:
             # unless `path` has a frame (is not `BaseRepresentation`).
             if isinstance(path, BaseCoordinateFrame):
                 frame = path.replicate_without_data()
-            elif isinstance(path, SkyCoord):  # things like SkyCoord
+            elif isinstance(path, SkyCoord):  # SkyCoord & related
                 frame = path.frame.replicate_without_data()
+            # else: pass  # path = Representation handled in resolve_framelike.
         self._frame = resolve_framelike(frame)  # (an instance, not class)
 
         # --------------
@@ -123,8 +126,7 @@ class Path:
             path = self.frame.realize_frame(path)
 
         if isinstance(path, InterpolatedCoordinateFrame):
-            pass
-        # TODO! work for interp
+            pass  # TODO! combine this with the below
         elif isinstance(path, coord.BaseCoordinateFrame):
             path = InterpolatedCoordinateFrame(path, affine=affine)
 
@@ -144,27 +146,31 @@ class Path:
             self._initialize_width(path, width)
 
     @property
-    def name(self):
+    def name(self) -> T.Optional[str]:
         return self._name
 
     @property  # read-only
-    def frame(self):
+    def frame(self) -> coord.BaseCoordinateFrame:
         """The preferred frame (instance) of the Path."""
         return self._frame
 
     @property
-    def data(self):
+    def data(self) -> InterpolatedSkyCoord:
         """The path, protected."""
         return self._iscrd
 
     @property
-    def affine(self):
+    def affine(self) -> u.Quantity:
         """Affine parameter along ``path``."""
         return self.data.affine
 
     # -----------------------------------------------------
 
-    def _initialize_width(self, path, width):
+    def _initialize_width(
+        self,
+        path: InterpolatedSkyCoord,
+        width: T.Union[u.Quantity, T.Callable],
+    ) -> None:
         # TODO clean this up and stuff
         # this is separated out so that base classes
         # can do stuff like have angular widths
@@ -211,6 +217,13 @@ class Path:
         Returns
         -------
         `.path_moments`
+
+        See Also
+        --------
+        trackstream.utils.path.Path.position
+            For the 1st element of the `trackstream.utils.path.path_moments`.
+        trackstream.utils.path.Path.width
+            For the 2nd element of the `trackstream.utils.path.path_moments`.
         """
         mean = self.position(affine)
         width = self.width(affine) if not angular else self.width_angular(affine)
@@ -228,8 +241,6 @@ class Path:
     ) -> T.Union[InterpolatedSkyCoord, SkyCoord]:
         """Return the position on the track.
 
-        The same as ``.data()``.
-
         Parameters
         ----------
         affine : `~astropy.units.Quantity` array-like or None, optional
@@ -240,6 +251,11 @@ class Path:
         -------
         `~trackstream.utils.interpolated_coordinates.InterpolatedSkyCoord`
             Path position at ``affine``.
+
+        See Also
+        --------
+        trackstream.utils.path.Path.data
+            This is the same as ``.data(affine)``.
         """
         return self.data(affine)
 
@@ -259,12 +275,13 @@ class Path:
         `~astropy.unitss.Quantity`
             Path width evaluated at ``affine``.
         """
-        if affine is None:
-            affine = self.affine
+        if self._width_fn is None:
+            raise ValueError("Path does not have a defined width.")
+        affine = self.affine if affine is None else affine
         return self._width_fn(u.Quantity(affine, copy=False))
 
     def width_angular(self, affine: T.Optional[u.Quantity] = None) -> u.Quantity:
-        """Return the (1-sigma) angulr width of the track at affine points.
+        """Return the (1-sigma) angular width of the track at affine points.
 
         Parameters
         ----------
@@ -287,82 +304,49 @@ class Path:
 
         return np.abs(np.arctan2(width.value, distance)) << u.rad
 
-    # -----------------------
+    # -----------------------------------------------------
 
+    @format_doc(InterpolatedSkyCoord.separation.__doc__)
     def separation(
-        self, point: SkyCoord, *, interpolate: bool = True, affine: T.Optional[u.Quantity] = None
-    ):
-        """Return the angular separation.
-
-        Parameters
-        ----------
-        interpolated : bool, optional keyword-only
-        affine : `~astropy.units.Quantity` array-like or None, optional
-            The affine interpolation parameter. If None (default), return
-            angular width evaluated at all "tick" interpolation points.
-
-        Returns
-        -------
-        `~astropy.coordinates.Angle` or `~.interpolate.InterpolatedUnivariateSplinewithUnits`
-        """
-        return self._separation(point, angular=True, interpolate=interpolate, affine=affine)
-
-    def separation_3d(
-        self, point: SkyCoord, *, interpolate: bool = True, affine: T.Optional[u.Quantity] = None
-    ):
-        """Return the full separation.
-
-        Parameters
-        ----------
-        interpolated : bool, optional keyword-only
-        affine : `~astropy.units.Quantity` array-like or None, optional
-            The affine interpolation parameter. If None (default), return
-            angular width evaluated at all "tick" interpolation points.
-
-        Returns
-        -------
-        `~astropy.coordinates.Angle` or `~.interpolate.InterpolatedUnivariateSplinewithUnits`
-        """
-        return self._separation(point, angular=False, interpolate=interpolate, affine=affine)
-
-    def _separation(
         self,
-        point: SkyCoord,
-        angular: bool,
-        interpolate: bool,
-        affine: T.Optional[u.Quantity],
-    ):
-        """Separation helper function."""
-        affine = self.affine if affine is None else affine
+        point: CoordinateType,
+        *,
+        interpolate: bool = True,
+        affine: T.Optional[u.Quantity] = None,
+    ) -> T.Union[coord.Angle, IUSU]:
+        return self.data.separation(point, interpolate=interpolate, affine=affine)
 
-        c: InterpolatedSkyCoord = self.position(affine=affine)
-        seps = getattr(c, "separation" if angular else "separation_3d")(point)
+    @format_doc(InterpolatedSkyCoord.separation_3d.__doc__)
+    def separation_3d(
+        self,
+        point: CoordinateType,
+        *,
+        interpolate: bool = True,
+        affine: T.Optional[u.Quantity] = None,
+    ) -> T.Union[coord.Distance, IUSU]:
+        return self.data.separation_3d(point, interpolate=interpolate, affine=affine)
 
-        if not interpolate:
-            return seps
-
-        return IUSU(affine, seps)
-
-    # -----------------------
+    # -----------------------------------------------------
 
     def _closest_res_to_point(
-        self, point: SkyCoord, *, angular: bool = False, affine: T.Optional[u.Quantity] = None
-    ):
+        self, point: CoordinateType, *, angular: bool = False, affine: T.Optional[u.Quantity] = None
+    ) -> OptimizeResult:
+        """Closest to stream, ignoring width"""
         if angular:
             sep_fn = self.separation(point, interpolate=True, affine=affine)
         else:
             sep_fn = self.separation_3d(point, interpolate=True, affine=affine)
 
         affine = self.affine if affine is None else affine
-        res = minimize_scalar(
+        res: OptimizeResult = minimize_scalar(
             lambda afn: sep_fn(afn).value,
             bounds=[affine.value.min(), affine.value.max()],
         )
         return res
 
     def closest_affine_to_point(
-        self, point: SkyCoord, *, angular: bool = False, affine: T.Optional[u.Quantity] = None
-    ):
+        self, point: CoordinateType, *, angular: bool = False, affine: T.Optional[u.Quantity] = None
+    ) -> u.Quantity:
         """Closest affine, ignoring width"""
         affine = self.affine if affine is None else affine
         res = self._closest_res_to_point(point, angular=angular, affine=affine)
@@ -370,8 +354,8 @@ class Path:
         return pt_affine
 
     def closest_position_to_point(
-        self, point: SkyCoord, *, angular: bool = False, affine: T.Optional[u.Quantity] = None
-    ):
+        self, point: CoordinateType, *, angular: bool = False, affine: T.Optional[u.Quantity] = None
+    ) -> SkyCoord:
         """Closest point, ignoring width"""
         return self.position(self.closest_affine_to_point(point, angular=angular, affine=affine))
 

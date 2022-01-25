@@ -69,18 +69,12 @@ References
     Perktold, R., Henriksen, I., Quintero, C., Archibald, A., Pedregosa, P.,
     & SciPy 1.0 Contributors (2020). SciPy 1.0: Fundamental Algorithms for
     Scientific Computing in Python. Nature Methods, 17, 261–272.
-
 """
-
-__all__ = [
-    "UnivariateSplinewithUnits",
-    "InterpolatedUnivariateSplinewithUnits",
-    "LSQUnivariateSplinewithUnits",
-]
-
 
 ##############################################################################
 # IMPORTS
+
+from __future__ import annotations
 
 # STDLIB
 import typing as T
@@ -95,10 +89,17 @@ from scipy.interpolate.fitpack2 import _curfit_messages, fitpack
 # LOCAL
 from trackstream._type_hints import UnitType
 
+__all__ = [
+    "UnivariateSplinewithUnits",
+    "InterpolatedUnivariateSplinewithUnits",
+    "LSQUnivariateSplinewithUnits",
+]
+
 ##############################################################################
 # PARAMETERS
 
-_BBoxType = T.List[T.Optional[u.Quantity]]
+BBoxType = T.List[T.Optional[u.Quantity]]
+USwUType = T.TypeVar("USwUType", bound="UnivariateSplinewithUnits")
 
 ##############################################################################
 # CODE
@@ -257,8 +258,8 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
         self,
         x: u.Quantity,
         y: u.Quantity,
-        w=None,
-        bbox=[None] * 2,
+        w: T.Optional[np.ndarray] = None,
+        bbox: BBoxType = [None, None],
         k: int = 3,
         s: T.Optional[float] = None,
         ext: T.Union[int, str, None] = 0,
@@ -267,7 +268,6 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
         x_unit: T.Optional[UnitType] = None,
         y_unit: T.Optional[UnitType] = None,
     ):
-
         # The unit for x and y, respectively. If None (default), gets
         # the units from x and y.
         self._xunit = x_unit or x.unit
@@ -296,15 +296,15 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
 
     def validate_input(
         self,
-        x: T.Union[u.Quantity, np.ndarray],
-        y: T.Union[u.Quantity, np.ndarray],
-        w,
-        bbox,
+        x: np.ndarray,
+        y: np.ndarray,
+        w: np.ndarray,
+        bbox: BBoxType,
         k: int,
         s: float,
         ext: T.Union[int, str],
         check_finite: float,
-    ):
+    ) -> T.Tuple[np.ndarray, np.ndarray, np.ndarray, T.List[u.Quantity], T.Union[int, str]]:
         # TODO validate units!
         # first validate units
         if isinstance(x, u.Quantity):
@@ -321,18 +321,31 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
             #     )
 
         # then validate with UnivariateSpline method, which works with units!
-        return super().validate_input(x, y, w, bbox, k, s, ext, check_finite)
+        out: T.Tuple[
+            np.ndarray,
+            np.ndarray,
+            np.ndarray,
+            T.List[u.Quantity],
+            T.Union[int, str],
+        ] = super().validate_input(x, y, w, bbox, k, s, ext, check_finite)
+        return out
 
     @classmethod
-    def _from_tck(cls, tck, x_unit: UnitType, y_unit: UnitType, ext: int = 0):
+    def _from_tck(
+        cls,
+        tck: T.Tuple[np.ndarray, np.ndarray, np.ndarray],
+        x_unit: UnitType,
+        y_unit: UnitType,
+        ext: int = 0,
+    ) -> USwUType:
         """Construct a spline object from given tck."""
-        self = super()._from_tck(tck, ext=ext)
+        self: USwUType = super()._from_tck(tck, ext=ext)
         self._xunit = x_unit
         self._yunit = y_unit
 
         return self
 
-    def _reset_class(self):
+    def _reset_class(self) -> None:
         data = self._data
         n, t, c, k, ier = data[7], data[8], data[9], data[5], data[-1]
         self._eval_args = t[:n], c[:n], k
@@ -356,7 +369,7 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
             message = _curfit_messages.get(ier, "ier=%s" % (ier))
             warnings.warn(message)
 
-    def _set_class(self, cls):
+    def _set_class(self, cls: type) -> None:
         self._spline_class = cls
         if self.__class__ in (
             UnivariateSplinewithUnits,
@@ -407,7 +420,7 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
     #     self._data = data
     #     self._reset_class()
 
-    def __call__(self, x, nu=0, ext=None):
+    def __call__(self, x: np.ndarray, nu: int = 0, ext: T.Optional[int] = None) -> u.Quantity:
         """Evaluate spline (or its nu-th derivative) at positions x.
 
         Parameters
@@ -434,41 +447,39 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
         -------
         y : |Quantity| array_like
             Evaluated spline with units ``._yunit``. Same shape as `x`.
-
         """
-        y = super().__call__((x << self._xunit).value, nu=nu, ext=ext)
-        return y << self._yunit
+        y: np.ndarray = super().__call__((x << self._xunit).value, nu=nu, ext=ext)
+        yq: u.Quantity = y << self._yunit
+        return yq
 
-    def get_knots(self):
+    def get_knots(self) -> u.Quantity:
         """Return positions of interior knots of the spline.
 
         Internally, the knot vector contains ``2*k`` additional boundary knots.
         Has units of `x` position
-
         """
         return super().get_knots() * self._xunit
 
-    def get_coeffs(self):
+    def get_coeffs(self) -> u.Quantity:
         """Return spline coefficients."""
         return super().get_coeffs() << self._yunit
 
-    def get_residual(self):
+    def get_residual(self) -> u.Quantity:
         """Return weighted sum of squared residuals of spline approximation.
 
         This is equivalent to::
             sum((w[i] * (y[i]-spl(x[i])))**2, axis=0)
-
         """
         return super().get_residual() << self._yunit
 
-    def integral(self, a, b):
+    def integral(self, a: u.Quantity, b: u.Quantity) -> u.Quantity:
         r"""Return definite integral of the spline between two given points.
 
         Parameters
         ----------
-        a : float
+        a : |Quantity|
             Lower limit of integration.
-        b : float
+        b : |Quantity|
             Upper limit of integration.
 
         Returns
@@ -496,18 +507,19 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
 
         >>> spl.integral(-1, 0)
         0.0
-
         """
-        a_val = a.to_value(self._xunit)
-        b_val = b.to_value(self._xunit)
-        return super().integral(a_val, b_val) << self._xunit * self._yunit
+        a_val: float = a.to_value(self._xunit)
+        b_val: float = b.to_value(self._xunit)
+        v: float = super().integral(a_val, b_val)
+        q: u.Quantity = v << (self._xunit * self._yunit)
+        return q
 
-    def derivatives(self, x):
+    def derivatives(self, x: u.Quantity) -> np.ndarray:
         """Return all derivatives of the spline at the point x.
 
         Parameters
         ----------
-        x : float
+        x : |Quantity|
             The point to evaluate the derivatives at.
 
         Returns
@@ -523,24 +535,22 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
         >>> spl = UnivariateSpline(x, y)
         >>> spl.derivatives(1.5)  # doctest: +FLOAT_CMP
         array([2.25, 3.  , 2.  , 0.  ])
-
         """
-        x_val = x.to_value(self._xunit)
-        d_vals = super().derivatives(x_val)
+        x_val: float = x.to_value(self._xunit)
+        d_vals: np.ndarray = super().derivatives(x_val)
         return np.array(
             [d * self._yunit / self._xunit ** i for i, d in enumerate(d_vals)],
             dtype=u.Quantity,
         )
 
-    def roots(self):
+    def roots(self) -> u.Quantity:
         """Return the zeros of the spline.
 
         Restriction: only cubic splines are supported by fitpack.
-
         """
         return super().roots() * self._xunit
 
-    def derivative(self, n=1):
+    def derivative(self, n: int = 1) -> USwUType:
         r"""Construct a new spline representing the derivative of this spline.
 
         Parameters
@@ -576,21 +586,20 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
 
         This agrees well with roots :math:`\\pi/2 + n\\pi` of
         :math:`\\cos(x) = \\sin'(x)`.
-
         """
         tck = fitpack.splder(self._eval_args, n)
         # if self.ext is 'const', derivative.ext will be 'zeros'
         ext = 1 if self.ext == 3 else self.ext
         x_unit = self._xunit
         y_unit = self._yunit / self._xunit ** n
-        return UnivariateSplinewithUnits._from_tck(
+        return self.__class__._from_tck(
             tck,
             x_unit=x_unit,
             y_unit=y_unit,
             ext=ext,
         )
 
-    def antiderivative(self, n=1):
+    def antiderivative(self, n: int = 1) -> USwUType:
         r"""Construct a new spline representing this spline's antiderivative.
 
         Parameters
@@ -600,7 +609,7 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
 
         Returns
         -------
-        spline : UnivariateSpline
+        spline : UnivariateSplineWithUnits
             Spline of order k2=k+n representing the antiderivative of this
             spline.
 
@@ -633,12 +642,11 @@ class UnivariateSplinewithUnits(_interp.UnivariateSpline):
         >>> from scipy.special import ellipk
         >>> ellipk(0.8)  # doctest: +FLOAT_CMP
         2.2572053268208538
-
         """
         tck = fitpack.splantider(self._eval_args, n)
         x_unit = self._xunit
         y_unit = self._yunit * self._xunit ** n
-        return UnivariateSplinewithUnits._from_tck(
+        return self.__class__._from_tck(
             tck,
             x_unit=x_unit,
             y_unit=y_unit,
@@ -734,7 +742,6 @@ class InterpolatedUnivariateSplinewithUnits(UnivariateSplinewithUnits):
 
     >>> spl.get_residual()
     <Quantity 0. m>
-
     """
 
     def __init__(
@@ -742,7 +749,7 @@ class InterpolatedUnivariateSplinewithUnits(UnivariateSplinewithUnits):
         x: u.Quantity,
         y: u.Quantity,
         w: T.Optional[np.ndarray] = None,
-        bbox: _BBoxType = [None, None],
+        bbox: BBoxType = [None, None],
         k: int = 3,
         ext: int = 0,
         check_finite: bool = False,
@@ -895,7 +902,6 @@ class LSQUnivariateSplinewithUnits(UnivariateSplinewithUnits):
     >>> s1 = LSQUnivariateSpline(x, x, knt[1:-1])    # Chop 1st and last knot
     >>> s1.get_knots()
     array([0., 2., 3., 4., 5., 6., 7., 9.])
-
     """
 
     def __init__(
@@ -903,15 +909,15 @@ class LSQUnivariateSplinewithUnits(UnivariateSplinewithUnits):
         x: u.Quantity,
         y: u.Quantity,
         t: u.Quantity,
-        w=None,
-        bbox=[None] * 2,
+        w: T.Optional[np.ndarray] = None,
+        bbox: BBoxType = [None, None],
         k: int = 3,
         ext: int = 0,
         check_finite: bool = False,
         *,
         x_unit: T.Optional[UnitType] = None,
         y_unit: T.Optional[UnitType] = None,
-    ):
+    ) -> None:
         # The unit for x and y, respectively. If None (default), gets
         # the units from x and y.
         self._xunit = x_unit or x.unit

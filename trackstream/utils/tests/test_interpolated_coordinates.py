@@ -3,7 +3,7 @@
 """Testing :mod:`~trackstream.utils.interpolated_coordinates`."""
 
 __all__ = [
-    "Test_InterpolatedRepresentationOrDifferential",
+    "Test_InterpolatedBaseRepresentationOrDifferential",
     "Test_InterpolatedRepresentation",
     "Test_InterpolatedCartesianRepresentation",
     "Test_InterpolatedDifferential",
@@ -128,12 +128,12 @@ class InterpolatedCoordinatesBase:
 #####################################################################
 
 
-class Test_InterpolatedRepresentationOrDifferential(InterpolatedCoordinatesBase):
-    """Test InterpolatedRepresentationOrDifferential."""
+class Test_InterpolatedBaseRepresentationOrDifferential(InterpolatedCoordinatesBase):
+    """Test InterpolatedBaseRepresentationOrDifferential."""
 
     @pytest.fixture
     def irep_cls(self):
-        return icoord.InterpolatedRepresentationOrDifferential
+        return icoord.InterpolatedBaseRepresentationOrDifferential
 
     @pytest.fixture
     def irep(self, irep_cls, rep, affine):
@@ -161,7 +161,7 @@ class Test_InterpolatedRepresentationOrDifferential(InterpolatedCoordinatesBase)
     def test_init(self, irep_cls, rep, affine) -> None:
         """Test method ``__init__``."""
         # skip if it's the baseclass.
-        if irep_cls is icoord.InterpolatedRepresentationOrDifferential:
+        if irep_cls is icoord.InterpolatedBaseRepresentationOrDifferential:
             return
 
         # ------------------
@@ -399,14 +399,14 @@ class Test_InterpolatedRepresentationOrDifferential(InterpolatedCoordinatesBase)
         newrep = irep.to_cartesian()
 
         assert isinstance(newrep, coord.CartesianRepresentation)
-        assert isinstance(newrep, icoord.InterpolatedRepresentationOrDifferential)
+        assert isinstance(newrep, icoord.InterpolatedBaseRepresentationOrDifferential)
 
     def test_copy(self, irep) -> None:
         """Test method ``copy``."""
         newrep = irep.copy()
 
         assert newrep is not irep  # not the same object
-        assert isinstance(newrep, icoord.InterpolatedRepresentationOrDifferential)
+        assert isinstance(newrep, icoord.InterpolatedBaseRepresentationOrDifferential)
 
         # TODO more tests
 
@@ -417,7 +417,7 @@ class Test_InterpolatedRepresentationOrDifferential(InterpolatedCoordinatesBase)
 #####################################################################
 
 
-class Test_InterpolatedRepresentation(Test_InterpolatedRepresentationOrDifferential):
+class Test_InterpolatedRepresentation(Test_InterpolatedBaseRepresentationOrDifferential):
     """Test InterpolatedRepresentation."""
 
     @pytest.fixture
@@ -523,7 +523,7 @@ class Test_InterpolatedRepresentation(Test_InterpolatedRepresentationOrDifferent
         super().test_derivative(irep, affine)
 
         # Testing cache, it's the only thing different between
-        # InterpolatedRepresentationOrDifferential and
+        # InterpolatedBaseRepresentationOrDifferential and
         # InterpolatedRepresentation
         assert "affine 1" in irep._derivatives.keys()
         assert "affine 2" in irep._derivatives.keys()
@@ -692,7 +692,7 @@ class Test_InterpolatedCartesianRepresentation(Test_InterpolatedRepresentation):
 #####################################################################
 
 
-class Test_InterpolatedDifferential(Test_InterpolatedRepresentationOrDifferential):
+class Test_InterpolatedDifferential(Test_InterpolatedBaseRepresentationOrDifferential):
     """Test InterpolatedDifferential."""
 
     @pytest.fixture

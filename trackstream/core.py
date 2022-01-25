@@ -486,9 +486,6 @@ class TrackStream:
         return self.predict(affine)
 
 
-# /class
-
-
 ##############################################################################
 
 
@@ -573,6 +570,7 @@ class StreamTrack:
     def __call__(
         self,
         affine: T.Optional[u.Quantity] = None,
+        *,
         angular: bool = False,
     ) -> path_moments:
         """Get discrete points along interpolated stream track.
@@ -582,6 +580,8 @@ class StreamTrack:
         affine : `~astropy.units.Quantity` array-like or None, optional
             The affine interpolation parameter. If None (default), return
             path moments evaluated at all "tick" interpolation points.
+        angular : bool, optional keyword-only
+            Whether to compute on-sky or real-space.
 
         Returns
         -------
@@ -590,7 +590,34 @@ class StreamTrack:
         """
         return self.path(affine=affine, angular=angular)
 
-    # def
+    def probability(
+        self,
+        point: coord.SkyCoord,
+        background_model=None,
+        *,
+        angular: bool = False,
+        affine: T.Optional[u.Quantity] = None,
+    ):
+        """Probability point is part of the stream.
+
+        .. todo:: angular probability
+
+        """
+        # # Background probability
+        # Pb = background_model(point) if background_model is not None else 0.0
+        #
+        # #
+        # angular = False  # TODO: angular probability
+        # afn = self._path.closest_affine_to_point(point, angular=False, affine=affine)
+        # pt_w = getattr(self._path, "width_angular" if angular else "width")(afn)
+        # sep = getattr(self._path, "separation" if angular else "separation_3d")(
+        #     point,
+        #     interpolate=False,
+        #     affine=afn,
+        # )
+
+        # stats.norm.pdf(ps.separation_3d(point))  # FIXME! dimensionality
+        raise NotImplementedError("TODO!")
 
     #######################################################
     # misc
@@ -605,9 +632,6 @@ class StreamTrack:
         s += "\n" + indent(repr(self._stream_data)[1:-1])
 
         return s
-
-
-# /class
 
 
 ##############################################################################

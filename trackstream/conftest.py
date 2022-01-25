@@ -112,6 +112,7 @@ def add_astropy(doctest_namespace):
 
 @pytest.fixture
 def num():
+    """Return number of affine ticks"""
     return 40
 
 
@@ -120,7 +121,7 @@ def affine(num):
     return np.linspace(0, 10, num=num) * u.deg
 
 
-@pytest.fixture
+@pytest.fixture()
 def frame():
     return coord.ICRS()
 
@@ -191,3 +192,24 @@ def path(path_cls, iscrd, width):
 @pytest.fixture
 def width():
     return 100 * u.pc  # TODO! have variable function
+
+
+@pytest.fixture
+def index_on():
+    return 10
+
+
+@pytest.fixture
+def affine_on(affine, index_on):
+    return affine[index_on]
+
+
+@pytest.fixture
+def point_on(crd, index_on):
+    return crd[index_on]
+
+
+# @pytest.fixture
+# def point_off(affine):
+#     i = affine[10]
+#     return crd[i]

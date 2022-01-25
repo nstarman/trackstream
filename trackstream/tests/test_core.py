@@ -78,19 +78,14 @@ class Test_TrackStream:
         assert isinstance(tracker._arm1_SOM, (type(None), SelfOrganizingMap1D))
         assert isinstance(tracker._arm2_SOM, (type(None), SelfOrganizingMap1D))
 
-    # /def
-
     # -------------------------------
 
     def test_fit(self, tracker, stream):
         """Test method ``fit``."""
         track = tracker.fit(stream)
 
-        # with pytest.raises(AttributeError):  # can't call what don't have
-        #     track(None)
-        assert track == "TODO"
-
-    # /def
+        assert isinstance(track, StreamTrack)
+        # TODO! a lot more tests
 
     def test_predict(self, tracker):
         """Test method ``predict``."""
@@ -98,15 +93,11 @@ class Test_TrackStream:
         with pytest.raises(AttributeError):  # can't call what don't have
             tracker.predict(arclength)
 
-    # /def
-
     def test_fit_predict(self, tracker, stream):
         """Test method ``fit_predict``."""
         arclength = np.linspace(0, 1)
         with pytest.raises(AttributeError):  # can't call what don't have
             tracker.fit_predict(stream, arclength)
-
-    # /def
 
 
 # /class
@@ -203,7 +194,7 @@ class Test_StreamTrack:
         assert track.origin is track._origin
 
     def test_frame(self, track):
-        assert track.frame is track._frame
+        assert track.frame is track._path.frame
 
     def test_frame_fit(self, track):
         if "__attributes__" in track.meta and "frame_fit" in track.meta["__attributes__"]:

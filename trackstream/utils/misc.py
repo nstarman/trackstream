@@ -21,7 +21,7 @@ from numpy.random import Generator
 ##############################################################################
 
 
-def intermix_arrays(*arrs: T.Sequence, axis=-1):
+def intermix_arrays(*arrs: T.Union[T.Sequence, np.ndarray], axis: int = -1) -> np.ndarray:
     """Intermix arrays.
 
     Parameters
@@ -31,7 +31,7 @@ def intermix_arrays(*arrs: T.Sequence, axis=-1):
 
     Return
     ------
-    arr : Sequence
+    arr : ndarray
 
     Examples
     --------
@@ -66,12 +66,11 @@ def intermix_arrays(*arrs: T.Sequence, axis=-1):
         >>> intermix_arrays(xx, yy)
         array([[ 0, 10,  1, 11,  2, 12,  3, 13,  4, 14],
                [ 5, 15,  6, 16,  7, 17,  8, 18,  9, 19]])
-
     """
     shape = list(np.asanyarray(arrs[0]).shape[::-1])
     shape[axis] *= len(arrs)
 
-    return np.array(arrs).T.flatten().reshape(shape)
+    return np.asanyarray(arrs).T.flatten().reshape(shape)
 
 
 def make_shuffler(
@@ -94,7 +93,6 @@ def make_shuffler(
         a specified axis
     undo : `~numpy.ndarray`
         index array that undoes above, if applied identically.
-
     """
     if rng is None:
         rng = np.random.default_rng()

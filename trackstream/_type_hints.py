@@ -14,6 +14,7 @@ __all__ = [
     "FrameLikeType",
     # units
     "UnitType",
+    "UnitLikeType",
 ]
 
 __credits__ = ["Astropy"]
@@ -37,7 +38,7 @@ import numpy as np
 # -------------------------------------
 # NumPy types
 
-ArrayLike = T.Union[float, np.generic, np.ndarray]
+ArrayLike = T.Union[float, np.ndarray]  # np.generic isn't compatible
 
 
 # -------------------------------------
@@ -45,7 +46,7 @@ ArrayLike = T.Union[float, np.generic, np.ndarray]
 
 RepLikeType = T.Union[coord.BaseRepresentation, str]
 
-FrameType = T.TypeVar("CoordinateFrame", bound=coord.BaseCoordinateFrame)
+FrameType = T.TypeVar("FrameType", bound=coord.BaseCoordinateFrame)
 """|Frame|"""
 
 CoordinateType = T.Union[FrameType, coord.SkyCoord]
@@ -56,6 +57,9 @@ FrameLikeType = T.Union[CoordinateType, str]
 
 UnitType = T.Union[u.UnitBase, u.FunctionUnitBase]
 """|Unit| or :class:`~astropy.units.FunctionUnitBase`"""
+
+UnitLikeType = T.Union[UnitType, str]
+"""|Unit| or :class:`~astropy.units.FunctionUnitBase` or str"""
 
 ##############################################################################
 # END

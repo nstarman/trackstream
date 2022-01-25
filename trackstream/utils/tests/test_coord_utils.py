@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Testing :mod:`~trackstream.utils.misc`."""
+"""Testing :mod:`~trackstream.utils.coord_utils`."""
 
 
 ##############################################################################

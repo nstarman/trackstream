@@ -2,17 +2,13 @@
 
 """Generic Coordinates."""
 
-
-__all__ = [
-    "GenericRepresentation",
-    "GenericDifferential",
-]
-
-
 ##############################################################################
 # IMPORTS
 
+from __future__ import annotations
+
 # STDLIB
+import sys
 import typing as T
 
 # THIRD PARTY
@@ -20,10 +16,18 @@ import astropy.coordinates as coord
 import astropy.units as u
 from astropy.coordinates.representation import DIFFERENTIAL_CLASSES
 
+__all__ = [
+    "GenericRepresentation",
+    "GenericDifferential",
+]
+
 ##############################################################################
 # PARAMETERS
 
-_GENERIC_REGISTRY: T.Dict[T.Union[object, str], object] = dict()
+_GENERIC_REGISTRY: T.Dict[
+    T.Union[object, str],
+    T.Union[GenericRepresentation, GenericDifferential],
+] = dict()
 
 
 ##############################################################################
@@ -69,11 +73,79 @@ class GenericRepresentation(coord.BaseRepresentation):
 
     attr_classes = dict(q1=u.Quantity, q2=u.Quantity, q3=u.Quantity)
 
+    @staticmethod
+    def _make_generic_cls(
+        rep_cls: T.Union[coord.BaseRepresentation, GenericRepresentation],
+    ) -> GenericRepresentation:
+        """Factory for making a generic form of a representation.
 
-# /class
+        Parameters
+        ----------
+        rep_cls : |Representation| or `GenericRepresentation`
+            Representation class for which to make generic.
+
+        Returns
+        -------
+        `GenericRepresentation` subclass
+            Generic form of `rep_cls`.
+            If `rep_cls` is already generic, return it unchanged.
+            Subclasses are cached in a registry.
+        """
+        cls: GenericRepresentation
+
+        # 1) Check if it's already generic
+        if issubclass(rep_cls, GenericRepresentation):
+            cls = rep_cls
+
+        # 2) Check if it's cached
+        elif rep_cls in _GENERIC_REGISTRY:
+            cls = _GENERIC_REGISTRY[rep_cls]
+
+        # 3) Need to make the generic class
+        else:
+            # dynamically define class
+            # name: Generic{X}
+            # bases: both generic and actual representation
+            # attributes: copies `attr_classes`
+            cls = T.cast(
+                GenericRepresentation,
+                type(
+                    f"Generic{rep_cls.__name__}",
+                    (GenericRepresentation, rep_cls),
+                    dict(attr_classes=rep_cls.attr_classes),
+                ),
+            )
+
+            # cache b/c can only define the same Rep/Dif once
+            _GENERIC_REGISTRY[rep_cls] = cls
+
+            # also store in locals
+            setattr(sys.modules[__name__], cls.__name__, cls)
+            getattr(sys.modules[__name__], "__all__").append(cls.__name__)
+
+        return cls
 
 
 # -------------------------------------------------------------------
+
+
+def _ordinal(n: int) -> str:
+    """Return suffix for ordinal.
+
+    Credits: https://codegolf.stackexchange.com/a/74047
+
+    Parameters
+    ----------
+    n : int
+        Must be >= 1
+
+    Returns
+    -------
+    str
+        Ordinal form `n`. Ex 1 -> '1st', 2 -> '2nd', 3 -> '3rd'.
+    """
+    i: int = n % 5 * (n % 100 ^ 15 > 4 > n % 10)
+    return str(n) + "tsnrhtdd"[i::4]  # noqa: E203
 
 
 class GenericDifferential(coord.BaseDifferential):
@@ -96,227 +168,132 @@ class GenericDifferential(coord.BaseDifferential):
 
     base_representation: coord.BaseRepresentation = GenericRepresentation
 
+    @staticmethod
+    def _make_generic_cls(
+        dif_cls: T.Union[coord.BaseDifferential, GenericDifferential],
+        n: int = 1,
+    ) -> GenericDifferential:
+        """Make Generic Differential.
 
-# /class
+        Parameters
+        ----------
+        dif_cls : |Differential| or `GenericDifferential` class
+            Differential class for which to make generic.
 
+        n : int
+            The differential level.
+            Not used if `dif_cls` is GenericDifferential
 
-##############################################################################
-# Factories
+        Returns
+        -------
+        `GenericDifferential`
+            Generic form of `dif_cls`.
+            If `dif_cls` is already generic, return it unchanged.
+            Subclasses are cached in a registry.
+        """
+        # 1) check if it's already generic
+        if issubclass(dif_cls, GenericDifferential):
+            if str(n) not in dif_cls.__name__:
+                raise ValueError(f"n={n} is not compatible with {dif_cls.__qualname__}")
+            return dif_cls
 
+        # 2) check if `n` is too small to make a differential
+        elif n < 1:
+            raise ValueError("n < 1")
 
-def _make_generic_representation(
-    rep_cls: T.Union[coord.BaseRepresentation, GenericRepresentation],
-) -> GenericRepresentation:
-    """Factory for making a generic form of a representation.
+        # 3) make name for generic.
+        if n == 1:  # a) special case for n=1
+            name = f"Generic{dif_cls.__name__}"
+        else:  # b) higher ordinal
+            dif_type = dif_cls.__name__[: -len("Differential")]
+            name = f"Generic{dif_type}{_ordinal(n)}Differential"
 
-    Parameters
-    ----------
-    rep_cls : |Representation| or `GenericRepresentation`
-        Representation class for which to make generic.
+        cls: GenericDifferential
 
-    Returns
-    -------
-    `GenericRepresentation` subclass
-        Generic form of `rep_cls`.
-        If `rep_cls` is already generic, return it unchanged.
-        Subclasses are cached in a registry.
+        # A) check if cached
+        if n == 1 and dif_cls in _GENERIC_REGISTRY:  # i) special case for n=1
+            cls = _GENERIC_REGISTRY[dif_cls]
+        elif name in _GENERIC_REGISTRY:  # ii) higher ordinal
+            cls = _GENERIC_REGISTRY[name]
 
-    """
-    # 1) check if it's already generic
-    if issubclass(rep_cls, GenericRepresentation):
-        return rep_cls
+        # B) make generic
+        else:
+            # get base representation from differential class.
+            # and then get the generic form
+            generic_base = GenericRepresentation._make_generic_cls(dif_cls.base_representation)
 
-    # 2) check if it's cached
-    elif rep_cls in _GENERIC_REGISTRY:
-        return _GENERIC_REGISTRY[rep_cls]
+            # make generic differential
+            # name: constructed in 3)
+            # bases: both generic and actual differential
+            # attributes: attr_classes, base_representation
+            cls = T.cast(
+                GenericDifferential,
+                type(
+                    name,
+                    (GenericDifferential, dif_cls),
+                    dict(attr_classes=dif_cls.attr_classes, base_representation=generic_base),
+                ),
+            )
 
-    # 3) need to make
-    else:
-        # dynamically define class
-        # name: Generic{X}
-        # bases: both generic and actual representation
-        # attributes: copies `attr_classes`
-        cls = type(
-            f"Generic{rep_cls.__name__}",
-            (GenericRepresentation, rep_cls),
-            dict(attr_classes=rep_cls.attr_classes),
-        )
+            # cache, either by class or by name
+            _GENERIC_REGISTRY[dif_cls if n == 1 else name] = cls
 
-        # cache b/c can only define the same Rep/Dif once
-        _GENERIC_REGISTRY[rep_cls] = cls
-
-        # also store in locals
-        # LOCAL
-        from trackstream.utils import generic_coordinates
-
-        setattr(generic_coordinates, cls.__name__, cls)
-        generic_coordinates.__all__.append(cls.__name__)
+            # also store in locals
+            setattr(sys.modules[__name__], cls.__name__, cls)
+            getattr(sys.modules[__name__], "__all__").append(cls.__name__)
 
         return cls
 
+    @staticmethod
+    def _make_generic_cls_for_representation(
+        rep_cls: coord.BaseRepresentation,
+        n: int = 1,
+    ) -> GenericDifferential:
+        """Make generic differential given a representation.
 
-# /def
+        Parameters
+        ----------
+        rep_cls : |Representation|
+        n : int
+            Must be >= 1
 
+        Returns
+        -------
+        `GenericDifferential`
+            Of ordinal `n`
+        """
+        rep_cls_name: str = rep_cls.__name__[: -len("Representation")]
 
-def _ordinal(n: int) -> str:
-    """Return suffix for ordinal.
+        if n == 1:
+            name = f"Generic{rep_cls_name}Differential"
+        else:
+            name = f"Generic{rep_cls_name}{_ordinal(n)}Differential"
 
-    https://codegolf.stackexchange.com/a/74047
+        cls: GenericDifferential
 
-    Parameters
-    ----------
-    n : int
-        Must be >= 2
+        if name in _GENERIC_REGISTRY:
+            cls = _GENERIC_REGISTRY[name]
+        elif (dcls := DIFFERENTIAL_CLASSES.get(rep_cls_name.lower())) :
+            cls = GenericDifferential._make_generic_cls(dcls, n=n)
 
-    Returns
-    -------
-    str
-        Ordinal form `n`. Ex 1 -> '1st', 2 -> '2nd', 3 -> '3rd'.
+        else:
+            print("here")
+            cls = T.cast(
+                GenericDifferential,
+                type(
+                    name,
+                    (GenericDifferential, rep_cls),
+                    dict(base_representation=rep_cls),
+                ),
+            )
 
-    """
-    i: int = n % 5 * (n % 100 ^ 15 > 4 > n % 10)
-    return str(n) + "tsnrhtdd"[i::4]  # noqa: E203
+            _GENERIC_REGISTRY[name] = cls
 
+            # also store in locals
+            setattr(sys.modules[__name__], cls.__name__, cls)
+            getattr(sys.modules[__name__], "__all__").append(cls.__name__)
 
-# /def
-
-
-def _make_generic_differential(
-    dif_cls: T.Union[coord.BaseDifferential, GenericDifferential],
-    n: int = 1,
-) -> GenericDifferential:
-    """Make Generic Differential.
-
-    Parameters
-    ----------
-    dif_cls : |Differential| or `GenericDifferential` class
-        Differential class for which to make generic.
-
-    n : int
-        The differential level.
-        Not used if `dif_cls` is GenericDifferential
-
-    Returns
-    -------
-    `GenericDifferential`
-        Generic form of `dif_cls`.
-        If `dif_cls` is already generic, return it unchanged.
-        Subclasses are cached in a registry.
-
-    """
-    # 1) check if it's already generic
-    if issubclass(dif_cls, GenericDifferential):
-        return dif_cls
-
-    # 2) check if `n` is too small to make a differential
-    elif n < 1:
-        raise ValueError("n < 1")
-
-    # 3) make name for generic.
-    # a) special case for n=1
-    if n == 1:
-        name = f"Generic{dif_cls.__name__}"
-    # b) higher ordinal
-    else:
-        dif_type = dif_cls.__name__[: -len("Differential")]
-        name = f"Generic{dif_type}{_ordinal(n)}Differential"
-
-    # A) check if cached
-    # i) special case for n=1
-    if dif_cls in _GENERIC_REGISTRY and n == 1:
-        return _GENERIC_REGISTRY[dif_cls]
-    # ii) higher ordinal
-    elif name in _GENERIC_REGISTRY:
-        return _GENERIC_REGISTRY[name]
-
-    # B) make generic
-    # get base representation from differential class.
-    base_rep = dif_cls.base_representation
-    # and then get the generic form
-    if base_rep in _GENERIC_REGISTRY:
-        generic_base_rep = _GENERIC_REGISTRY[base_rep]
-    else:  # need to make Generic for base representation
-        generic_base_rep = _make_generic_representation(base_rep)
-
-    # make generic differential
-    # name: constructed in 3)
-    # bases: both generic and actual differential
-    # attributes: attr_classes, base_representation
-    cls = type(
-        name,
-        (GenericDifferential, dif_cls),
-        dict(
-            attr_classes=dif_cls.attr_classes,
-            base_representation=generic_base_rep,
-        ),
-    )
-
-    # cache. either by class or by name
-    if n == 1:
-        _GENERIC_REGISTRY[dif_cls] = cls
-    else:
-        _GENERIC_REGISTRY[name] = cls
-
-    # also store in locals
-    # LOCAL
-    from trackstream.utils import generic_coordinates
-
-    setattr(generic_coordinates, cls.__name__, cls)
-    generic_coordinates.__all__.append(cls.__name__)
-
-    return cls
-
-
-# /def
-
-
-def _make_generic_differential_for_representation(
-    rep_cls: coord.BaseRepresentation,
-    n: int = 1,
-) -> GenericDifferential:
-    """Make generic differential given a representation.
-
-    Parameters
-    ----------
-    rep_cls : |Representation|
-    n : int
-        Must be >= 1
-
-    Returns
-    -------
-    `GenericDifferential`
-        Of ordinal `n`
-
-    """
-    rep_cls_name: str = rep_cls.__name__[: -len("Representation")]
-
-    if n == 1:
-        name = f"Generic{rep_cls_name}Differential"
-    else:
-        name = f"Generic{rep_cls_name}{_ordinal(n)}Differential"
-
-    if name in _GENERIC_REGISTRY:
-        return _GENERIC_REGISTRY[name]
-    elif rep_cls_name.lower() in DIFFERENTIAL_CLASSES:
-        return _make_generic_differential(
-            DIFFERENTIAL_CLASSES[rep_cls_name.lower()],
-            n=n,
-        )
-
-    # else:
-
-    cls = type(
-        name,
-        (GenericDifferential, rep_cls),
-        dict(base_representation=rep_cls),
-    )
-
-    _GENERIC_REGISTRY[name] = cls
-
-    return cls
-
-
-# /def
+        return cls
 
 
 ##############################################################################

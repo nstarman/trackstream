@@ -2,14 +2,14 @@
 
 """Progress bar, modified from :mod:`~emcee`."""
 
-# STDLIB
-import logging
-
-__all__ = ["get_progress_bar"]
-__credits__ = ["emcee"]
-
 ##############################################################################
 # IMPORTS
+
+from __future__ import annotations
+
+# STDLIB
+import logging
+import typing as T
 
 # LOCAL
 from trackstream.setup_package import HAS_TQDM
@@ -17,6 +17,10 @@ from trackstream.setup_package import HAS_TQDM
 if HAS_TQDM:
     # THIRD PARTY
     import tqdm
+
+
+__all__ = ["get_progress_bar"]
+__credits__ = ["emcee"]
 
 ##############################################################################
 # CODE
@@ -26,20 +30,20 @@ if HAS_TQDM:
 class _NoOpPBar(object):
     """This class implements the progress bar interface but does nothing."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
-    def __enter__(self, *args, **kwargs):
+    def __enter__(self, *args: T.Any, **kwargs: T.Any) -> _NoOpPBar:
         return self
 
-    def __exit__(self, *args, **kwargs):
+    def __exit__(self, *args: T.Any, **kwargs: T.Any) -> None:
         pass
 
-    def update(self, count):
+    def update(self, count: int) -> None:
         pass
 
 
-def get_progress_bar(display, total):
+def get_progress_bar(display: T.Union[bool, str], total: int) -> T.Union[_NoOpPBar, tqdm.tqdm]:
     """Get a progress bar.
 
     If :mod:`tqdm` is not installed, this will return a no-op.
@@ -53,6 +57,9 @@ def get_progress_bar(display, total):
     total : int
         The total size of the progress bar.
 
+    Returns
+    -------
+    `_NoOpPBar` or `tqdm.tqdm`
     """
     if not display:
         return _NoOpPBar()
@@ -62,4 +69,4 @@ def get_progress_bar(display, total):
     elif display:
         return tqdm.tqdm(total=total)
     else:
-        return getattr(tqdm, "tqdm_" + display)(total=total)
+        return getattr(tqdm, "tqdm_" + str(display))(total=total)

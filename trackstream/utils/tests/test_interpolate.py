@@ -79,8 +79,6 @@ class Test_UnivariateSplinewithUnits:
             got = spl(x)  # evaluate spline
             assert_quantity_allclose(got, y, atol=1e-13 * y.unit)
 
-        # /for
-
     def test_get_knots(self, spls, x):
         """Test method ``get_knots``."""
         for name, spl in spls.items():
