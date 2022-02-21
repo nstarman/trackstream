@@ -1,205 +1,178 @@
 name: CI
 
-#########################
-# Run Conditions
-
 on:
   push:
+    branches:
+    - main
     tags:
-    branches:  # only build on select branches
-      - main
-      - master  # TODO delete when transition
-      - release/*
-
+    - '*'
   pull_request:
-    branches:  # only build on PRs against main
-      - main
-      - master  # TODO delete when transition
 
-  schedule:
-    - cron: '0 0 * * 0' # run weekly, even if no push / PR.
-
-
-#########################
-# Environment Variables
-
-env:  # Set defaults to avoid repeating in most cases
-
-  SETUP_XVFB: True  # avoid issues if mpl tries to open a GUI window
-
-  # For private codecov
-  CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
-
-#########################
-# The Tests
+env:
+  ARCH_ON_CI: "normal"
+  IS_CRON: "false"
 
 jobs:
+  initial_checks:
+    name: Mandatory checks before CI
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check base branch
+      uses: actions/github-script@v3
+      if: github.event_name == 'pull_request'
+      with:
+        script: |
+          const skip_label = 'skip-basebranch-check';
+          const { default_branch: allowed_basebranch } = context.payload.repository;
+          const pr = context.payload.pull_request;
+          if (pr.labels.find(lbl => lbl.name === skip_label)) {
+            core.info(`Base branch check is skipped due to the presence of ${skip_label} label`);
+            return;
+          }
+          if (pr.base.ref !== allowed_basebranch) {
+            core.setFailed(`PR opened against ${pr.base.ref}, not ${allowed_basebranch}`);
+          } else {
+            core.info(`PR opened correctly against ${allowed_basebranch}`);
+          }
 
-  # ---------------------------------------------
-  # Initial Tests
-
-  inital:
+  tests:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
-    if: "!(contains(github.event.head_commit.message, '[skip ci]') || contains(github.event.head_commit.message, '[ci skip]'))"
-
+    needs: initial_checks
     strategy:
-      fail-fast: false
-
+      fail-fast: true
       matrix:
         include:
 
-          - name: py3.8, min deps | coverage
-            os: ubuntu-latest
-            python: 3.8
-            toxenv: py38-test-cov
-
-          # Done with pre-commit
-          # - name: code style
+          # Run faster by the pre-commit bot
+          # - name: Code style checks
           #   os: ubuntu-latest
           #   python: 3.x
           #   toxenv: codestyle
+          #   toxposargs: --all-files -v
 
-          # - name: Documentation Build  # FIXME
-          #   os: ubuntu-latest
-          #   python: 3.x
-          #   toxenv: build_docs
-
-    steps:
-    # --------------------
-    # Setup
-    - name: Checkout code
-      uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-    - name: Set up Python ${{ matrix.python }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python }}
-    - name: Install base dependencies
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install --upgrade tox codecov
-    - name: Install 'build_docs' dependency
-      if: "contains(matrix.tox_env, 'build_docs')"
-      run: |
-        sudo apt-get -y install graphviz
-        sudo apt-get -y install pandoc
-    - name: Print Python, pip, setuptools, and tox versions
-      run: |
-        python -c "import sys; print(f'Python {sys.version}')"
-        python -c "import pip; print(f'pip {pip.__version__}')"
-        python -c "import setuptools; print(f'setuptools {setuptools.__version__}')"
-        python -c "import tox; print(f'tox {tox.__version__}')"
-    # --------------------
-    # Run Tests
-    - name: Run tests
-      run: tox ${{ matrix.toxargs }} -e ${{ matrix.toxenv }} -- ${{ matrix.toxposargs }}
-    # TODO: Do we need --gcov-glob "*cextern*" ?
-    # --------------------
-    # Cleanup
-    - name: Upload coverage to codecov
-      if: contains(matrix.toxenv,'-cov')
-      uses: codecov/codecov-action@v1
-      with:
-        file: ./coverage.xml
-
-  # ---------------------------------------------
-  # Further Tests
-
-  further:
-    needs: inital
-    name: ${{ matrix.name }}
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      # TODO: Change to true when we know how to handle remote data job correctly
-      fail-fast: false
-
-      matrix:
-        include:
-
-          - name: py3.8 - all deps, remote data | coverage
+          # NOTE: this coverage test is needed for tests and code that
+          #       run only with minimal dependencies.
+          - name: Python 3.10 with minimal dependencies and full coverage
             os: ubuntu-latest
-            python: 3.8
-            toxenv: py38-test-alldeps-cov
-            toxargs: -v --develop
-            toxposargs: --durations=50 --remote-data=any  # in case it runs long
+            python: '3.10'
+            toxenv: py310-test-cov
 
           # NOTE: In the build below we also check that tests do not open and
           # leave open any files. This has a performance impact on running the
           # tests, hence why it is not enabled by default.
-          - name: py3.7 - oldest deps | coverage
-            os: ubuntu-16.04
-            python: 3.7
-            toxenv: py37-test-oldestdeps-cov
-
-          - name: py3.7 - all deps, numpy 1.17
+          - name: Python 3.9 with all optional dependencies
             os: ubuntu-latest
-            python: 3.7
-            toxenv: py37-test-alldeps-numpy117-clocale
-            # toxposargs: --remote-data=trackstream
+            python: 3.9
+            toxenv: py39-test-alldeps
+            toxargs: -v --develop
+            toxposargs: --open-files
 
-          - name: py3.8 - all deps (MacOS X)
-            os: macos-latest
+          - name: Python 3.8 with oldest supported version of all dependencies
+            os: ubuntu-18.04
             python: 3.8
-            toxenv: py38-test-alldeps
+            toxenv: py38-test-oldestdeps-alldeps-cov-clocale
+            toxposargs: --remote-data=github
 
-          - name: py3.8 - all deps (Windows)
+          - name: Python 3.9 with all optional dependencies (Windows)
             os: windows-latest
-            python: 3.8
-            toxenv: py38-test-alldeps
+            python: 3.9
+            toxenv: py39-test-alldeps
+            toxposargs: --durations=50
+
+          - name: Python 3.9 with all optional dependencies (MacOS X)
+            os: macos-latest
+            python: 3.9
+            toxenv: py39-test-alldeps
+            toxposargs: --durations=50
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
       with:
         fetch-depth: 0
-    - name: Set up Python ${{ matrix.python }}
+    - name: Set up Python
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python }}
-    - name: Install base dependencies
+    - name: Install language-pack-fr and tzdata
+      if: startsWith(matrix.os, 'ubuntu')
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install --upgrade tox codecov
+        sudo apt-get update
+        sudo apt-get install language-pack-fr tzdata
+    - name: Install Python dependencies
+      run: python -m pip install --upgrade tox codecov
     - name: Run tests
       run: tox ${{ matrix.toxargs }} -e ${{ matrix.toxenv }} -- ${{ matrix.toxposargs }}
     # TODO: Do we need --gcov-glob "*cextern*" ?
     - name: Upload coverage to codecov
-      if: contains(matrix.toxenv,'-cov')
-      uses: codecov/codecov-action@v1
+      if: ${{ contains(matrix.toxenv,'-cov') }}
+      uses: codecov/codecov-action@v2
       with:
         file: ./coverage.xml
 
-
-  # # ---------------------------------------------
-  # # Many Versions
-
-  versions:
-    name: ${{ matrix.os }}, py${{ matrix.python }}
+  allowed_failures:
+    name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
-
+    needs: initial_checks
     strategy:
-      fail-fast: false  # run all the tests, even if one fails
-
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]  # TODO windows-latest
-        python: [3.7, 3.8, 3.9]
+        include:
+          - name: (Allowed Failure) Python 3.8 with remote data and dev version of key dependencies
+            os: ubuntu-latest
+            python: 3.8
+            toxenv: py38-test-devdeps
+            toxposargs: --remote-data=any
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v2
       with:
-        submodules: true
-    - name: Set up Python ${{ matrix.python-version }}
+        fetch-depth: 0
+    - name: Set up Python
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python }}
-    - name: Setup
+    - name: Install language-pack-de and tzdata
+      if: startsWith(matrix.os, 'ubuntu')
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install --upgrade tox codecov
-    - name: Test
-      # Run tox using the version of Python in `PATH`
-      run: tox -e py
+        sudo apt-get update
+        sudo apt-get install language-pack-de tzdata
+    - name: Install Python dependencies
+      run: python -m pip install --upgrade tox codecov
+    - name: Run tests
+      run: tox ${{ matrix.toxargs }} -e ${{ matrix.toxenv }} -- ${{ matrix.toxposargs }}
+
+  # parallel_and_32bit:
+  #   name: 32-bit and parallel
+  #   runs-on: ubuntu-latest
+  #   needs: initial_checks
+  #   container:
+  #     image: quay.io/pypa/manylinux2014_i686
+  #   steps:
+  #   # TODO: Use newer checkout actions when https://github.com/actions/checkout/issues/334 fixed
+  #   - name: Checkout code
+  #     uses: actions/checkout@v1
+  #     with:
+  #       fetch-depth: 0
+  #   - name: Write configuration items to standard location to make sure they are ignored in parallel mode
+  #     run: |
+  #       mkdir -p $HOME/.trackstream/config/
+  #       printf "unicode_output = True\nmax_width = 500" > $HOME/.trackstream/config/trackstream.cfg
+  #   # In addition to testing 32-bit, we also use the 3.8 builds to
+  #   # test the ability to run the test suite in parallel.
+  #   # Numpy is pinned to avoid building it from source for numpy 1.21.5
+  #   - name: Install dependencies for Python 3.8
+  #     run: /opt/python/cp38-cp38/bin/pip install tox
+  #   - name: Run tests for Python 3.8
+  #     run: /opt/python/cp38-cp38/bin/python -m tox -e py38-numpy120-test -- -n=4 --durations=50
+  #   # We use the 3.8 build to check that running tests twice in a row in the
+  #   # same Python session works without issues. This catches cases where
+  #   # running the tests changes the module state permanently. Note that we
+  #   # shouldn't also test the parallel build here since that enforces a degree
+  #   # of isolation of tests which will interfere with what we are trying to do
+  #   # here.
+  #   # Numpy is pinned to avoid building it from source for numpy 1.21.5
+  #   - name: Run tests for Python 3.8
+  #     run: /opt/python/cp38-cp38/bin/python -m tox -e py38-numpy120-test-double

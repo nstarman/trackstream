@@ -352,9 +352,6 @@ def asymptotic_decay(learning_rate: float, iteration: int, max_iter: float) -> f
     return learning_rate / (1.0 + (2.0 * iteration / max_iter))
 
 
-# /def
-
-
 ##############################################################################
 
 
@@ -414,9 +411,6 @@ def reorder_visits(
     new_visit_order = np.concatenate((visit_order[i:], visit_order[:i]))
 
     return new_visit_order
-
-
-# /def
 
 
 ##############################################################################
@@ -686,7 +680,7 @@ def order_data(som, data):
             rowsorter = np.argsort(ts)
 
         # evens are by nodes
-        else:  # TODO! find and fix the ordering mistake
+        else:  # TODO! find and fix the potential ordering mistake
             phi1 = np.arctan2(*viip1[i // 2 - 1, :2])
             phim2 = np.arctan2(*-viip1[i // 2, :2])
             phi = np.arctan2(*data[rowi, :2].T)
@@ -698,13 +692,12 @@ def order_data(som, data):
 
             rowsorter = np.argsort(phi) if phim2 < phi1 else np.argsort(-phi)
 
-        ordering[counter : counter + numrows] = rowi[rowsorter]
+        slc = slice(counter, counter + numrows)
+        ordering[slc] = rowi[rowsorter]
         counter += numrows
 
     return ordering
 
-
-# /def
 
 # -------------------------------------------------------------------
 
