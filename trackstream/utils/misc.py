@@ -20,10 +20,8 @@ from numpy.random import Generator
 # CODE
 ##############################################################################
 
-# TODO stride option for block sizes
 
-
-def intermix_arrays(*arrs: T.Sequence, axis=-1):
+def intermix_arrays(*arrs: T.Union[T.Sequence, np.ndarray], axis: int = -1) -> np.ndarray:
     """Intermix arrays.
 
     Parameters
@@ -33,7 +31,7 @@ def intermix_arrays(*arrs: T.Sequence, axis=-1):
 
     Return
     ------
-    arr : Sequence
+    arr : ndarray
 
     Examples
     --------
@@ -68,19 +66,18 @@ def intermix_arrays(*arrs: T.Sequence, axis=-1):
         >>> intermix_arrays(xx, yy)
         array([[ 0, 10,  1, 11,  2, 12,  3, 13,  4, 14],
                [ 5, 15,  6, 16,  7, 17,  8, 18,  9, 19]])
-
     """
     shape = list(np.asanyarray(arrs[0]).shape[::-1])
     shape[axis] *= len(arrs)
 
-    return np.array(arrs).T.flatten().reshape(shape)
+    return np.asanyarray(arrs).T.flatten().reshape(shape)
 
 
 def make_shuffler(
     length: int,
     rng: T.Optional[Generator] = None,
 ) -> T.Tuple[np.ndarray, np.ndarray]:
-    """Shuffle and Unshuffle arrays.
+    """Shuffle and un-shuffle arrays.
 
     Parameters
     ----------
@@ -96,18 +93,14 @@ def make_shuffler(
         a specified axis
     undo : `~numpy.ndarray`
         index array that undoes above, if applied identically.
-
     """
     if rng is None:
         rng = np.random.default_rng()
 
-    # start with index array
-    shuffler = np.arange(length)
-    # now shuffle array (in-place)
-    rng.shuffle(shuffler)
+    shuffler = np.arange(length)  # start with index array
+    rng.shuffle(shuffler)  # shuffle array in-place
 
-    # and construct the unshuffler
-    undo = shuffler.argsort()
+    undo = shuffler.argsort()  # and construct the un-shuffler
 
     return shuffler, undo
 

@@ -20,15 +20,15 @@ from collections.abc import Sequence
 
 # THIRD PARTY
 import numpy as np
-from astropy.coordinates import CartesianRepresentation
+from astropy.coordinates import BaseRepresentation, CartesianRepresentation
 
 # LOCAL
-from trackstream._type_hints import CoordinateType, RepresentationType
+from trackstream._type_hints import CoordinateType
 
 ##############################################################################
 # PARAMETERS
 
-DataType = T.Union[CoordinateType, RepresentationType]
+DataType = T.Union[CoordinateType, BaseRepresentation]
 
 ##############################################################################
 # CODE
@@ -37,7 +37,7 @@ DataType = T.Union[CoordinateType, RepresentationType]
 
 def find_closest_point(
     data: DataType,
-    near_point: T.Union[RepresentationType, T.Sequence, np.ndarray],
+    near_point: T.Union[BaseRepresentation, T.Sequence, np.ndarray],
 ):
     """Find starting point.
 

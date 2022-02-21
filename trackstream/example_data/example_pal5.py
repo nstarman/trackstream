@@ -8,7 +8,6 @@
 
 # STDLIB
 import pathlib
-import warnings
 
 # THIRD PARTY
 import astropy.coordinates as coord
@@ -32,8 +31,14 @@ DIR = pathlib.Path(__file__).parent
 ##############################################################################
 
 
-def make_example_pal5_data() -> None:
-    """Make and write data table."""
+def make_stream_from_Vasiliev18(name, tdisrupt=5 * u.Gyr, *, write=None) -> QTable:
+    """Make and write data table.
+
+    Parameters
+    ----------
+    name : str
+    tdisrupt : `~astropy.units.Quantity`
+    """
 
     # read data
     table = QTable.read(
@@ -42,16 +47,16 @@ def make_example_pal5_data() -> None:
     table.add_index("Name")
 
     # get the Pal-5 subset
-    p5table = table.loc["Pal_5"]
+    stable = table.loc[name]
 
     # get the origin -- the GC
-    pal5gc = coord.SkyCoord(
-        ra=p5table["ra"],
-        dec=p5table["dec"],
-        distance=p5table["dist"],
-        pm_ra_cosdec=p5table["pmra"],
-        pm_dec=p5table["pmdec"],
-        radial_velocity=p5table["vlos"],
+    sgc = coord.SkyCoord(
+        ra=stable["ra"],
+        dec=stable["dec"],
+        distance=stable["dist"],
+        pm_ra_cosdec=stable["pmra"],
+        pm_dec=stable["pmdec"],
+        radial_velocity=stable["vlos"],
     )
 
     # Create a Potential
@@ -59,9 +64,9 @@ def make_example_pal5_data() -> None:
     lp.turn_physical_on()
 
     # progenitor properties
-    o = Orbit(pal5gc)
+    o = Orbit(sgc)
     mass = 2 * 10.0 ** 4.0 * u.Msun
-    tdisrupt = 5 * u.Gyr
+    # tdisrupt = 5 * u.Gyr
 
     ro, vo = 8 * u.kpc, 220 * u.km / u.s
 
@@ -94,9 +99,6 @@ def make_example_pal5_data() -> None:
         RvR_l, dt = spdf_l.sample(n=300, returndt=True, integrate=True)
         RvR_t, dt = spdf_t.sample(n=300, returndt=True, integrate=True)
 
-    # with warnings.catch_warnings():
-    #     origin = o.SkyCoord()  # todo be careful about GC-ICRS conversion
-
     # get coordinates
     data_l = Orbit(RvR_l.T, ro=ro, vo=vo).SkyCoord()
     data_t = Orbit(RvR_t.T, ro=ro, vo=vo).SkyCoord()
@@ -107,31 +109,32 @@ def make_example_pal5_data() -> None:
     data["y_err"] = 0 * u.kpc
     data["z_err"] = 0 * u.kpc
     data["Pmemb"] = 100 * u.percent
-    data["tail"] = (["arm_1"] * len(data_l)) + (["arm_2"] * len(data_t))
+    data["tail"] = (["arm1"] * len(data_l)) + (["arm2"] * len(data_t))
 
     # add some metadata
-    data.meta["origin"] = pal5gc
+    data.meta["origin"] = sgc
 
     # save data
-    data.write(DIR / "pal5_ex.ecsv", overwrite=True)
+    if write is not None:
+        data.write(write, overwrite=True)
 
-
-# /def
-
-
-def get_example_pal5():
-    try:
-        get_pkg_data_filename("example_data/pal5_ex.ecsv", package="trackstream")
-    except Exception as e:
-        print(e)
-
-        make_example_pal5_data()
-
-    data = QTable.read(get_pkg_data_filename("example_data/pal5_ex.ecsv", package="trackstream"))
     return data
 
 
-# /def
+def get_example_stream(name):
+    try:
+        fname = get_pkg_data_filename(f"example_data/{name.lower()}_ex.ecsv", package="trackstream")
+    except Exception as e:
+        print(e)
+        data = make_stream_from_Vasiliev18(name=name, write=DIR / f"{name.lower()}_ex.ecsv")
+    else:
+        data = QTable.read(fname)
+
+    return data
+
+
+def get_example_pal5():
+    return get_example_stream("Pal_5")
 
 
 ##############################################################################

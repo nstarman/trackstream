@@ -2,9 +2,7 @@
 
 """Testing :class:`trackstream.core.TrackStream`."""
 
-__all__ = [
-    "Test_TrackStream",
-]
+__all__ = ["Test_TrackStream"]
 
 
 ##############################################################################
@@ -22,7 +20,6 @@ from trackstream.core import StreamTrack, TrackStream
 from trackstream.example_data import get_example_pal5
 from trackstream.preprocess.som import SelfOrganizingMap1D
 from trackstream.stream import Stream
-from trackstream.utils import InterpolatedUnivariateSplinewithUnits as IUSU
 
 ##############################################################################
 # TESTS
@@ -77,19 +74,14 @@ class Test_TrackStream:
         assert isinstance(tracker._arm1_SOM, (type(None), SelfOrganizingMap1D))
         assert isinstance(tracker._arm2_SOM, (type(None), SelfOrganizingMap1D))
 
-    # /def
-
     # -------------------------------
 
     def test_fit(self, tracker, stream):
         """Test method ``fit``."""
         track = tracker.fit(stream)
 
-        # with pytest.raises(AttributeError):  # can't call what don't have
-        #     track(None)
-        assert track == "TODO"
-
-    # /def
+        assert isinstance(track, StreamTrack)
+        # TODO! a lot more tests
 
     def test_predict(self, tracker):
         """Test method ``predict``."""
@@ -97,15 +89,11 @@ class Test_TrackStream:
         with pytest.raises(AttributeError):  # can't call what don't have
             tracker.predict(arclength)
 
-    # /def
-
     def test_fit_predict(self, tracker, stream):
         """Test method ``fit_predict``."""
         arclength = np.linspace(0, 1)
         with pytest.raises(AttributeError):  # can't call what don't have
             tracker.fit_predict(stream, arclength)
-
-    # /def
 
 
 # /class
@@ -160,30 +148,31 @@ class Test_StreamTrack:
     # ===============================================================
     # Method tests
 
-#     def test_init(self, track_cls, frame):
-#         """Test instantiation."""
-#         track = StreamTrack(self.interps, stream_data=self.data, origin=self.origin, frame=frame)
-# 
-#         assert hasattr(track, "_data")
-#         assert hasattr(track, "_track")
-#         assert hasattr(track, "origin")
-# 
-#         # --------------
-#         # Different argument types
-# 
-#         # The data is an ICRS object
-#         # we must also test passing in a BaseRepresentation
-#         rep = self.data.represent_as(coord.SphericalRepresentation)
-# 
-#         track = track_cls(self.interps, stream_data=rep, origin=self.origin)
-#         assert isinstance(track._data_frame, coord.BaseCoordinateFrame)
-#         assert track._data_rep == self.data.representation_type
-# 
-#         # and a failed input type
-#         with pytest.raises(TypeError) as e:
-#             track_cls(None, None, None)
-# 
-#         assert f"`stream_data` type <{type(None)}> is wrong." in str(e.value)
+    #     def test_init(self, track_cls, frame):
+    #         """Test instantiation."""
+    #         track = StreamTrack(self.interps, stream_data=self.data,
+    #                             origin=self.origin, frame=frame)
+    #
+    #         assert hasattr(track, "_data")
+    #         assert hasattr(track, "_track")
+    #         assert hasattr(track, "origin")
+    #
+    #         # --------------
+    #         # Different argument types
+    #
+    #         # The data is an ICRS object
+    #         # we must also test passing in a BaseRepresentation
+    #         rep = self.data.represent_as(coord.SphericalRepresentation)
+    #
+    #         track = track_cls(self.interps, stream_data=rep, origin=self.origin)
+    #         assert isinstance(track._data_frame, coord.BaseCoordinateFrame)
+    #         assert track._data_rep == self.data.representation_type
+    #
+    #         # and a failed input type
+    #         with pytest.raises(TypeError) as e:
+    #             track_cls(None, None, None)
+    #
+    #         assert f"`stream_data` type <{type(None)}> is wrong." in str(e.value)
 
     def test_path(self, track):
         assert track.path is track._path
@@ -201,7 +190,7 @@ class Test_StreamTrack:
         assert track.origin is track._origin
 
     def test_frame(self, track):
-        assert track.frame is track._frame
+        assert track.frame is track._path.frame
 
     def test_frame_fit(self, track):
         if "__attributes__" in track.meta and "frame_fit" in track.meta["__attributes__"]:

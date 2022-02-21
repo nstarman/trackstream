@@ -21,7 +21,7 @@ use_parentheses = "True"
 ensure_newline_before_comments = "True"
 sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
 
-known_third_party = ["astropy", "erfa", "extension_helpers", "galpy", "matplotlib", "numpy", "pytest", "scipy", "setuptools", "streamtools", "typing_extensions"]
+known_third_party = ["astropy", "erfa", "extension_helpers", "filterpy", "galpy", "interpolated_coordinates", "matplotlib", "numpy", "pytest", "scipy", "setuptools", "streamtools", "typing_extensions"]
 known_localfolder = "trackstream"
 
 import_heading_stdlib = "STDLIB"
@@ -46,3 +46,13 @@ exclude = '''
   | dist
 )/
 '''
+
+[tool.mypy]
+disallow_untyped_defs = true
+ignore_missing_imports = true
+no_implicit_optional = true
+warn_return_any = true
+warn_redundant_casts = true
+warn_unused_configs = true
+warn_unreachable = true
+exclude = '''(^|/)tests/'''

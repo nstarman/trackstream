@@ -210,6 +210,8 @@ class TestStream:
     def test_loading_pal5(self, stream_cls):
         data = get_example_pal5()
         stream = Stream(data, data.meta["origin"])
+
+        assert stream
         assert False
 
 

@@ -44,9 +44,6 @@ def icrs():
     return data.icrs
 
 
-# /def
-
-
 @pytest.fixture
 def ricrs():
     """Rotated ICRS data from ``trackstream.example_data.tests.data``.
@@ -60,9 +57,6 @@ def ricrs():
     from trackstream.example_data.tests import data
 
     return data.ricrs
-
-
-# /def
 
 
 ##############################################################################
@@ -165,9 +159,6 @@ def test_transformation_machinery(icrs, ricrs):
         rtol=1e-10,
         atol=1e-7,
     )
-
-
-# /def
 
 
 # -------------------------------------------------------------------

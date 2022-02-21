@@ -21,7 +21,7 @@ from astropy.coordinates.matrix_utilities import matrix_product, rotation_matrix
 from erfa import ufunc as erfa_ufunc
 
 # LOCAL
-from trackstream._type_hints import ArrayLike
+from trackstream._type_hints import ArrayLike, FrameLikeType
 from trackstream.config import conf
 
 ##############################################################################
@@ -118,13 +118,70 @@ def reference_to_skyoffset_matrix(
     mat2 = rotation_matrix(-lat, "y")
     mat3 = rotation_matrix(lon, "z")
 
-    M = matrix_product(mat1, mat2, mat3)
+    M: np.ndarray = matrix_product(mat1, mat2, mat3)
 
     return M
 
 
+# -------------------------------------------------------------------
+# For implementation explanation, see
+# https://github.com/python/mypy/issues/8356#issuecomment-884548381
+
+
 @functools.singledispatch
-def resolve_framelike(frame, error_if_not_type: bool = True):
+def _resolve_framelike(
+    frame: T.Optional[FrameLikeType],
+    error_if_not_type: bool = True,
+) -> BaseCoordinateFrame:
+    if error_if_not_type:
+        raise TypeError(
+            "Input coordinate frame must be an astropy "
+            "coordinates frame subclass *instance*, not a "
+            "'{}'".format(frame.__class__.__name__),
+        )
+    return frame
+
+
+@T.overload
+@_resolve_framelike.register
+def resolve_framelike(frame: None, error_if_not_type: bool = True) -> BaseCoordinateFrame:
+    # If no frame is specified, assume that the input footprint is in a
+    # frame specified in the configuration
+    return resolve_framelike(conf.default_frame)
+
+
+@T.overload
+@_resolve_framelike.register
+def resolve_framelike(  # noqa: F811
+    frame: str,
+    error_if_not_type: bool = True,
+) -> BaseCoordinateFrame:
+    # strings can be turned into frames using the private SkyCoord parsers
+    out: BaseCoordinateFrame = sky_coordinate_parsers._get_frame_class(frame.lower())()
+    return out
+
+
+@T.overload
+@_resolve_framelike.register
+def resolve_framelike(  # noqa: F811
+    frame: BaseCoordinateFrame,
+    error_if_not_type: bool = True,
+) -> BaseCoordinateFrame:
+    out: BaseCoordinateFrame = frame.replicate_without_data()
+    return out
+
+
+@T.overload
+@_resolve_framelike.register
+def resolve_framelike(frame: SkyCoord, error_if_not_type: bool = True) -> BaseCoordinateFrame:  # type: ignore  # noqa: E501, F811
+    out: BaseCoordinateFrame = frame.frame.replicate_without_data()
+    return out
+
+
+def resolve_framelike(  # noqa: F811
+    frame: T.Optional[FrameLikeType],
+    error_if_not_type: bool = True,
+) -> BaseCoordinateFrame:
     """Determine the frame and return a blank instance.
 
     Parameters
@@ -148,39 +205,7 @@ def resolve_framelike(frame, error_if_not_type: bool = True):
         If `frame` is not one of the allowed types and 'error_if_not_type' is
         True.
     """
-    if error_if_not_type:
-        raise TypeError(
-            "Input coordinate frame must be an astropy "
-            "coordinates frame subclass *instance*, not a "
-            "'{}'".format(frame.__class__.__name__),
-        )
-    return frame
-
-
-@resolve_framelike.register
-def _(frame: None, error_if_not_type: bool = True) -> BaseCoordinateFrame:
-    # If no frame is specified, assume that the input footprint is in a
-    # frame specified in the configuration
-    return resolve_framelike(conf.default_frame)
-
-
-@resolve_framelike.register
-def _(frame: str, error_if_not_type: bool = True) -> BaseCoordinateFrame:
-    # strings can be turned into frames using the private SkyCoord parsers
-    out: BaseCoordinateFrame = sky_coordinate_parsers._get_frame_class(frame.lower())()
-    return out
-
-
-@resolve_framelike.register
-def _(frame: BaseCoordinateFrame, error_if_not_type: bool = True) -> BaseCoordinateFrame:
-    out: BaseCoordinateFrame = frame.replicate_without_data()
-    return out
-
-
-@resolve_framelike.register
-def _(frame: SkyCoord, error_if_not_type: bool = True) -> BaseCoordinateFrame:
-    out: BaseCoordinateFrame = frame.frame.replicate_without_data()
-    return out
+    return _resolve_framelike(frame, error_if_not_type=error_if_not_type)
 
 
 ##############################################################################

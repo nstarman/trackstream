@@ -24,9 +24,6 @@ def test_has_version():
     assert hasattr(trackstream, "__version__"), "No version!"
 
 
-# /def
-
-
 # -------------------------------------------------------------------
 
 

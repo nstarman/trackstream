@@ -4,14 +4,10 @@
 """Utilities.
 
 This sub-module is destined for common non-package specific utility functions.
-
 """
 
 
 __all__ = [
-    # classes
-    "InterpolatedUnivariateSplinewithUnits",
-    # functions
     "resolve_framelike",
     "cartesian_to_spherical",
     "reference_to_skyoffset_matrix",
@@ -23,7 +19,6 @@ __all__ = [
 
 # LOCAL
 from .coord_utils import cartesian_to_spherical, reference_to_skyoffset_matrix, resolve_framelike
-from .interpolate import InterpolatedUnivariateSplinewithUnits
 
 ##############################################################################
 # END

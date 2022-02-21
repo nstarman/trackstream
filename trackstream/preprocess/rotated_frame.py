@@ -27,7 +27,6 @@ import scipy.optimize as opt
 from astropy.utils.decorators import lazyproperty
 
 # LOCAL
-from trackstream._type_hints import QuantityType
 from trackstream.config import conf
 from trackstream.setup_package import HAS_LMFIT
 from trackstream.utils import cartesian_to_spherical, reference_to_skyoffset_matrix
@@ -53,11 +52,11 @@ def scipy_residual_to_lmfit(function: None, *, param_order: T.List[str]) -> func
 
 
 @T.overload
-def scipy_residual_to_lmfit(function: FT, *, param_order: T.List[str]) -> FT:
+def scipy_residual_to_lmfit(function: FT, *, param_order: T.List[str]) -> FT:  # noqa: F811
     ...
 
 
-def scipy_residual_to_lmfit(function=None, *, param_order):
+def scipy_residual_to_lmfit(function=None, *, param_order):  # noqa: F811
     """Decorator to make scipy residual functions compatible with lmfit.
 
     Parameters
@@ -97,18 +96,15 @@ def scipy_residual_to_lmfit(function=None, *, param_order):
     return function
 
 
-# /def
-
-
 # -------------------------------------------------------------------
 
 
 def cartesian_model(
     data: coord.CartesianRepresentation,
     *,
-    lon: T.Union[QuantityType, float],
-    lat: T.Union[QuantityType, float],
-    rotation: T.Union[QuantityType, float],
+    lon: T.Union[u.Quantity, float],
+    lat: T.Union[u.Quantity, float],
+    rotation: T.Union[u.Quantity, float],
     deg: bool = True,
 ) -> T.Tuple:
     """Model from Cartesian Coordinates.
@@ -144,9 +140,6 @@ def cartesian_model(
     lon, lat, r = cartesian_to_spherical(*rot_xyz, deg=deg)
 
     return r, lon, lat
-
-
-# /def
 
 
 # -------------------------------------------------------------------
@@ -205,9 +198,6 @@ def residual(
     if scalar:
         return np.sum(res)
     return res
-
-
-# /def
 
 
 #####################################################################

@@ -24,7 +24,7 @@ if HAS_TQDM:
 
 @pytest.mark.skipif(HAS_TQDM, reason="testing when tqdm is not installed.")
 def test_get_progress_bar_tqdm_not_installed(caplog):
-    """Test ``get_progress_bar`` when TQDM is NOT installed."""
+    """Test ``get_progress_bar`` when :mod:`tqdm` is NOT installed."""
     pbar = get_progress_bar(display=True, total=100)
     assert isinstance(pbar, _NoOpPBar)
     assert "tqdm library" in caplog.text
@@ -32,7 +32,10 @@ def test_get_progress_bar_tqdm_not_installed(caplog):
 
 @pytest.mark.skipif(not HAS_TQDM, reason="requires tqdm.")
 def test_get_progress_bar_():
-    """Test ``get_progress_bar`` when TQDM is installed."""
+    """Test ``get_progress_bar`` when :mod:`tqdm` is installed.
+
+    tqdm is well tested, so no further tests are needed here.
+    """
     pbar = get_progress_bar(display=False, total=100)
     assert isinstance(pbar, _NoOpPBar)
 

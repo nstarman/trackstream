@@ -61,9 +61,6 @@ def make_transition_matrix(orders: T.Sequence[T.Sequence]) -> sparse.lil_matrix:
     return trmat
 
 
-# /def
-
-
 def draw_ordering(
     trmat,
     num: int = 1,
@@ -120,9 +117,6 @@ def draw_ordering(
     return orders.T
 
 
-# /def
-
-
 # -------------------------------------------------------------------
 
 
@@ -162,8 +156,6 @@ def draw_most_probable_ordering(trmat):
 
     return best_order
 
-
-# /def
 
 ##############################################################################
 # END

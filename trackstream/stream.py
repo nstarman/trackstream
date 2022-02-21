@@ -2,9 +2,7 @@
 
 """Core Functions."""
 
-__all__ = [
-    "Stream",
-]
+__all__ = ["Stream"]
 
 
 ##############################################################################
@@ -18,16 +16,13 @@ import weakref
 import astropy.coordinates as coord
 import astropy.units as u
 import numpy as np
-from astropy import table
-from astropy.table import QTable
+from astropy.table import Column, QTable, Table
 from astropy.utils.decorators import lazyproperty
 
 # LOCAL
-from . import _type_hints as TH
-
-# from scipy.linalg import block_diag
-
-# from trackstream.utils.path import Path
+from trackstream._type_hints import CoordinateType, FrameType
+from trackstream.preprocess.som import SelfOrganizingMap1D
+from trackstream.utils.path import path_moments
 
 ##############################################################################
 # CODE
@@ -41,21 +36,15 @@ class StreamArmDescriptor:
         self._parent_cls = None
         self._parent_ref = None
 
-    # /def
-
     @property
     def _parent(self):
         """Parent instance Cosmology."""
         return self._parent_ref() if self._parent_ref is not None else self._parent_cls
 
-    # /def
-
     # ------------------------------------
 
     def __set_name__(self, objcls, name):
         self._parent_attr = name
-
-    # /def
 
     def __get__(self, obj, objcls):
         # accessed from a class
@@ -76,12 +65,10 @@ class StreamArmDescriptor:
         descriptor._parent_ref = weakref.ref(obj)
         return descriptor
 
-    # /def
-
     # ------------------------------------
 
     @property
-    def index(self) -> table.Column:
+    def index(self) -> Column:
         return self._parent.data["tail"] == self._parent_attr
 
     @property
@@ -89,7 +76,7 @@ class StreamArmDescriptor:
         return any(self.index)
 
     @property
-    def data(self) -> table.Column:
+    def data(self) -> Column:
         if not self.has_data:
             raise Exception("no arm 1")  # TODO! specific exception
         return self._parent.data[self.index]
@@ -127,21 +114,20 @@ class Stream:
 
     arm1 = StreamArmDescriptor()
     arm2 = StreamArmDescriptor()
-    # TODO! ability to add more arms
 
     # ===============================================================
 
     def __init__(
         self,
-        data: table.QTable,
-        origin: TH.FrameType,
-        data_err: T.Optional[table.Table] = None,
+        data: QTable,
+        origin: FrameType,
+        data_err: T.Optional[Table] = None,
         *,
-        frame: T.Optional[TH.CoordinateType] = None,
+        frame: T.Optional[CoordinateType] = None,
     ):
         # system attributes
-        self.origin: TH.SkyCoordType = coord.SkyCoord(origin, copy=False)
-        self._system_frame: T.Optional[TH.FrameType] = frame
+        self.origin: coord.SkyCoord = coord.SkyCoord(origin, copy=False)
+        self._system_frame: T.Optional[FrameType] = frame
 
         self._cache = dict()  # TODO! improve
 
@@ -149,12 +135,11 @@ class Stream:
         # process the data
 
         # seed values set in functions
-        self._original_data: TH.SkyCoordType = None
+        self._original_data: coord.SkyCoord = None
 
         # processed data -> QTable
-        self.data = self._normalize_data(data)
-
-    # /def
+        self.data: QTable = self._normalize_data(data)
+        self._data_max_lines = 10
 
     # -----------------------------------------------------
 
@@ -167,22 +152,17 @@ class Stream:
         then a system frame has been found and cached.
         """
         frame: T.Optional[coord.BaseCoordinateFrame]
-
         if self._system_frame is not None:
             frame = self._system_frame
         else:
-            frame = self._cache.get("frame", None)
+            frame = self._cache.get("frame")
 
         return frame
-
-    # /def
 
     @property
     def frame(self) -> coord.BaseCoordinateFrame:
         """Alias for ``system_frame``."""
         return self.system_frame
-
-    # /def
 
     @lazyproperty
     def number_of_tails(self) -> int:
@@ -195,9 +175,7 @@ class Stream:
         """
         return 2 if (self.arm1.has_data and self.arm2.has_data) else 1
 
-    # /def
-
-    @lazyproperty
+    @property  # TODO! make lazy
     def coords(self) -> coord.SkyCoord:
         """Coordinates."""
         frame: coord.SkyCoord
@@ -207,35 +185,25 @@ class Stream:
             frame = self.data_frame
         return self.data_coords.transform_to(frame)
 
-    # /def
-
     # ===============================================================
 
     @property
-    def data_coords(self) -> TH.SkyCoordType:
+    def data_coords(self) -> coord.SkyCoord:
         """Get ``coord`` from data table."""
         return self.data["coord"]
 
-    # /def
-
     @property
-    def data_frame(self) -> TH.FrameType:
+    def data_frame(self) -> FrameType:
         """The frame of the data."""
         return self.data_coords.frame.replicate_without_data()
-
-    # /def
 
     # ===============================================================
     # Data normalization
 
-    def _normalize_data(self, original: table.Table) -> table.QTable:
+    def _normalize_data(self, original: Table) -> QTable:
         """Normalize data table.
 
         Just calls other functions.
-
-        .. todo::
-
-            allow argument specifying column names.
 
         Parameters
         ----------
@@ -257,21 +225,17 @@ class Stream:
         # 3) SOM ordering
         self._normalize_data_arm_index(original, data)
 
-        # --------------
         # Metadata
-
         # TODO? selective, or just copy over?
         data.meta = original.meta.copy()  # TODO? deepcopy?
 
         return data
 
-    # /def
-
     def _normalize_data_probability(
         self,
-        original: table.Table,
-        data: TH.QTableType,
-        default_weight: T.Union[float, TH.QuantityType] = 1.0,
+        original: Table,
+        data: QTable,
+        default_weight: T.Union[float, u.Quantity] = 1.0,
     ) -> None:
         """Data probability. Units of percent. Default is 100%.
 
@@ -295,13 +259,11 @@ class Stream:
 
         data["Pmemb"] = u.Quantity(Pmemb).to(u.percent)  # in %
 
-    # /def
-
     def _normalize_data_coordinates(
         self,
-        original: table.Table,
-        data: TH.QTableType,
-    ):
+        original: Table,
+        data: QTable,
+    ) -> None:
         """Parse the data table.
 
         - the frame is stored in ``_data_frame``
@@ -366,13 +328,11 @@ class Stream:
         data = data.group_by("tail")
         data.add_index("tail")
 
-    # /def
-
     def _normalize_data_arm_index(
         self,
-        original: table.Table,
-        data: TH.QTableType,
-    ):
+        original: Table,
+        data: QTable,
+    ) -> None:
         """Data probability. Units of percent. Default is 100%.
 
         Parameters
@@ -387,67 +347,93 @@ class Stream:
         else:
             data["SOM"] = None
 
-    # /def
-
     # ===============================================================
     # Fitting
 
     @property
-    def track(self):
+    def track(self) -> "StreamTrack":  # noqa: F821
+        """Stream track.
+
+        Raises
+        ------
+        ValueError
+            If track is not fit.
+        """
         track = self._cache.get("track")
         if track is None:
             raise ValueError("need to fit track.")
-
         return track
 
-    # /def
-
-    def fit_track(self, arm1SOM=None, arm2SOM=None, *, force=False, **kw):
-        """Make a streak track.
+    def fit_track(
+        self,
+        arm1SOM: T.Optional[SelfOrganizingMap1D] = None,
+        arm2SOM: T.Optional[SelfOrganizingMap1D] = None,
+        *,
+        force: bool = False,
+        **kwargs,
+    ) -> "StreamTrack":  # noqa: F821
+        """Make a stream track.
 
         Parameters
         ----------
         arm1SOM, arm2SOM : `~trackstream.preprocess.SelfOrganizingMap` (optional, keyword-only)
             Fiducial SOMs for stream arms 1 and 2, respectively.
         force : bool
-            Whether to force a fit if already fit.
+            Whether to force a fit, even if already fit.
+        **kwargs
+            Passed to :meth:`trackstream.TrackStream.fit`.
 
         Returns
         -------
-        track
+        `trackstream.StreamTrack`
         """
         if not force and "tracker" in self._cache:
-            raise Exception("already fit. use ``force`` to force a re-fit.")
+            raise Exception("already fit. use ``force`` to re-fit.")
 
         # LOCAL
-        from trackstream.core import TrackStream
+        from trackstream.core import StreamTrack, TrackStream
 
         self._cache["tracker"] = tracker = TrackStream(arm1SOM=arm1SOM, arm2SOM=arm2SOM)
-        track = tracker.fit(self, **kw)
 
+        track: StreamTrack = tracker.fit(self, **kwargs)
         self._cache["track"] = track
 
-        # add SOM ordering to data
+        # Add SOM ordering to data
         self.data["SOM"] = np.empty(len(self.data), dtype=int)
         self.data["SOM"][self.arm1.index] = tracker._cache["arm1_visit_order"]
-        self.data["SOM"][self.arm2.index] = tracker._cache["arm2_visit_order"]  # TODO! if
+        self.data["SOM"][self.arm2.index] = tracker._cache["arm2_visit_order"]
 
         return track
 
-    # /def
+    # ===============================================================
+    # Math on the Track (requires fitting track)
+
+    def predict_track(
+        self,
+        affine: T.Optional[u.Quantity] = None,
+        angular: bool = False,
+    ) -> path_moments:
+        return self.track()
 
     # ===============================================================
-    # misc
+    # Misc
 
-    def __repr__(self):
-        header = super().__repr__()
-        frame = repr(self.frame)
-        table = "\n\t".join(repr(self.data).split("\n")[1:])
+    def _base_repr_(self, max_lines=None):
+        """mirroring implementation in astropy Table."""
+        header: str = super().__repr__()
+        frame: str = repr(self.frame)
+
+        datarep: str = self.data._base_repr_(
+            html=False,
+            max_width=None,
+            max_lines=self._data_max_lines,
+        )
+        table: str = "\n\t".join(datarep.split("\n")[1:])
 
         return header + "\n  Frame:\n\t" + frame + "\n  Data:\n\t" + table
 
-
-# /class
+    def __repr__(self) -> str:
+        return self._base_repr_(max_lines=self._data_max_lines)
 
 
 ##############################################################################

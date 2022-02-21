@@ -120,9 +120,6 @@ def icrs_to_rotated():
     return ICRS_ROT_MATRIX
 
 
-# /def
-
-
 @coord.frame_transform_graph.transform(
     coord.StaticMatrixTransform,
     RotatedICRS,
@@ -131,9 +128,6 @@ def icrs_to_rotated():
 def rotated_to_icrs():
     """Transformation matrix from rotated coordinates to ICRS Cartesian."""
     return matrix_transpose(ICRS_ROT_MATRIX)
-
-
-# /def
 
 
 # ------------------------------------------------------------------
@@ -170,9 +164,6 @@ def Galactocentric_to_rotated():
     return GALACTOCENTRIC_ROT_MATRIX
 
 
-# /def
-
-
 @coord.frame_transform_graph.transform(
     coord.StaticMatrixTransform,
     RotatedGalactocentric,
@@ -181,9 +172,6 @@ def Galactocentric_to_rotated():
 def rotated_to_Galactocentric():
     """Transformation matrix from rotated coordinates to GC Cartesian."""
     return matrix_transpose(GALACTOCENTRIC_ROT_MATRIX)
-
-
-# /def
 
 
 ##############################################################################

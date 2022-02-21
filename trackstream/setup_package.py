@@ -33,7 +33,6 @@ except ImportError:
     HAS_LMFIT = False
 else:
     HAS_LMFIT = True
-# /try
 
 
 try:
@@ -43,7 +42,6 @@ except ImportError:
     HAS_TQDM = False
 else:
     HAS_TQDM = True
-# /try
 
 
 __all__ = ["HAS_MINISOM", "HAS_FILTERPY", "HAS_LMFIT", "HAS_TQDM"]

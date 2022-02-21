@@ -22,13 +22,14 @@ __all__ = [
 import typing as T
 
 # THIRD PARTY
+import astropy.coordinates as coord
 import astropy.units as u
 import numpy as np
 from galpy import potential
 from galpy.orbit import Orbit
 
 # LOCAL
-from trackstream._type_hints import FrameLikeType, RepresentationType, UnitType
+from trackstream._type_hints import FrameLikeType, RepLikeType, UnitType
 from trackstream.utils.misc import make_shuffler
 
 ##############################################################################
@@ -68,9 +69,6 @@ def get_orbit(stop: float = stop, num: int = num, unit: UnitType = unit):
     return o
 
 
-# /def
-
-
 # -------------------------------------------------------------------
 
 
@@ -79,8 +77,8 @@ def make_ordered_orbit_data(
     num: int = num,
     unit: UnitType = unit,
     frame: FrameLikeType = "galactocentric",
-    representation_type: T.Union[str, RepresentationType] = "cartesian",
-) -> RepresentationType:
+    representation_type: RepLikeType = "cartesian",
+) -> coord.BaseRepresentation:
     """Make Ordered Orbit Data.
 
     Parameters
@@ -105,15 +103,12 @@ def make_ordered_orbit_data(
     sc = o.SkyCoord(o.time())
     sc_new = sc.transform_to(frame)
 
-    rep: RepresentationType = sc_new.represent_as(representation_type)
+    rep: coord.BaseRepresentation = sc_new.represent_as(representation_type)
 
     data = rep.without_differentials()
     # data = data.get_xyz().T
 
     return data
-
-
-# /def
 
 
 # -------------------------------------------------------------------
@@ -124,8 +119,8 @@ def make_unordered_orbit_data(
     num: int = num,
     unit: UnitType = unit,
     frame: FrameLikeType = "galactocentric",
-    representation_type: T.Union[str, RepresentationType] = "cartesian",
-) -> RepresentationType:
+    representation_type: RepLikeType = "cartesian",
+) -> coord.BaseRepresentation:
     """Make Ordered Orbit Data.
 
     Parameters
@@ -155,9 +150,6 @@ def make_unordered_orbit_data(
     return data
 
 
-# /def
-
-
 # -------------------------------------------------------------------
 
 
@@ -167,7 +159,7 @@ def make_noisy_orbit_data(
     sigma: T.Optional[T.Dict[str, float]] = None,
     unit: UnitType = unit,
     frame: FrameLikeType = "galactocentric",
-    representation_type: T.Union[str, RepresentationType] = "cartesian",
+    representation_type: RepLikeType = "cartesian",
     rnd=None,
 ):
     """Make Ordered Orbit Data.
@@ -217,9 +209,6 @@ def make_noisy_orbit_data(
     data = X.__class__(**{n: rnd.normal(recarr[n], scale=sigma[n]) for n in recarr.dtype.names})
 
     return data
-
-
-# /def
 
 
 # -------------------------------------------------------------------
