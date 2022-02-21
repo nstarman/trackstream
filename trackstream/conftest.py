@@ -14,11 +14,11 @@ import os
 # THIRD PARTY
 import astropy.coordinates as coord
 import astropy.units as u
+import interpolated_coordinates as icoord
 import numpy as np
 import pytest
 
 # LOCAL
-import trackstream.utils.interpolated_coordinates as icoord
 from trackstream.utils.path import Path
 
 try:

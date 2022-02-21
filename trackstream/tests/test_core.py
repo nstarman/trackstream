@@ -23,8 +23,6 @@ from trackstream.example_data import get_example_pal5
 from trackstream.preprocess.som import SelfOrganizingMap1D
 from trackstream.stream import Stream
 
-# from trackstream.utils import InterpolatedUnivariateSplinewithUnits as IUSU
-
 ##############################################################################
 # TESTS
 ##############################################################################

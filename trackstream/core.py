@@ -28,7 +28,7 @@ from . import _type_hints as TH
 from .stream import Stream
 from trackstream.preprocess.rotated_frame import FitResult, RotatedFrameFitter
 from trackstream.preprocess.som import SelfOrganizingMap1D, order_data, reorder_visits
-from trackstream.process.kalman import KalmanFilter
+from trackstream.process.kalman import KalmanFilter, kalman_output
 from trackstream.process.utils import make_dts, make_F, make_H, make_Q, make_R
 from trackstream.utils.misc import intermix_arrays
 from trackstream.utils.path import Path, path_moments
@@ -202,7 +202,11 @@ class TrackStream:
 
         return visit_order, som
 
-    def _fit_kalman_filter(self, data: coord.SkyCoord, w0=None):
+    def _fit_kalman_filter(
+        self,
+        data: coord.SkyCoord,
+        w0: T.Optional[np.ndarray] = None,
+    ) -> T.Union[kalman_output, KalmanFilter, np.ndarray]:
         """Fit data with Kalman filter.
 
         Parameters

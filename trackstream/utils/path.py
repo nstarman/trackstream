@@ -18,11 +18,11 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import BaseCoordinateFrame, SkyCoord
 from astropy.utils.decorators import format_doc
+from interpolated_coordinates import InterpolatedCoordinateFrame, InterpolatedSkyCoord
+from interpolated_coordinates.utils import InterpolatedUnivariateSplinewithUnits as IUSU
 from scipy.optimize import OptimizeResult, minimize_scalar
 
 # LOCAL
-from .interpolate import InterpolatedUnivariateSplinewithUnits as IUSU
-from .interpolated_coordinates import InterpolatedCoordinateFrame, InterpolatedSkyCoord
 from trackstream._type_hints import CoordinateType, FrameLikeType
 from trackstream.utils import resolve_framelike
 
@@ -121,13 +121,10 @@ class Path:
         #              BaseCoordinateFrame, InterpolatedCoordinateFrame
         #              SkyCoord, InterpolatedSkyCoord
         # need to end up with a InterpolatedSkyCoord
-        # TODO! make fail if wrong type
         if isinstance(path, coord.BaseRepresentation):  # works for interp
             path = self.frame.realize_frame(path)
 
-        if isinstance(path, InterpolatedCoordinateFrame):
-            pass  # TODO! combine this with the below
-        elif isinstance(path, coord.BaseCoordinateFrame):
+        if isinstance(path, coord.BaseCoordinateFrame):
             path = InterpolatedCoordinateFrame(path, affine=affine)
 
         path = InterpolatedSkyCoord(path, affine=affine)
@@ -171,28 +168,23 @@ class Path:
         path: InterpolatedSkyCoord,
         width: T.Union[u.Quantity, T.Callable],
     ) -> None:
-        # TODO clean this up and stuff
-        # this is separated out so that base classes
-        # can do stuff like have angular widths
-
+        """Initialize the width function."""
         if callable(width):
-            # just testing
+            # Check
             _ws = width(path.affine)
             if _ws.unit.physical_type != "length":
                 raise ValueError("width must have units of length")
-
             o_w = width
 
         else:
-            # clean
+            # Clean
             o_w = u.Quantity(width, copy=False)
 
-            # check
+            # Check
             if o_w.unit.physical_type != "length":
                 raise ValueError("width must have units of length")
 
-            # interpolate
-            # first check if need to broadcast
+            # Interpolate (first check if need to broadcast)
             _ws = np.ones(len(path)) * o_w if o_w.isscalar else o_w
             width = IUSU(path.affine, _ws)
 
@@ -213,6 +205,8 @@ class Path:
             The affine interpolation parameter. If None (default), return
             all positions.
         angular : bool, optional keyword-only
+            Whether to return the width in units of length or the on-sky width
+            in angular units.
 
         Returns
         -------
@@ -227,10 +221,7 @@ class Path:
         """
         mean = self.position(affine)
         width = self.width(affine) if not angular else self.width_angular(affine)
-
-        # TODO? add a directionality?
-        # TODO allow for higher moments
-
+        # TODO! add amplitude (density)
         return path_moments(mean, width)
 
     # -----------------------
@@ -266,7 +257,7 @@ class Path:
 
         Parameters
         ----------
-        affine : `~astropy.units.Quantity` array-like or None, optional
+        affine : `~astropy.units.Quantity` or None, optional
             The affine interpolation parameter. If None (default), return
             width evaluated at all "tick" interpolation points.
 
@@ -278,7 +269,7 @@ class Path:
         if self._width_fn is None:
             raise ValueError("Path does not have a defined width.")
         affine = self.affine if affine is None else affine
-        return self._width_fn(u.Quantity(affine, copy=False))
+        return self._width_fn(affine)
 
     def width_angular(self, affine: T.Optional[u.Quantity] = None) -> u.Quantity:
         """Return the (1-sigma) angular width of the track at affine points.

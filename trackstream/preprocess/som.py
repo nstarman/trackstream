@@ -13,15 +13,7 @@ References
 
 """
 
-__all__ = [
-    "SelfOrganizingMap1D",
-    # functions
-    # "apply_SOM",
-    # "apply_SOM_repeat",
-    # "prepare_SOM",
-    "order_data",
-    "reorder_visits",
-]
+__all__ = ["SelfOrganizingMap1D", "order_data", "reorder_visits"]
 
 __credits__ = "MiniSom"
 
@@ -42,8 +34,6 @@ from scipy.stats import binned_statistic
 # LOCAL
 from trackstream._type_hints import CoordinateType
 from trackstream.utils.pbar import get_progress_bar
-
-# from .utils import DataType  # , find_closest_point, set_starting_point
 
 ##############################################################################
 # PARAMETERS
@@ -136,12 +126,8 @@ class SelfOrganizingMap1D:
 
         self._activation_map = np.zeros((1, nlattice))
         # used to evaluate the neighborhood function
-        self._neigx = np.arange(1)  # TODO! deprecate b/c 1D
         self._neigy = np.arange(nlattice)
-
-        self._xx, self._yy = np.meshgrid(self._neigx, self._neigy)
-        self._xx = self._xx.astype(float)  # TODO! deprecate b/c 1D
-        self._yy = self._yy.astype(float)
+        self._yy = self._neigy.reshape((-1, 1)).astype(float)
 
         # random initialization
         self._weights = 2 * self._rng.random((1, nlattice, nfeature)) - 1
@@ -214,9 +200,8 @@ class SelfOrganizingMap1D:
         pc0 = pc[pc_order[0]]
         pc1 = pc[pc_order[1]]
 
-        for i, c1 in enumerate(np.linspace(-1, 1, len(self._neigx))):
-            for j, c2 in enumerate(np.linspace(-1, 1, len(self._neigy))):
-                self._weights[i, j] = c1 * pc0 + c2 * pc1
+        for j, c2 in enumerate(np.linspace(-1, 1, len(self._neigy))):
+            self._weights[0, j] = -1 * pc0 + c2 * pc1
 
     def binned_weights_init(self, data, byphi=False, **kw):
         r"""Initialize prototype vectors from binned data.
@@ -306,9 +291,8 @@ class SelfOrganizingMap1D:
     def neighborhood(self, c, sigma) -> np.ndarray:
         """Returns a Gaussian centered in c."""
         d = 2 * pi * sigma ** 2
-        ax = np.exp(-np.power(self._xx - self._xx.T[c], 2) / d)
         ay = np.exp(-np.power(self._yy - self._yy.T[c], 2) / d)
-        return (ax * ay).T  # the external product gives a matrix
+        return (1 * ay).T  # the external product gives a matrix
 
     def update(self, x, win, t, max_iteration):
         """Updates the weights of the neurons.

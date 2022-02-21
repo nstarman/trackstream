@@ -85,8 +85,6 @@ class KalmanFilter:
 
         self.options = kwargs
 
-    # /def
-
     #######################################################
     # Run
 
@@ -98,10 +96,8 @@ class KalmanFilter:
         method: T.Literal["stepupdate"],
         use_filterpy: T.Optional[bool] = None,
         **kwargs
-    ) -> T.Tuple[kalman_output, kalman_output]:
+    ) -> T.Union[kalman_output, T.Tuple[kalman_output, kalman_output]]:
         """Run Kalman Filter with updates on each step.
-
-
 
         Parameters
         ----------
@@ -111,7 +107,6 @@ class KalmanFilter:
             Which method to use.
 
             - "stepupdate" : ``fit_with_stepupdate``
-
 
         use_filterpy : bool or None, (optional, keyword-only)
             If none, uses configuration.
@@ -137,8 +132,6 @@ class KalmanFilter:
 
         return result
 
-    # /def
-
     def fit_with_stepupdate(
         self,
         data: T.Union[np.ndarray, T.Sequence],
@@ -150,7 +143,7 @@ class KalmanFilter:
         full_output: bool = False,
         use_filterpy: T.Optional[bool] = None,
         q_kw: T.Optional[T.Dict] = None
-    ) -> T.Tuple[kalman_output, kalman_output]:
+    ) -> T.Union[kalman_output, T.Tuple[kalman_output, kalman_output]]:
         """Run Kalman Filter with updates on each step.
 
         Parameters
@@ -172,7 +165,6 @@ class KalmanFilter:
             "Xs", "Ps", "Fs", "Qs"
         smooth : `~kalman_output`
             "Xs", "Ps", "Fs", "Qs"
-
         """
         if use_filterpy is None:
             use_filterpy = conf.use_filterpy
@@ -188,8 +180,6 @@ class KalmanFilter:
 
             if use_filterpy:
                 warnings.warn("can't use filterpy.")
-
-        # /if
 
         q_kw = q_kw or {}  # None -> dict
 
@@ -234,8 +224,6 @@ class KalmanFilter:
             Xs[i], Ps[i] = x, P
             Fs[i], Qs[i] = F, Q
 
-        # /for
-
         # recast as arrays
         Xs, Ps = np.array(Xs), np.array(Ps)
         Fs, Qs = np.array(Fs), np.array(Qs)
@@ -250,13 +238,13 @@ class KalmanFilter:
 
         return smooth
 
-    # =================
+    # ===================================================
     # Misc
 
     @staticmethod
     def make_simple_dts(
         ordered_data: np.ndarray, dt0: float, *, N: int = 6, vmin: float = 0.01, axis: int = 1
-    ):
+    ) -> np.ndarray:
         dts = utils.make_dts(
             ordered_data=ordered_data,
             dt0=dt0,

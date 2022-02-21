@@ -205,10 +205,6 @@ class Stream:
 
         Just calls other functions.
 
-        .. todo::
-
-            allow argument specifying column names.
-
         Parameters
         ----------
         original : :class:`~astropy.table.Table`
