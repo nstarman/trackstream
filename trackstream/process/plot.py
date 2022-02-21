@@ -58,9 +58,6 @@ def plot_dts(distances, averaged_distances):
     return fig
 
 
-# /def
-
-
 # -------------------------------------------------------------------
 
 
@@ -159,8 +156,6 @@ def plot_path(data, path, cov=None, true_path=None, *, num_std=1, cov_alpha=0.5,
 
     return fig, axs
 
-
-# /def
 
 ##############################################################################
 # END

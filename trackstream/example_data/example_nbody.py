@@ -54,8 +54,6 @@ def _load_nbody() -> QTable:
     return data
 
 
-# /def
-
 # -------------------------------------------------------------------
 
 
@@ -83,9 +81,6 @@ def get_nbody(subsample: slice = slice(100, None, 400)) -> FrameType:
     return data
 
 
-# /def
-
-
 # -------------------------------------------------------------------
 
 
@@ -110,9 +105,6 @@ def get_nbody_array(subsample: slice = slice(100, None, 400)) -> np.ndarray:
     )
 
     return data
-
-
-# /def
 
 
 ##############################################################################

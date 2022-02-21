@@ -161,16 +161,10 @@ def test_asymptotic_decay(learning_rate, iteration, max_iter):
     assert got == expected
 
 
-# /def
-
-
 @pytest.mark.skip("TODO!")
 def test_reorder_visits():
     """Test :func:`trackstream.preprocess.som.reorder_visits`."""
     assert False
-
-
-# /def
 
 
 # @pytest.mark.skip("TODO!")
@@ -187,8 +181,6 @@ def test_order_data():
     """Test :func:`trackstream.preprocess.som.order_data`."""
     assert False
 
-
-# /def
 
 ##############################################################################
 # END

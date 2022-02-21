@@ -69,9 +69,6 @@ def get_orbit(stop: float = stop, num: int = num, unit: UnitType = unit):
     return o
 
 
-# /def
-
-
 # -------------------------------------------------------------------
 
 
@@ -114,9 +111,6 @@ def make_ordered_orbit_data(
     return data
 
 
-# /def
-
-
 # -------------------------------------------------------------------
 
 
@@ -154,9 +148,6 @@ def make_unordered_orbit_data(
     data = X[shuffler]
 
     return data
-
-
-# /def
 
 
 # -------------------------------------------------------------------
@@ -218,9 +209,6 @@ def make_noisy_orbit_data(
     data = X.__class__(**{n: rnd.normal(recarr[n], scale=sigma[n]) for n in recarr.dtype.names})
 
     return data
-
-
-# /def
 
 
 # -------------------------------------------------------------------

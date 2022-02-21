@@ -82,9 +82,6 @@ def make_dts(
     return dts
 
 
-# /def
-
-
 # -------------------------------------------------------------------
 
 
@@ -119,9 +116,6 @@ def make_F(dt: float, order: int = 1, n_dims=3) -> np.ndarray:
 
     F = block_diag(*fs)  # F block-diagonal array
     return F
-
-
-# /def
 
 
 # -------------------------------------------------------------------
@@ -165,9 +159,6 @@ def make_Q(
     return Q
 
 
-# /def
-
-
 # -------------------------------------------------------------------
 
 
@@ -203,9 +194,6 @@ def make_H(position_only=True, n_dims: int = 3, order: int = 1) -> np.ndarray:
     return H
 
 
-# /def
-
-
 # -------------------------------------------------------------------
 
 
@@ -233,9 +221,6 @@ def make_R(data) -> np.ndarray:
         R[:, i, i] = data[:, i]
 
     return R
-
-
-# /def
 
 
 # -------------------------------------------------------------------
@@ -267,9 +252,6 @@ def p2p_distance(X: T.Sequence, axis: int = 0) -> T.Sequence:
     full_arc = np.insert(arc, 0, 0)
 
     return full_arc
-
-
-# /def
 
 
 ##############################################################################

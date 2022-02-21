@@ -96,9 +96,6 @@ def scipy_residual_to_lmfit(function=None, *, param_order):  # noqa: F811
     return function
 
 
-# /def
-
-
 # -------------------------------------------------------------------
 
 
@@ -143,9 +140,6 @@ def cartesian_model(
     lon, lat, r = cartesian_to_spherical(*rot_xyz, deg=deg)
 
     return r, lon, lat
-
-
-# /def
 
 
 # -------------------------------------------------------------------
@@ -204,9 +198,6 @@ def residual(
     if scalar:
         return np.sum(res)
     return res
-
-
-# /def
 
 
 #####################################################################

@@ -38,9 +38,6 @@ def _load_data() -> QTable:
     return data
 
 
-# /def
-
-
 # -------------------------------------------------------------------
 
 
@@ -53,9 +50,6 @@ def get_stream_data(threshold: float = 0.7) -> coord.SkyCoord:
     data = coord.SkyCoord.guess_from_table(sub_data)
 
     return data
-
-
-# /def
 
 
 ##############################################################################

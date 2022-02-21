@@ -59,9 +59,6 @@ def pytest_configure(config):
     return
 
 
-# /def
-
-
 # ------------------------------------------------------
 # doctest fixtures
 
