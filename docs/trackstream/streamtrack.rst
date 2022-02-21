@@ -19,8 +19,8 @@ Reference/API
    :include-all-objects:
 
 
-.. automodapi:: trackstream.tests.test_TrackStream
+.. automodapi:: trackstream.tests.test_core
    :include-all-objects:
 
-.. automodapi:: trackstream.tests.test_StreamTrack
+.. automodapi:: trackstream.tests.test_stream
    :include-all-objects:

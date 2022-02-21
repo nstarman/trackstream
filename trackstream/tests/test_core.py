@@ -2,9 +2,7 @@
 
 """Testing :class:`trackstream.core.TrackStream`."""
 
-__all__ = [
-    "Test_TrackStream",
-]
+__all__ = ["Test_TrackStream"]
 
 
 ##############################################################################
