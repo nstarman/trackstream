@@ -32,6 +32,7 @@ def plot_rotation_frame_residual(
     origin: coord.BaseCoordinateFrame,
     num_rots: int = 3600,
     scalar: bool = True,
+    **kwargs,
 ) -> plt.Figure:
     """Plot residual from finding the optimal rotated frame.
 
@@ -55,15 +56,15 @@ def plot_rotation_frame_residual(
     lat = origin.lat.to_value(u.deg)
 
     # Evaluate residual
-    rs = np.linspace(-180, 180, num=num_rots)
+    rotation_angles = np.linspace(-180, 180, num=num_rots)
     res = np.array(
         [
             fit_rotated_frame_residual(
-                (r, lon, lat),
+                (angle, lon, lat),
                 data=data.represent_as(coord.CartesianRepresentation),
                 scalar=scalar,
             )
-            for r in rs
+            for angle in rotation_angles
         ],
     )
 
@@ -71,19 +72,19 @@ def plot_rotation_frame_residual(
     fig, ax = plt.subplots(figsize=(10, 6))
 
     if scalar:
-        ax.scatter(rs, res)
+        ax.scatter(rotation_angles, res, **kwargs)
         ax.set_xlabel(r"Rotation angle $\theta$")
         ax.set_ylabel(r"residual")
 
     else:
-        im, norm = imshow_norm(res.T, ax=ax, aspect="auto", origin="lower")
-        # xticks
-        locs = ax.get_xticks()
-        xticks = [str(int(loc // 10)) for loc in locs]
-        plt.xticks(locs[1:-1], xticks[1:-1])
+        im, norm = imshow_norm(res, ax=ax, aspect="auto", origin="lower", **kwargs)
+        # yticks
+        ylocs = ax.get_yticks()
+        yticks = [str(int(loc * 360 / numrots) - 180) for loc in ylocs]
+        ax.set_yticks(ylocs[1:-1], yticks[1:-1])
         # labels
-        ax.set_xlabel(r"$\theta$ + 180 [deg]")
-        ax.set_ylabel(r"phi2")
+        ax.set_xlabel(r"data index")
+        ax.set_ylabel(r"Rotation angle $\theta$ [deg]")
 
         # colorbar
         cbar = fig.colorbar(im)

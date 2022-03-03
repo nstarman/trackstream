@@ -88,8 +88,6 @@ def scipy_residual_to_lmfit(function=None, *, param_order):  # noqa: F811
         variables: T.List[T.Any] = [params[n].value for n in param_order]
         return function(variables, *args, **kwargs)
 
-    # /def
-
     # attach lmfit version to original function
     function.lmfit = lmfit
 
@@ -137,7 +135,9 @@ def cartesian_model(
     rot_matrix = reference_to_skyoffset_matrix(lon, lat, rotation)
     rot_xyz = np.dot(rot_matrix, data.xyz.value).reshape(-1, len(data))
 
-    lon, lat, r = cartesian_to_spherical(*rot_xyz, deg=deg)
+    # cartesian to spherical
+    r = np.sqrt(np.sum(np.square(rot_xyz)))
+    lon, lat = erfa_ufunc.c2s(rot_xyz[None, :]) * (1 if not deg else 180.0 / np.pi)
 
     return r, lon, lat
 
@@ -147,7 +147,7 @@ def cartesian_model(
 
 @scipy_residual_to_lmfit(param_order=["rotation", "lon", "lat"])
 def residual(
-    variables: T.Sequence,
+    variables: T.Sequence[float],
     data: coord.CartesianRepresentation,
     scalar: bool = False,
 ) -> T.Union[float, T.Sequence]:
@@ -181,23 +181,25 @@ def residual(
         Whether to sum `res` into a float.
         Note that if `res` is also a float, it is unaffected.
     """
-    rotation = variables[0]
+    rotation=variables[0]
     lon = variables[1]
     lat = variables[2]
 
-    r, lon, lat = cartesian_model(
+    # Cartesian model
+    rot_matrix = reference_to_skyoffset_matrix(lon, lat, rotation)
+    rot_xyz = np.dot(rot_matrix, data.xyz.value).reshape(-1, len(data))
+
+    _, _, phi2 = cartesian_model(
         data,
-        lon=lon,
-        lat=lat,
-        rotation=rotation,
-        deg=True,
+        lon=variables[1],
+        lat=variables[2],
+        rotation=variables[0],
+        deg=True
     )
+    # Residual
+    res = np.abs(phi2 - 0.0) / len(phi2)  # phi2 - 0
 
-    res = np.abs(lat - 0.0)  # phi2 - 0
-
-    if scalar:
-        return np.sum(res)
-    return res
+    return res if not scalar else np.sum(res)
 
 
 #####################################################################
@@ -206,17 +208,13 @@ def residual(
 class RotatedFrameFitter(object):
     """Class to Fit Rotated Frames.
 
-    .. todo::
-
-        include errors.
-
     Parameters
     ----------
     data : :class:`~astropy.coordinates.BaseCoordinateFrame`
         In ICRS coordinates.
 
     origin : :class:`~astropy.coordinates.ICRS`
-        location of point on sky about which to rotate.
+        The location of point on sky about which to rotate.
 
     Other Parameters
     ----------------
@@ -241,8 +239,12 @@ class RotatedFrameFitter(object):
     align_v : bool
         Whether to align by the velocity.
     """
+    data: coord.BaseCoordinateFrame
+    origin: coord.ICRS
+    bounds: np.ndarray
+    fitter_kwargs: T.Dict[str, T.Any]
 
-    def __init__(self, data: coord.BaseCoordinateFrame, origin: coord.ICRS, **kwargs):
+    def __init__(self, data: coord.BaseCoordinateFrame, origin: coord.ICRS, **kwargs: T.Any) -> None:
         super().__init__()
         self.data = data
         self.origin = origin
@@ -250,10 +252,9 @@ class RotatedFrameFitter(object):
         # -------------
         # create bounds
 
-        bounds_args = {
-            k: kwargs.pop(k) for k in ("rot_lower", "rot_upper", "origin_lim") if k in kwargs
-        }
-        self.set_bounds(**bounds_args)
+        bounds_args = ("rot_lower", "rot_upper", "origin_lim")
+        bounds_kwargs = {k: kwargs.pop(k) for k in bounds_args if k in kwargs}
+        self.set_bounds(**bounds_kwargs)
 
         # -------------
         # process options
@@ -276,10 +277,9 @@ class RotatedFrameFitter(object):
         # Minimizer kwargs are the leftovers
         self.fitter_kwargs = kwargs
 
-    # /def
-
     @property
-    def default_fit_options(self):
+    def default_fit_options(self) -> MappingProxyType:
+        """The default fit options, including from initialization."""
         return MappingProxyType(dict(**self._default_options, **self.fitter_kwargs))
 
     #######################################################
@@ -300,7 +300,7 @@ class RotatedFrameFitter(object):
         origin_lim : |Quantity|, optional
             The symmetric lower and upper bounds on origin in degrees.
         """
-        origin = self.origin.data.represent_as(coord.UnitSphericalRepresentation)
+        origin = self.origin.represent_as(coord.UnitSphericalRepresentation)
 
         rotation_bounds = (rot_lower.to_value(u.deg), rot_upper.to_value(u.deg))
         # longitude bounds (ra in ICRS).
@@ -312,8 +312,6 @@ class RotatedFrameFitter(object):
         bounds = np.c_[rotation_bounds, lon_bounds, lat_bounds].T
 
         self.bounds = bounds
-
-    # /def
 
     def align_v_positive_lon(
         self,
@@ -365,8 +363,6 @@ class RotatedFrameFitter(object):
 
         return values
 
-    # /def
-
     #######################################################
     # Fitting
 
@@ -394,14 +390,8 @@ class RotatedFrameFitter(object):
             Whether to sum `res` into a float.
             Note that if `res` is also a float, it is unaffected.
         """
-        variables = (
-            rotation,
-            self.origin.ra.to_value(u.deg),
-            self.origin.dec.to_value(u.deg),
-        )
+        variables = (rotation, self.origin.ra.to_value(u.deg), self.origin.dec.to_value(u.deg))
         return residual(variables, self.data.cartesian, scalar=scalar)
-
-    # /def
 
     def _fit_representation_scipy(
         self,
@@ -420,7 +410,7 @@ class RotatedFrameFitter(object):
 
         if use_leastsquares:
             method = kw.pop("method", "trf")
-            res = opt.least_squares(
+            result = opt.least_squares(
                 residual,
                 x0=x0,
                 args=(data, False),
@@ -431,7 +421,7 @@ class RotatedFrameFitter(object):
 
         else:
             method = kw.pop("method", "slsqp")
-            res = opt.minimize(
+            result = opt.minimize(
                 residual,
                 x0=x0,
                 args=(data, True),
@@ -440,11 +430,9 @@ class RotatedFrameFitter(object):
                 **kw,
             )
 
-        values = res.x * u.deg
+        values = res.x << u.deg
 
-        return res, values
-
-    # /def
+        return result, values
 
     def _fit_representation_lmfit(
         self,
@@ -481,8 +469,6 @@ class RotatedFrameFitter(object):
         values = np.array(tuple(res.params.valuesdict().values())) * u.deg
 
         return res, values
-
-    # /def
 
     # @u.quantity_input(rot0=u.deg)
     def fit(
@@ -537,7 +523,7 @@ class RotatedFrameFitter(object):
             If ``use_lmfit`` and :mod:`lmfit` is not installed.
         """
         # -----------------------------
-        # Prepare
+        # Prepare, using defaults for arguments not provided.
 
         if rot0 is None:
             rot0 = self.fitter_kwargs.get("rot0", None)
@@ -584,6 +570,7 @@ class RotatedFrameFitter(object):
             )
 
         else:  # scipy
+            use_leastsquares = kwargs.pop("use_leastsquares")
             fit_result, values = self._fit_representation_scipy(
                 self.data.cartesian,
                 x0=x0,
@@ -592,8 +579,6 @@ class RotatedFrameFitter(object):
                 use_leastsquares=leastsquares,
                 **kwargs,
             )
-
-        # /def
 
         # -----------------------------
 
@@ -610,21 +595,17 @@ class RotatedFrameFitter(object):
 
         return FitResult(self.data, fitresult=fit_result, **values)
 
-    # /def
-
     #######################################################
     # Plot
 
-    def plot_data(self):
-        # THIRD PARTY
-        import matplotlib.pyplot as plt
-
-        plt.scatter(self.data.ra, self.data.dec)
-        # plt.ylim(-90, 90)
-
-        # return fig
-
-    # /def
+#     def plot_data(self):
+#         # THIRD PARTY
+#         import matplotlib.pyplot as plt
+# 
+#         plt.scatter(self.data.ra, self.data.dec)
+#         # plt.ylim(-90, 90)
+# 
+#         # return fig
 
     def plot_residual(
         self,
@@ -647,11 +628,6 @@ class RotatedFrameFitter(object):
             fitresult.plot_on_residual(scalar=scalar)
 
         return fig
-
-    # /def
-
-
-# /class
 
 # -------------------------------------------------------------------
 
@@ -691,25 +667,17 @@ class FitResult:
 
         self.data = data.transform_to(self.frame)
 
-    # /def
-
     @property
     def origin(self):
         return self._origin
-
-    # /def
 
     @property
     def rotation(self):
         return self._rotation
 
-    # /def
-
     @lazyproperty
     def fit_values(self):
         return MappingProxyType(dict(origin=self.origin, rotation=self.rotation))
-
-    # /def
 
     @lazyproperty
     def frame(self):
@@ -719,20 +687,14 @@ class FitResult:
         frame.differential_type = coord.SphericalCosLatDifferential
         return frame
 
-    # /def
-
     @lazyproperty
     def residual(self):
         """Fit result residual."""
         return np.abs(self.data.lat - 0.0)
 
-    # /def
-
     @property
     def residual_scalar(self):
         return np.sum(self.residual)
-
-    # /def
 
     @lazyproperty
     def lon_order(self):
@@ -747,14 +709,10 @@ class FitResult:
 
         return orderer
 
-    # /def
-
     # ---------------------
 
     def __repr__(self):
         return f"FitResult({self.fit_values})"
-
-    # /def
 
     # ---------------------
 
@@ -767,8 +725,6 @@ class FitResult:
 
         # return fig
 
-    # /def
-
     def plot_on_residual(self, scalar: bool = True):
         # THIRD PARTY
         import matplotlib.pyplot as plt
@@ -776,16 +732,7 @@ class FitResult:
         if scalar:
             theta = self.fit_values["rotation"]
             # plt.axvline(theta)
-            plt.scatter(theta, self.residual_scalar, c="r")
+            plt.scatter(theta.to_value(u.deg), self.residual_scalar, c="r")
 
         else:
             raise NotImplementedError
-
-    # /def
-
-
-# /class
-
-
-##############################################################################
-# END

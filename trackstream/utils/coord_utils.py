@@ -3,7 +3,7 @@
 """Coordinates Utilities."""
 
 
-__all__ = ["cartesian_to_spherical", "reference_to_skyoffset_matrix", "resolve_framelike"]
+__all__ = ["reference_to_skyoffset_matrix", "resolve_framelike"]
 
 
 ##############################################################################
@@ -31,36 +31,6 @@ from trackstream.config import conf
 ##############################################################################
 # CODE
 ##############################################################################
-
-
-def cartesian_to_spherical(
-    x: ArrayLike,
-    y: ArrayLike,
-    z: ArrayLike,
-    deg: bool = False,
-) -> T.Tuple[ArrayLike, ArrayLike, ArrayLike]:
-    """Cartesian to Spherical.
-
-    Adopts the Astropy ranges for `lon` and `lat`.
-
-    Parameters
-    ----------
-    x, y, z : scalar or ndarray
-    deg : bool
-        Whether to return in degrees or radians -- default radians.
-
-    Returns
-    -------
-    r, lat, lon : scalar or ndarray
-    """
-    r = np.sqrt(x ** 2.0 + y ** 2.0 + z ** 2.0)
-    lon, lat = erfa_ufunc.c2s(np.c_[x, y, z])
-
-    if deg:
-        lat *= 180.0 / np.pi
-        lon *= 180.0 / np.pi
-
-    return lon, lat, r
 
 
 def reference_to_skyoffset_matrix(
