@@ -78,7 +78,7 @@ def make_ordered_orbit_data(
     unit: UnitType = unit,
     frame: FrameLikeType = "galactocentric",
     representation_type: RepLikeType = "cartesian",
-) -> coord.BaseRepresentation:
+) -> coord.SkyCoord:
     """Make Ordered Orbit Data.
 
     Parameters
@@ -89,26 +89,16 @@ def make_ordered_orbit_data(
 
     Returns
     -------
-    data : Sequence
+    SkyCoord
         (`num`, 3) array
-
     """
-    o = get_orbit(
-        stop=stop,
-        num=num,
-        unit=unit,
-    )
-
-    # get representation
+    o = get_orbit(stop=stop, num=num, unit=unit)
     sc = o.SkyCoord(o.time())
-    sc_new = sc.transform_to(frame)
 
-    rep: coord.BaseRepresentation = sc_new.represent_as(representation_type)
+    tsc = sc.transform_to(frame)
+    tsc.representation_type = representation_type
 
-    data = rep.without_differentials()
-    # data = data.get_xyz().T
-
-    return data
+    return tsc
 
 
 # -------------------------------------------------------------------
@@ -131,11 +121,10 @@ def make_unordered_orbit_data(
 
     Returns
     -------
-    data : Sequence
+    SkyCoord
         (`num`, 3) array
-
     """
-    X = make_ordered_orbit_data(
+    osc = make_ordered_orbit_data(
         stop=stop,
         num=num,
         unit=unit,
@@ -143,9 +132,8 @@ def make_unordered_orbit_data(
         representation_type=representation_type,
     )
 
-    shuffler, undo = make_shuffler(len(X))
-
-    data = X[shuffler]
+    shuffler, _ = make_shuffler(len(osc))
+    data = osc[shuffler]
 
     return data
 
@@ -179,39 +167,23 @@ def make_noisy_orbit_data(
 
     """
     if rnd is None:
-        try:
-            rnd = np.random.default_rng(seed=None)
-        except AttributeError:
-            rnd = np.random.RandomState(seed=None)
+        rnd = np.random.default_rng(seed=None)
 
     if sigma is None:
-        if representation_type.lower() == "cartesian":
-            sigma = dict(x=0.25, y=0.25, z=0.01)
-        else:
-            raise ValueError(
-                (
-                    "don't have a default sigma for "
-                    "representation_type = {}".format(representation_type)
-                ),
-            )
+        sigma = dict(x=0.25, y=0.25, z=0.01)
 
-    X = make_unordered_orbit_data(
+    sc = make_unordered_orbit_data(
         stop=stop,
         num=num,
         unit=unit,
         frame=frame,
-        representation_type=representation_type,
+        representation_type="cartesian",
     )
-
-    recarr = X._values  # numpy recarray
-
+    
     # make representation with gaussian-convolved values.
-    data = X.__class__(**{n: rnd.normal(recarr[n], scale=sigma[n]) for n in recarr.dtype.names})
+    arr = sc.data._values  # numpy structured array
+    data = coord.CartesianRepresentation(**{n: rnd.normal(arr[n], scale=sigma[n]) for n in arr.dtype.names})
 
-    return data
+    nsc = sc.realize_frame(data)
 
-
-# -------------------------------------------------------------------
-
-##############################################################################
-# END
+    return nsc
