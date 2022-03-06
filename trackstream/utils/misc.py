@@ -103,7 +103,3 @@ def make_shuffler(
     undo = shuffler.argsort()  # and construct the un-shuffler
 
     return shuffler, undo
-
-
-##############################################################################
-# END

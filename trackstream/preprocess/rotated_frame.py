@@ -5,7 +5,6 @@
 
 __all__ = [
     "RotatedFrameFitter",
-    "cartesian_model",
     "residual",
 ]
 
@@ -25,11 +24,12 @@ import astropy.units as u
 import numpy as np
 import scipy.optimize as opt
 from astropy.utils.decorators import lazyproperty
+from erfa import ufunc as erfa_ufunc
 
 # LOCAL
 from trackstream.config import conf
 from trackstream.setup_package import HAS_LMFIT
-from trackstream.utils import cartesian_to_spherical, reference_to_skyoffset_matrix
+from trackstream.utils import reference_to_skyoffset_matrix
 
 if HAS_LMFIT:
     # THIRD PARTY
@@ -103,8 +103,7 @@ def cartesian_model(
     lon: T.Union[u.Quantity, float],
     lat: T.Union[u.Quantity, float],
     rotation: T.Union[u.Quantity, float],
-    deg: bool = True,
-) -> T.Tuple:
+) -> T.Tuple[u.Quantity, u.Quantity, u.Quantity]:
     """Model from Cartesian Coordinates.
 
     Parameters
@@ -125,19 +124,13 @@ def cartesian_model(
     -------
     r, lat, lon : array_like
         Same shape as `x`, `y`, `z`.
-
-    Other Parameters
-    ----------------
-    deg : bool
-        whether to return `lat` and `lon` as degrees
-        (default True) or radians.
     """
     rot_matrix = reference_to_skyoffset_matrix(lon, lat, rotation)
-    rot_xyz = np.dot(rot_matrix, data.xyz.value).reshape(-1, len(data))
+    rot_xyz = np.dot(rot_matrix, data.xyz).T
 
     # cartesian to spherical
-    r = np.sqrt(np.sum(np.square(rot_xyz)))
-    lon, lat = erfa_ufunc.c2s(rot_xyz[None, :]) * (1 if not deg else 180.0 / np.pi)
+    r = np.sqrt(np.sum(np.square(rot_xyz), axis=-1))
+    lon, lat = erfa_ufunc.c2s(rot_xyz)
 
     return r, lon, lat
 
@@ -181,7 +174,7 @@ def residual(
         Whether to sum `res` into a float.
         Note that if `res` is also a float, it is unaffected.
     """
-    rotation=variables[0]
+    rotation = variables[0]
     lon = variables[1]
     lat = variables[2]
 
@@ -189,15 +182,9 @@ def residual(
     rot_matrix = reference_to_skyoffset_matrix(lon, lat, rotation)
     rot_xyz = np.dot(rot_matrix, data.xyz.value).reshape(-1, len(data))
 
-    _, _, phi2 = cartesian_model(
-        data,
-        lon=variables[1],
-        lat=variables[2],
-        rotation=variables[0],
-        deg=True
-    )
+    _, _, phi2 = cartesian_model(data, lon=variables[1], lat=variables[2], rotation=variables[0])
     # Residual
-    res = np.abs(phi2 - 0.0) / len(phi2)  # phi2 - 0
+    res = np.abs(phi2.to_value(u.deg) - 0.0) / len(phi2)  # phi2 - 0
 
     return res if not scalar else np.sum(res)
 
@@ -239,12 +226,15 @@ class RotatedFrameFitter(object):
     align_v : bool
         Whether to align by the velocity.
     """
+
     data: coord.BaseCoordinateFrame
     origin: coord.ICRS
     bounds: np.ndarray
     fitter_kwargs: T.Dict[str, T.Any]
 
-    def __init__(self, data: coord.BaseCoordinateFrame, origin: coord.ICRS, **kwargs: T.Any) -> None:
+    def __init__(
+        self, data: coord.BaseCoordinateFrame, origin: coord.ICRS, **kwargs: T.Any
+    ) -> None:
         super().__init__()
         self.data = data
         self.origin = origin
@@ -430,7 +420,7 @@ class RotatedFrameFitter(object):
                 **kw,
             )
 
-        values = res.x << u.deg
+        values = result.x << u.deg
 
         return result, values
 
@@ -570,7 +560,7 @@ class RotatedFrameFitter(object):
             )
 
         else:  # scipy
-            use_leastsquares = kwargs.pop("use_leastsquares")
+            use_leastsquares = kwargs.pop("use_leastsquares", None)
             fit_result, values = self._fit_representation_scipy(
                 self.data.cartesian,
                 x0=x0,
@@ -598,14 +588,14 @@ class RotatedFrameFitter(object):
     #######################################################
     # Plot
 
-#     def plot_data(self):
-#         # THIRD PARTY
-#         import matplotlib.pyplot as plt
-# 
-#         plt.scatter(self.data.ra, self.data.dec)
-#         # plt.ylim(-90, 90)
-# 
-#         # return fig
+    #     def plot_data(self):
+    #         # THIRD PARTY
+    #         import matplotlib.pyplot as plt
+    #
+    #         plt.scatter(self.data.ra, self.data.dec)
+    #         # plt.ylim(-90, 90)
+    #
+    #         # return fig
 
     def plot_residual(
         self,
@@ -628,6 +618,7 @@ class RotatedFrameFitter(object):
             fitresult.plot_on_residual(scalar=scalar)
 
         return fig
+
 
 # -------------------------------------------------------------------
 

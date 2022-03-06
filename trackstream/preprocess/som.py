@@ -171,16 +171,23 @@ class SelfOrganizingMap1D:
         # TODO! change to ChiSquare
         # REDUCES TO GAUSSIAN LIKELIHOOD
 
-    def _distance_from_weights(self, data):
+    def _distance_from_weights(self, data: np.ndarray) -> np.ndarray:
+        """Euclidean distance matrix.
+
+        Parameters
+        ----------
+        data : ndarray
+
+        Returns
+        -------
+        ndarray
+            A matrix D where D[i,j] is the euclidean distance between
+            data[i] and the j-th weight.
         """
-        Returns a matrix d where d[i,j] is the euclidean distance between
-        data[i] and the j-th weight.
-        """
-        input_data = np.array(data)
         weights_flat = self._weights.reshape(-1, self._weights.shape[2])
-        input_data_sq = np.power(input_data, 2).sum(axis=1, keepdims=True)
+        input_data_sq = np.power(data, 2).sum(axis=1, keepdims=True)
         weights_flat_sq = np.power(weights_flat, 2).sum(axis=1, keepdims=True)
-        cross_term = np.dot(input_data, weights_flat.T)
+        cross_term = np.dot(data, weights_flat.T)
         return np.sqrt(input_data_sq + weights_flat_sq.T - (2 * cross_term))
 
     # ---------------------------------------------------------------
@@ -234,6 +241,7 @@ class SelfOrganizingMap1D:
         """Assigns a code book (weights vector of the winning neuron)
         to each sample in data.
         """
+        data = np.array(data, copy=False)
         winners_coords = np.argmin(self._distance_from_weights(data), axis=1)
         return self._weights[np.unravel_index(winners_coords, self._weights.shape[:2])]
 

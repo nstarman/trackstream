@@ -25,7 +25,6 @@ from scipy.linalg import block_diag
 
 # LOCAL
 from . import _type_hints as TH
-from .stream import Stream
 from trackstream.preprocess.rotated_frame import FitResult, RotatedFrameFitter
 from trackstream.preprocess.som import SelfOrganizingMap1D, order_data, reorder_visits
 from trackstream.process.kalman import KalmanFilter, kalman_output
@@ -61,7 +60,7 @@ class TrackStream:
 
     def _fit_rotated_frame(
         self,
-        stream: Stream,
+        stream: "Stream",
         rot0: T.Optional[u.Quantity] = 0 * u.deg,
         bounds: T.Optional[T.Sequence] = None,
         **kwargs,
@@ -108,13 +107,17 @@ class TrackStream:
             If ``_data_frame`` is None
 
         """
+        # Make and run fitter
         fitter = RotatedFrameFitter(
             data=stream.data_coords,
             origin=stream.origin,
             **kwargs,
         )
-
         fitted = fitter.fit(rot0=rot0, bounds=bounds)
+
+        # Cache and return results
+        self._cache["frame"] = fitted.frame  # SkyOffsetICRS
+        self._cache["frame_fit"] = fitted
 
         return fitted.frame, fitted
 
@@ -136,36 +139,47 @@ class TrackStream:
     ):
         """Reorder data by SOM.
 
-        .. todo::
-
-            - iterative training
-
         Parameters
         ----------
         arm : SkyCoord
-        som : object or None (optional)
+        som : object or None, optional
             The self-organizing map. If None, will be constructed.
-        learning_rate : float (optional, keyword-only)
-        sigma : float (optional, keyword-only)
-        iterations : int (optional, keyword-only)
-        random_seed : int or None (optional, keyword-only)
-        reorder : int or None (optional, keyword-only)
-        progress : bool (optional, keyword-only)
+        learning_rate : float, optional keyword-only
+        sigma : float, optional keyword-only
+        iterations : int, optional keyword-only
+
+        random_seed : int or None, optional keyword-only
+        reorder : int or None, optional keyword-only
+        progress : bool, optional keyword-only
             Whether to show progress bar.
 
+        nlattice : int or None, optional, keyword-only
+            Number of lattice points.
+
+        Returns
+        -------
+        visit_order : array
+        som : SelfOrganizingMap1D
         """
-        # # TODO! iterative training
+        # TODO! iterative training
+        # TODO! allow differentials
+        print("Fitting SOM")
 
-        rep = arm.represent_as(coord.SphericalRepresentation)
-        data = rep._values.view("f8").reshape(-1, len(rep.components))
-        data[:, :2] *= u.rad.to(u.deg)  # rad -> deg
+        rep = arm.data  # ← Representation from SkyCoord  ↓ array of components
+        data = np.array([getattr(rep, n).value.view("f8") for n in rep.components]).T
 
+        # The SOM
         if som is None:
+
+            print("\tSOM is None")
+
             data_len, nfeature = data.shape
             if nlattice is None:
                 nlattice = data_len // 10  # allows to be variable
             if nlattice == 0:
                 raise ValueError
+
+            print("\t", data_len, nfeature, nlattice)
 
             som = SelfOrganizingMap1D(
                 nlattice,
@@ -181,6 +195,13 @@ class TrackStream:
             # call method to initialize SOM weights
             weight_init_method = kwargs.get("weight_init_method", "binned_weights_init")
             getattr(som, weight_init_method)(data, **kwargs)
+
+        #         else:  # we can get the initial ordering from the SOM
+        #             initial_visit_order = order_data(som, data)
+        #             if reorder is not None:
+        #                 initial_visit_order = reorder_visits(rep, visit_order, start_ind=reorder)
+        #
+        #             data = data[initial_visit_order]
 
         som.train(
             data,
@@ -212,7 +233,7 @@ class TrackStream:
         Parameters
         ----------
         stream : Stream
-        w0 : array or None (optional)
+        w0 : array or None, optional
             The starting point of the Kalman filter.
 
         Returns
@@ -265,9 +286,8 @@ class TrackStream:
         self,
         stream,
         *,
-        fit_frame_if_needed: bool = True,
+        tune_SOM: bool = True,
         rotated_frame_fit_kw: T.Optional[dict] = None,
-        fit_SOM_if_needed: bool = True,
         som_fit_kw: T.Optional[dict] = None,
         kalman_fit_kw: T.Optional[dict] = None,
     ):
@@ -277,44 +297,35 @@ class TrackStream:
         ----------
         fit_frame : bool
             Only fits frame if ``self.frame`` is None
-            The fit frame is ICRS always.
-
-            .. todo::
-
-                make fitting work in the frame of the data
 
         Returns
         -------
         StreamTrack instance
             Also stores as ``.track``
-
         """
         # -------------------
         # Fit Rotated Frame
-        # this step applies to all arms. In fact, it will perform better if both
-        # arms are present, limiting the influence of the tails on the frame
-        # orientation.
+        # this step applies to all arms. In fact, it will perform better if
+        # both arms are present, limiting the influence of the tails on the
+        # frame orientation.
+
+        frame: T.Optional[coord.BaseCoordinateFrame]
+        frame_fit: T.Optional[FitResult]
 
         # 1) Already provided or in cache.
         #    Either way, don't need to repeat the process.
-        frame: T.Optional[coord.BaseCoordinateFrame] = stream._system_frame
-        frame_fit: T.Optional[FitResult] = self._cache.get("frame_fit", None)
+        frame = stream.system_frame  # NOT .system_frame ?
+        frame_fit = self._cache.get("frame_fit", None)
 
         # 2) Fit (& cache), if still None.
-        #    This can be turned off using `fit_frame_if_needed`, but is
-        #    probably more important than the following step of the SOM.
-        if frame is None and fit_frame_if_needed:
+        if frame is None:
             kw: dict = rotated_frame_fit_kw or {}
             frame, frame_fit = self._fit_rotated_frame(stream, **kw)
-
-        # 3) if it's still None, give up
-        if frame is None:
-            frame: coord.BaseCoordinateFrame = stream.data_coord.frame.replicate_without_data()
-            frame_fit = None
 
         # Cache the fit frame on the stream. This is used for transforming the
         # coordinates into the system frame (if that wasn't provided to the
         # stream on initialization).
+        # TODO! don't override cache if it's the exact same
         self._cache["frame"] = frame  # SkyOffsetICRS
         self._cache["frame_fit"] = frame_fit
         stream._cache["frame"] = frame
@@ -333,14 +344,18 @@ class TrackStream:
         som = self._arm1_SOM
         visit_order = None
 
-        # 1) try to get from cache
+        # 1) try to get from cache (e.g. first time fitting)
         if som is None:
+            print("SOM is None")
             visit_order = self._cache.get("arm1_visit_order", None)
             som = self._cache.get("arm1_SOM", None)
-        # 2) fit, if still None
-        if visit_order is None and fit_SOM_if_needed:
-            som_fit_kw = som_fit_kw or {}
-            visit_order, som = self._fit_SOM(arm1, som=som, **som_fit_kw)
+        # 2) fit, if still None or force continued fit
+        if visit_order is None or tune_SOM:
+            print("SOM is still None. kwargs are:", som_fit_kw)
+            arm1 = arm1[visit_order if visit_order is not None else slice(None)]
+            visit_order, som = self._fit_SOM(arm1, som=som, **(som_fit_kw or {}))
+        elif tune_SOM:
+            visit_order, som = self._fit_SOM(arm1, som=som, **(som_fit_kw or {}))
         # 3) if it's still None, give up
         if visit_order is None:
             visit_order = np.argsort(arm1.lon)
@@ -363,14 +378,14 @@ class TrackStream:
         som = self._arm2_SOM
         visit_order = None
 
-        if arm2 is not None:
+        if stream.arm2.has_data:
 
             # 1) try to get from cache
             if som is None:
                 visit_order = self._cache.get("arm2_visit_order", None)
                 som = self._cache.get("arm2_SOM", None)
             # 2) fit, if still None
-            if visit_order is None and fit_SOM_if_needed:
+            if visit_order is None or tune_SOM:
                 som_fit_kw = som_fit_kw or {}
                 visit_order, som = self._fit_SOM(arm2, **som_fit_kw)
             # 3) if it's still None, give up
@@ -418,7 +433,7 @@ class TrackStream:
 
         # Arm 2
         # -----
-        if arm2 is None:
+        if not stream.arm2.has_data:
             mean2 = kf2 = dts2 = None
         else:
             mean2, kf2, dts2 = self._fit_kalman_filter(arm2, **kalman_fit_kw)
@@ -441,7 +456,7 @@ class TrackStream:
         # Combine together into a single path
         # Need to reverse order of one arm to be indexed toward origin, not away
 
-        if arm2 is None:
+        if not stream.arm2.has_data:
             affine, c, sigma = affine1, c1, sigma1
         else:
             affine = np.concatenate((-affine2[::-1], affine1))

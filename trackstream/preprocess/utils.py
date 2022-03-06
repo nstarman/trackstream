@@ -20,35 +20,24 @@ from collections.abc import Sequence
 
 # THIRD PARTY
 import numpy as np
+import astropy.units as u
 from astropy.coordinates import BaseRepresentation, CartesianRepresentation
 
 # LOCAL
 from trackstream._type_hints import CoordinateType
 
 ##############################################################################
-# PARAMETERS
-
-DataType = T.Union[CoordinateType, BaseRepresentation]
-
-##############################################################################
 # CODE
 ##############################################################################
 
 
-def find_closest_point(
-    data: DataType,
-    near_point: T.Union[BaseRepresentation, T.Sequence, np.ndarray],
-):
-    """Find starting point.
+def find_closest_point(data: CoordinateType, to_point: CoordinateType) -> CoordinateType:
+    """Find closest point, on sky if `to_point` is on-sky.
 
     Parameters
     ----------
-    data : |Representation| or |Frame| instance
-        Shape (# measurements, # features).
-        Must be transformable to Cartesian coordinates.
-    near_point : Sequence
-        Shape (1, # features)
-        If passing an array, can reshape with ``.reshape(1, -1)``
+    data : |SkyCoord| or |Frame| instance
+    to_point : |SkyCoord| or |Frame| instance
 
     Returns
     -------
@@ -59,20 +48,19 @@ def find_closest_point(
         If `return_ind` == True
 
     """
-    if isinstance(near_point, (Sequence, np.ndarray)):
-        near_point = CartesianRepresentation(near_point)
+    # Do we want the closes point in 3D or on-sky?
+    if to_point.spherical.distance.unit == u.one:  # on-sky
+        seps = data.separation(to_point)
     else:
-        near_point = near_point.represent_as(CartesianRepresentation)
+        seps = data.separation_3d(to_point)
 
-    data = data.represent_as(CartesianRepresentation)
-
-    start_ind = np.argmin((data - near_point).norm())
+    start_ind = np.argmin(seps)
     start_point = data[start_ind]
 
     return start_point, start_ind
 
 
-def set_starting_point(data: DataType, start_ind: int):
+def set_starting_point(data: CoordinateType, start_ind: int):
     """Reorder data to set starting index at row 0.
 
     Parameters

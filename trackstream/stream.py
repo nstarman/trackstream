@@ -9,6 +9,8 @@ __all__ = ["Stream"]
 # IMPORTS
 
 # STDLIB
+import itertools
+import re
 import typing as T
 import weakref
 
@@ -23,62 +25,64 @@ from astropy.utils.decorators import lazyproperty
 from trackstream._type_hints import CoordinateType, FrameType
 from trackstream.preprocess.som import SelfOrganizingMap1D
 from trackstream.utils.path import path_moments
+from trackstream.utils.descriptors import InstanceDescriptor
+from trackstream.core import TrackStream, StreamTrack
 
 ##############################################################################
 # CODE
 ##############################################################################
 
 
-class StreamArmDescriptor:
-    def __init__(self) -> None:
-        # references to parent class and instance
-        self._parent_attr = None  # set in __set_name__
-        self._parent_cls = None
-        self._parent_ref = None
+class StreamBase:
+    def _base_repr_(self, max_lines=None):
+        """Mirroring implementation in astropy Table."""
+        header: str = super().__repr__()
+        frame: str = repr(self.frame)
+        name: str = getattr(self, "full_name", self.name)  # name, with fallback
 
-    @property
-    def _parent(self):
-        """Parent instance Cosmology."""
-        return self._parent_ref() if self._parent_ref is not None else self._parent_cls
+        datarep: str = self.data._base_repr_(
+            html=False,
+            max_width=None,
+            max_lines=max_lines,
+        )
+        table: str = "\n\t".join(datarep.split("\n")[1:])
 
-    # ------------------------------------
+        return header + "\n  name: " + name + "\n  Frame:\n\t" + frame + "\n  Data:\n\t" + table
 
-    def __set_name__(self, objcls, name):
-        self._parent_attr = name
+    def __repr__(self) -> str:
+        return self._base_repr_(max_lines=self._data_max_lines)
 
-    def __get__(self, obj, objcls):
-        # accessed from a class
-        if obj is None:
-            self._parent_cls = objcls
-            return self
 
-        # accessed from an obj
-        equivs = obj.__dict__.get(self._parent_attr)  # get from obj
-        if equivs is None:  # hasn't been created on the obj
-            descriptor = self.__class__()
-            descriptor._parent_cls = obj.__class__
-            descriptor._parent_attr = self._parent_attr
-            obj.__dict__[self._parent_attr] = descriptor
+# ===================================================================
 
-        # We set `_parent_ref` on every call, since if one makes copies of objs,
-        # 'descriptor' will be copied as well, which will lose the reference.
-        descriptor._parent_ref = weakref.ref(obj)
-        return descriptor
 
-    # ------------------------------------
+class StreamArmDescriptor(InstanceDescriptor, StreamBase):
+    @lazyproperty
+    def name(self) -> str:
+        attr_name = list(filter(None, re.split("(\d+)", self._parent_attr)))
+        # e.g. arm1 -> ["arm", "1"]
+        return " ".join(attr_name)
+
+    @lazyproperty
+    def full_name(self) -> str:
+        parent_name = self._parent.name or "Stream"
+        return " ".join((parent_name + ",", self.name))
 
     @property
     def index(self) -> Column:
+        """Boolean array of which stars are in this arm."""
         return self._parent.data["tail"] == self._parent_attr
 
-    @property
-    def has_data(self):
+    @lazyproperty
+    def has_data(self) -> bool:
+        """Boolean of whether this arm has data."""
         return any(self.index)
 
     @property
     def data(self) -> Column:
+        """Return subset of full stream table that is for this arm."""
         if not self.has_data:
-            raise Exception("no arm 1")  # TODO! specific exception
+            raise Exception(f"{self._parent_attr} has no data")
         return self._parent.data[self.index]
 
     @property
@@ -88,8 +92,18 @@ class StreamArmDescriptor:
         arm = self._parent.coords[self.index]
         return arm
 
+    @property
+    def frame(self) -> coord.BaseCoordinateFrame:
+        """The coordinate frame of the data."""
+        return self._parent.frame
 
-# /class
+    @lazyproperty
+    def _data_max_lines(self) -> int:
+        """Maximum number of lines in the Table to print."""
+        return self._parent._data_max_lines
+
+
+# ===================================================================
 
 
 class Stream:
@@ -108,8 +122,7 @@ class Stream:
 
     frame : `~astropy.coordinates.BaseCoordinateFrame` or None (optional, keyword-only)
         The stream frame. Locally linearizes the data.
-        If not None, need to fit for the frame (default).
-
+        If None (default), need to fit for the frame.
     """
 
     arm1 = StreamArmDescriptor()
@@ -124,24 +137,31 @@ class Stream:
         data_err: T.Optional[Table] = None,
         *,
         frame: T.Optional[CoordinateType] = None,
+        name: T.Optional[str] = None,
     ):
+        self._name = name
+
         # system attributes
         self.origin: coord.SkyCoord = coord.SkyCoord(origin, copy=False)
         self._system_frame: T.Optional[FrameType] = frame
 
         self._cache = dict()  # TODO! improve
+        self._original_coord: coord.SkyCoord = None  # set _normalize_data
 
-        # ----------
-        # process the data
-
-        # seed values set in functions
-        self._original_data: coord.SkyCoord = None
-
-        # processed data -> QTable
+        # ---- Process the data ----
+        # processed data
         self.data: QTable = self._normalize_data(data)
         self._data_max_lines = 10
 
+        # ---- fitting the data ----
+        self._tracker = TrackStream()
+
     # -----------------------------------------------------
+
+    @property
+    def name(self) -> T.Optional[str]:
+        """The name of the stream."""
+        return self._name
 
     @property
     def system_frame(self) -> T.Optional[coord.BaseCoordinateFrame]:
@@ -155,7 +175,7 @@ class Stream:
         if self._system_frame is not None:
             frame = self._system_frame
         else:
-            frame = self._cache.get("frame")
+            frame = self._cache.get("frame")  # Can be `None`
 
         return frame
 
@@ -173,16 +193,13 @@ class Stream:
         number_of_tails : int
             There can only be 1, or 2 tidal tails.
         """
-        return 2 if (self.arm1.has_data and self.arm2.has_data) else 1
+        n: int = 2 if (self.arm1.has_data and self.arm2.has_data) else 1
+        return n
 
-    @property  # TODO! make lazy
+    @property
     def coords(self) -> coord.SkyCoord:
         """Coordinates."""
-        frame: coord.SkyCoord
-        if self.system_frame is not None:
-            frame = self.system_frame
-        else:
-            frame = self.data_frame
+        frame = self.system_frame if self.system_frame is not None else self.data_frame
         return self.data_coords.transform_to(frame)
 
     # ===============================================================
@@ -200,7 +217,7 @@ class Stream:
     # ===============================================================
     # Data normalization
 
-    def _normalize_data(self, original: Table) -> QTable:
+    def _normalize_data(self, original: T.Union[Table]) -> QTable:
         """Normalize data table.
 
         Just calls other functions.
@@ -226,8 +243,8 @@ class Stream:
         self._normalize_data_arm_index(original, data)
 
         # Metadata
-        # TODO? selective, or just copy over?
-        data.meta = original.meta.copy()  # TODO? deepcopy?
+        # TODO? selective, or just copy over? also, deepcopy?
+        data.meta = original.meta.copy()
 
         return data
 
@@ -283,6 +300,8 @@ class Stream:
         TypeError
             if `data` is not |Table| or |Frame|
         """
+        # ----------
+        # tail label
         # TODO!!! better
 
         data["tail"] = original["tail"]
@@ -292,11 +311,11 @@ class Stream:
 
         # First look for a column "coord"
         if "coord" in original.colnames:
-            sc = osc = coord.SkyCoord(original["coord"], copy=False)
+            osc = coord.SkyCoord(original["coord"], copy=False)
         else:
-            sc = osc = coord.SkyCoord.guess_from_table(original)
+            osc = coord.SkyCoord.guess_from_table(original)
 
-        self._original_data = osc
+        self._original_coord = osc
 
         # Convert frame and representation type
         frame = (
@@ -304,24 +323,36 @@ class Stream:
             if self.system_frame is not None
             else osc.frame.replicate_without_data()
         )
-        sc = sc.transform_to(frame)
-        sc.representation_type = coord.CartesianRepresentation
+        sc = osc.transform_to(frame)
+        sc.representation_type = frame.representation_type
 
         # it's now clean and can be added
         data["coord"] = sc
 
-        # also want to store the components, for plotting
-        compnames = sc.representation_component_names.keys()
-        for n in compnames:
-            data[n] = getattr(sc, n)
+        # Also store the components
+        component_names = list(sc.get_representation_component_names("base").keys())
+        #         self._component_names = component_names
+        #         if "s" in sc.data.differentials:
+        #             self._component_names.extend(sc.get_representation_component_names("s").keys())
+        #
+        #         for n in self._component_names:
+        #             data[n] = getattr(sc, n)
 
         # ----------
         # 2) the error
         # TODO! want errors in frame of the data
+        # import gala.coordinates as gc
+        # cov = np.array([[1, 0],
+        #                 [0, 1]])
+        # gc.transform_pm_cov(sc.icrs, np.repeat(cov[None, :], len(sc), axis=0),
+        #                     coord.Galactic())
 
-        err_cols = ["x_err", "y_err", "z_err"]
-        for n in err_cols:
-            data[n] = original[n]  # transfer
+        for n in component_names:  # transfer
+            dn = n + "_err"
+            if dn in original.colnames:
+                data[dn] = original[dn]
+            else:
+                data[dn] = 0 * getattr(sc, n)  # assume error is 0
 
         # ----------
 
@@ -350,8 +381,20 @@ class Stream:
     # ===============================================================
     # Fitting
 
+    def fit_frame(self, *, force: bool = False, **kw) -> coord.BaseCoordinateFrame:
+        """Fit a frame to the data."""
+        if self._system_frame is not None:
+            raise Exception("a system frame was given at initialization.")
+        elif self.system_frame is not None and not force:
+            raise Exception("already fit. use ``force`` to re-fit.")
+
+        frame, frame_fit = self._tracker._fit_rotated_frame(self, **kw)
+
+        self._cache["frame"] = frame
+        return frame
+
     @property
-    def track(self) -> "StreamTrack":  # noqa: F821
+    def track(self) -> StreamTrack:
         """Stream track.
 
         Raises
@@ -364,20 +407,11 @@ class Stream:
             raise ValueError("need to fit track.")
         return track
 
-    def fit_track(
-        self,
-        arm1SOM: T.Optional[SelfOrganizingMap1D] = None,
-        arm2SOM: T.Optional[SelfOrganizingMap1D] = None,
-        *,
-        force: bool = False,
-        **kwargs,
-    ) -> "StreamTrack":  # noqa: F821
+    def fit_track(self, *, force: bool = False, **kwargs: T.Any) -> StreamTrack:
         """Make a stream track.
 
         Parameters
         ----------
-        arm1SOM, arm2SOM : `~trackstream.preprocess.SelfOrganizingMap` (optional, keyword-only)
-            Fiducial SOMs for stream arms 1 and 2, respectively.
         force : bool
             Whether to force a fit, even if already fit.
         **kwargs
@@ -387,21 +421,17 @@ class Stream:
         -------
         `trackstream.StreamTrack`
         """
-        if not force and "tracker" in self._cache:
+        if not force and "track" in self._cache:
             raise Exception("already fit. use ``force`` to re-fit.")
 
-        # LOCAL
-        from trackstream.core import StreamTrack, TrackStream
-
-        self._cache["tracker"] = tracker = TrackStream(arm1SOM=arm1SOM, arm2SOM=arm2SOM)
-
-        track: StreamTrack = tracker.fit(self, **kwargs)
+        track: StreamTrack = self._tracker.fit(self, **kwargs)
         self._cache["track"] = track
 
         # Add SOM ordering to data
         self.data["SOM"] = np.empty(len(self.data), dtype=int)
-        self.data["SOM"][self.arm1.index] = tracker._cache["arm1_visit_order"]
-        self.data["SOM"][self.arm2.index] = tracker._cache["arm2_visit_order"]
+        self.data["SOM"][self.arm1.index] = self._tracker._cache["arm1_visit_order"]
+        if self.arm2.has_data:
+            self.data["SOM"][self.arm2.index] = self._tracker._cache["arm2_visit_order"]
 
         return track
 
@@ -419,14 +449,14 @@ class Stream:
     # Misc
 
     def _base_repr_(self, max_lines=None):
-        """mirroring implementation in astropy Table."""
+        """Mirroring implementation in astropy Table."""
         header: str = super().__repr__()
         frame: str = repr(self.frame)
 
         datarep: str = self.data._base_repr_(
             html=False,
             max_width=None,
-            max_lines=self._data_max_lines,
+            max_lines=max_lines,
         )
         table: str = "\n\t".join(datarep.split("\n")[1:])
 

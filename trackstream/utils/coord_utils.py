@@ -18,7 +18,6 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import BaseCoordinateFrame, SkyCoord, sky_coordinate_parsers
 from astropy.coordinates.matrix_utilities import matrix_product, rotation_matrix
-from erfa import ufunc as erfa_ufunc
 
 # LOCAL
 from trackstream._type_hints import ArrayLike, FrameLikeType

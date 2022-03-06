@@ -133,9 +133,9 @@ def make_unordered_orbit_data(
     )
 
     shuffler, _ = make_shuffler(len(osc))
-    data = osc[shuffler]
+    usc = osc[shuffler]
 
-    return data
+    return usc
 
 
 # -------------------------------------------------------------------
@@ -144,7 +144,7 @@ def make_unordered_orbit_data(
 def make_noisy_orbit_data(
     stop: float = stop,
     num: int = num,
-    sigma: T.Optional[T.Dict[str, float]] = None,
+    sigma: T.Optional[T.Dict[str, u.Quantity]] = None,
     unit: UnitType = unit,
     frame: FrameLikeType = "galactocentric",
     representation_type: RepLikeType = "cartesian",
@@ -156,8 +156,8 @@ def make_noisy_orbit_data(
     ----------
     stop : float
     num : int
-    sigma : tuple
-        (0.35, 0.35, 0.08)
+    sigma : dict[str, Quantity] or None, optional
+        Errors in Galactocentric Cartesian coordinates
     unit : Unit
 
     Returns
@@ -166,24 +166,29 @@ def make_noisy_orbit_data(
         (`num`, 3) array
 
     """
-    if rnd is None:
-        rnd = np.random.default_rng(seed=None)
+    # Get random state
+    rnd = rnd if isinstance(rnd, np.random.Generator) else np.random.default_rng(seed=rnd)
 
     if sigma is None:
-        sigma = dict(x=0.25, y=0.25, z=0.01)
+        sigma = dict(x=100 * u.pc, y=100 * u.pc, z=20 * u.pc)
 
-    sc = make_unordered_orbit_data(
+    usc = make_unordered_orbit_data(
         stop=stop,
         num=num,
         unit=unit,
-        frame=frame,
+        frame="galactocentric",
         representation_type="cartesian",
     )
-    
-    # make representation with gaussian-convolved values.
-    arr = sc.data._values  # numpy structured array
-    data = coord.CartesianRepresentation(**{n: rnd.normal(arr[n], scale=sigma[n]) for n in arr.dtype.names})
 
-    nsc = sc.realize_frame(data)
+    # Noisy SkyCoord with gaussian-convolved values.
+    noisy = {
+        n: rnd.normal(getattr(usc.data, n).to_value(unit), scale=sigma[n].to_value(unit)) * unit
+        for n, unit in usc.data._units.items()
+    }
+    nsc = coord.SkyCoord(usc.realize_frame(coord.CartesianRepresentation(**noisy)))
 
-    return nsc
+    # transformed to desired frame and representation type
+    sc = nsc.transform_to(frame)
+    sc.representation_type = representation_type
+
+    return sc
