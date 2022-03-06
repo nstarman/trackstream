@@ -23,10 +23,10 @@ from astropy.utils.decorators import lazyproperty
 
 # LOCAL
 from trackstream._type_hints import CoordinateType, FrameType
+from trackstream.core import StreamTrack, TrackStream
 from trackstream.preprocess.som import SelfOrganizingMap1D
-from trackstream.utils.path import path_moments
 from trackstream.utils.descriptors import InstanceDescriptor
-from trackstream.core import TrackStream, StreamTrack
+from trackstream.utils.path import path_moments
 
 ##############################################################################
 # CODE

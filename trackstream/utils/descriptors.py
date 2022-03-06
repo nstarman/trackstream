@@ -13,7 +13,6 @@ __all__ = ["InstanceDescriptor"]
 import typing as T
 import weakref
 
-
 ##############################################################################
 # PARAMETERS
 

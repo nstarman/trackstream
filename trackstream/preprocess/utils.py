@@ -19,8 +19,8 @@ import typing as T
 from collections.abc import Sequence
 
 # THIRD PARTY
-import numpy as np
 import astropy.units as u
+import numpy as np
 from astropy.coordinates import BaseRepresentation, CartesianRepresentation
 
 # LOCAL

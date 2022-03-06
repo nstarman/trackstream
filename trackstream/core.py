@@ -163,24 +163,21 @@ class TrackStream:
         """
         # TODO! iterative training
         # TODO! allow differentials
-        print("Fitting SOM")
+        # print("Fitting SOM")
 
         rep = arm.data  # ← Representation from SkyCoord  ↓ array of components
         data = np.array([getattr(rep, n).value.view("f8") for n in rep.components]).T
 
         # The SOM
         if som is None:
-
-            print("\tSOM is None")
-
+            # print("\tSOM is None")
             data_len, nfeature = data.shape
             if nlattice is None:
                 nlattice = data_len // 10  # allows to be variable
             if nlattice == 0:
                 raise ValueError
 
-            print("\t", data_len, nfeature, nlattice)
-
+            # print("\t", data_len, nfeature, nlattice)
             som = SelfOrganizingMap1D(
                 nlattice,
                 nfeature,
@@ -346,12 +343,12 @@ class TrackStream:
 
         # 1) try to get from cache (e.g. first time fitting)
         if som is None:
-            print("SOM is None")
+            # print("SOM is None")
             visit_order = self._cache.get("arm1_visit_order", None)
             som = self._cache.get("arm1_SOM", None)
         # 2) fit, if still None or force continued fit
         if visit_order is None or tune_SOM:
-            print("SOM is still None. kwargs are:", som_fit_kw)
+            # print("SOM is still None. kwargs are:", som_fit_kw)
             arm1 = arm1[visit_order if visit_order is not None else slice(None)]
             visit_order, som = self._fit_SOM(arm1, som=som, **(som_fit_kw or {}))
         elif tune_SOM:

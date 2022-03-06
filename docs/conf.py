@@ -36,9 +36,7 @@ try:
     # THIRD PARTY
     from sphinx_astropy.conf.v1 import *  # noqa: F401, F403
 except ImportError:
-    print(
-        "ERROR: documentation requires installing the sphinx-astropy package",
-    )
+    print("documentation requires installing the sphinx-astropy package")
     sys.exit(1)
 
 
