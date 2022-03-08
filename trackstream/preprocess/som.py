@@ -2,9 +2,6 @@
 
 """Self-Organizing Maps.
 
-TODO find slowest lines
-https://marcobonzanini.com/2015/01/05/my-python-code-is-slow-tips-for-profiling/
-
 References
 ----------
 .. [MiniSom] Giuseppe Vettigli. MiniSom: minimalistic and NumPy-based
@@ -92,7 +89,6 @@ class SelfOrganizingMap1D:
     activation_distance : 'euclidean'
         Distance used to activate the map.
 
-
     References
     ----------
     .. [MiniSom] Giuseppe Vettigli. MiniSom: minimalistic and NumPy-based
@@ -109,8 +105,8 @@ class SelfOrganizingMap1D:
         learning_rate: float = 0.3,
         decay_function: T.Union[T.Callable, TE.Literal["asymptotic"]] = "asymptotic",
         random_seed: T.Optional[int] = None,
-        **kwargs,
-    ):
+        **kwargs: T.Any,
+    ) -> None:
         if sigma >= 1 or sigma >= nlattice:
             warnings.warn("sigma is too high for the dimension of the map")
 
@@ -124,49 +120,50 @@ class SelfOrganizingMap1D:
 
         self._rng = random.default_rng(random_seed)
 
-        self._activation_map = np.zeros((1, nlattice))
         # used to evaluate the neighborhood function
-        self._neigy = np.arange(nlattice)
-        self._yy = self._neigy.reshape((-1, 1)).astype(float)
+        self._yy = np.arange(nlattice).astype(float)
 
         # random initialization
-        self._weights = 2 * self._rng.random((1, nlattice, nfeature)) - 1
-        self._weights /= linalg.norm(self._weights, axis=-1, keepdims=True)
+        self._prototypes = 2 * self._rng.random((nlattice, nfeature)) - 1
+        self._prototypes /= linalg.norm(self._prototypes, axis=-1, keepdims=True)
 
     @property
-    def nlattice(self):
+    def nlattice(self) -> int:
         """Number of lattice points."""
         return self._nlattice
 
     @property
-    def nfeature(self):
+    def nfeature(self) -> int:
         """Number of features."""
         return self._nfeature
 
     @property
-    def sigma(self):
+    def sigma(self) -> float:
         return self._sigma
 
     @property
-    def learning_rate(self):
+    def learning_rate(self) -> float:
         """Learning Rate."""
         return self._learning_rate
 
     @property
-    def decay_function(self):
+    def decay_function(self) -> T.Callable:
         """Decay function."""
         return self._decay_function
 
+    @property
+    def prototypes(self):
+        "Read-only view of prototypes vectors."
+        # ensure _prototypes is writeable
+        self._prototypes.flags.writeable = True
+
+        p = self._prototypes.view()
+        p.flags.writeable = False
+        return p
+
     # ===============================================================
 
-    def _activate(self, x):
-        """
-        Updates matrix activation_map, in this matrix the element i,j is the
-        response of the neuron i,j to x.
-        """
-        self._activation_map = self._activation_distance(x, self._weights)
-
-    def _activation_distance(self, x, w):
+    def _activation_distance(self, x, w) -> float:
         return linalg.norm(np.subtract(x, w), axis=-1)
         # TODO! change to ChiSquare
         # REDUCES TO GAUSSIAN LIKELIHOOD
@@ -184,7 +181,7 @@ class SelfOrganizingMap1D:
             A matrix D where D[i,j] is the euclidean distance between
             data[i] and the j-th weight.
         """
-        weights_flat = self._weights.reshape(-1, self._weights.shape[2])
+        weights_flat = self._prototypes
         input_data_sq = np.power(data, 2).sum(axis=1, keepdims=True)
         weights_flat_sq = np.power(weights_flat, 2).sum(axis=1, keepdims=True)
         cross_term = np.dot(data, weights_flat.T)
@@ -192,7 +189,7 @@ class SelfOrganizingMap1D:
 
     # ---------------------------------------------------------------
 
-    def pca_weights_init(self, data, **kw):
+    def pca_weights_init(self, data: np.ndarray, **kw: T.Any) -> None:
         """Initializes the weights to span the first two principal components.
 
         This initialization doesn't depend on random processes and
@@ -207,10 +204,10 @@ class SelfOrganizingMap1D:
         pc0 = pc[pc_order[0]]
         pc1 = pc[pc_order[1]]
 
-        for j, c2 in enumerate(np.linspace(-1, 1, len(self._neigy))):
-            self._weights[0, j] = -1 * pc0 + c2 * pc1
+        for j, c2 in enumerate(np.linspace(-1, 1, self.nlattice)):
+            self._prototypes[j] = -1 * pc0 + c2 * pc1
 
-    def binned_weights_init(self, data, byphi=False, **kw):
+    def binned_weights_init(self, data: np.ndarray, byphi: bool=False, **kw: T.Any) -> None:
         r"""Initialize prototype vectors from binned data.
 
         Paramters
@@ -220,7 +217,6 @@ class SelfOrganizingMap1D:
         byphi : bool, optional
             Whether to bin by the longitude, or by :math:`\phi=atan(lat/lon)`
         """
-        nbins = len(self._neigy)
         if byphi:
             x = np.arctan2(data[:, 1], data[:, 0])
         else:
@@ -228,22 +224,21 @@ class SelfOrganizingMap1D:
         xlen = len(x)
 
         # create equi-frequency bins
-        bins = np.interp(np.linspace(0, xlen, nbins + 1), np.arange(xlen), np.sort(x))
+        bins = np.interp(np.linspace(0, xlen, self.nlattice + 1), np.arange(xlen), np.sort(x))
         # compute the mean positions
         res = binned_statistic(x, data.T, bins=bins, statistic="median")
 
-        # TODO! just self._weights b/c 1D
-        self._weights[0] = res.statistic.T
+        self._prototypes = res.statistic.T
 
     # ---------------------------------------------------------------
 
-    def quantization(self, data):
+    def quantization(self, data: np.ndarray) -> np.ndarray:
         """Assigns a code book (weights vector of the winning neuron)
         to each sample in data.
         """
         data = np.array(data, copy=False)
         winners_coords = np.argmin(self._distance_from_weights(data), axis=1)
-        return self._weights[np.unravel_index(winners_coords, self._weights.shape[:2])]
+        return self._prototypes[winners_coords]
 
     def quantization_error(self, data):
         """
@@ -303,7 +298,7 @@ class SelfOrganizingMap1D:
         return (1 * ay).T  # the external product gives a matrix
 
     def update(self, x, win, t, max_iteration):
-        """Updates the weights of the neurons.
+        """Updates the locations of the prototypes.
 
         Parameters
         ----------
@@ -315,7 +310,6 @@ class SelfOrganizingMap1D:
             Iteration index
         max_iteration : int
             Maximum number of training itarations.
-
         """
         eta = self._decay_function(self._learning_rate, t, max_iteration)
         # sigma and learning rate decrease with the same rule
@@ -323,18 +317,12 @@ class SelfOrganizingMap1D:
         # improves the performances
         g = self.neighborhood(win, sig) * eta
         # w_new = eta * neighborhood_function * (x-w)
-        self._weights += np.einsum("ij, ijk->ijk", g, x - self._weights)
+        self._prototypes += np.einsum("i, ij->ij", g, x - self._prototypes)
 
     def winner(self, x):
         """Computes the coordinates of the winning neuron for the sample x."""
-        self._activate(x)
-        return np.unravel_index(
-            self._activation_map.argmin(),
-            self._activation_map.shape,
-        )
-
-
-# /class
+        activation_map = self._activation_distance(x, self._prototypes)
+        return activation_map.argmin()
 
 
 # -------------------------------------------------------------------
@@ -482,9 +470,6 @@ def reorder_visits(
 #     getattr(som, weight_init_method)(data)
 #
 #     return som
-#
-#
-# # /def
 
 
 # def apply_SOM(
@@ -584,9 +569,6 @@ def reorder_visits(
 #         order = visit_order
 #
 #     return order, som
-#
-#
-# # /def
 
 # -------------------------------------------------------------------
 
@@ -625,12 +607,12 @@ def order_data(som, data):
     """
     # length of data, number of features: (x, y, z) or (ra, dec), etc.
     data_len, nfeature = data.shape
-    nlattice = som._neigy[-1] + 1
+    nlattice = som.nlattice
 
     # vector from one point to next  (nlattice-1, nfeature)
-    lattice_points = som._weights
-    p1 = lattice_points[0, :-1, :]
-    p2 = lattice_points[0, 1:, :]
+    lattice_points = som.prototypes
+    p1 = lattice_points[:-1, :]
+    p2 = lattice_points[1:, :]
     # vector from one point to next  (nlattice-1, nfeature)
     viip1 = p2 - p1
     # square distance from one point to next  (nlattice-1, nfeature)
@@ -785,9 +767,3 @@ def order_data(som, data):
 #         orders[i] = order
 #
 #     return orders
-#
-#
-# # /def
-
-##############################################################################
-# END
