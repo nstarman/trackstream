@@ -362,7 +362,13 @@ class TrackStream:
         # the visit order can be backward so need to detect proximity to origin
         # TODO! more careful if closest point not end point. & adjust SOM!
         arm1ep = arm1[visit_order[[0, -1]]]  # end points
-        if np.argmin(arm1ep.separation_3d(stream.origin)) == 1:
+
+        # FIXME! be careful about 2d versus 3d
+        try:
+            sep = arm1ep.separation_3d(stream.origin)
+        except ValueError: 
+            sep = arm1ep.separation(stream.origin)
+        if np.argmin(sep) == 1:
             visit_order = visit_order[::-1]
         arm1 = arm1[visit_order]
 
@@ -393,7 +399,11 @@ class TrackStream:
             # the visit order can be backward so need to detect proximity to origin
             # TODO! more careful if closest point not end point. & adjust SOM!
             arm2ep = arm2[visit_order[[0, -1]]]  # end points
-            if np.argmin(arm2ep.separation_3d(stream.origin)) == 1:
+            try:
+                sep = arm2ep.separation_3d(stream.origin)
+            except ValueError: 
+                sep = arm2ep.separation(stream.origin)
+            if np.argmin(sep) == 1:
                 visit_order = visit_order[::-1]
             arm2 = arm2[visit_order]
 
