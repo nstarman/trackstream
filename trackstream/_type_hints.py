@@ -24,7 +24,7 @@ __credits__ = ["Astropy"]
 # IMPORTS
 
 # STDLIB
-import typing as T
+from typing import TypeVar, Union
 
 # THIRD PARTY
 import astropy.coordinates as coord
@@ -38,27 +38,27 @@ import numpy as np
 # -------------------------------------
 # NumPy types
 
-ArrayLike = T.Union[float, np.ndarray]  # np.generic isn't compatible
+ArrayLike = Union[float, np.ndarray]  # np.generic isn't compatible
 
 
 # -------------------------------------
 # Astropy types
 
-RepLikeType = T.Union[coord.BaseRepresentation, str]
+RepLikeType = Union[coord.BaseRepresentation, str]
 
-FrameType = T.TypeVar("FrameType", bound=coord.BaseCoordinateFrame)
+FrameType = TypeVar("FrameType", bound=coord.BaseCoordinateFrame)
 """|Frame|"""
 
-CoordinateType = T.Union[FrameType, coord.SkyCoord]
+CoordinateType = Union[FrameType, coord.SkyCoord]
 """|Frame| or |SkyCoord|"""
 
-FrameLikeType = T.Union[CoordinateType, str]
+FrameLikeType = Union[CoordinateType, str]
 """|Frame| or |SkyCoord| or `str`"""
 
-UnitType = T.Union[u.UnitBase, u.FunctionUnitBase]
+UnitType = Union[u.UnitBase, u.FunctionUnitBase]
 """|Unit| or :class:`~astropy.units.FunctionUnitBase`"""
 
-UnitLikeType = T.Union[UnitType, str]
+UnitLikeType = Union[UnitType, str]
 """|Unit| or :class:`~astropy.units.FunctionUnitBase` or str"""
 
 ##############################################################################

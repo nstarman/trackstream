@@ -105,16 +105,6 @@ class TestSelfOrganizingMap1D:
             som._distance_from_weights(data[::2, ::2])
 
     @pytest.mark.skip("TODO!")
-    def test_pca_weights_init(self, som):
-        """Test ``SelfOrganizingMap1D.pca_weights_init``."""
-        assert False
-
-    @pytest.mark.skip("TODO!")
-    def test_binned_weights_init(self, som):
-        """Test ``SelfOrganizingMap1D.binned_weights_init``."""
-        assert False
-
-    @pytest.mark.skip("TODO!")
     def test_quantization(self, som):
         """Test ``SelfOrganizingMap1D.quantization``."""
         assert False
@@ -125,8 +115,8 @@ class TestSelfOrganizingMap1D:
         assert False
 
     @pytest.mark.skip("TODO!")
-    def test_train(self, som):
-        """Test :meth:`trackstream.preprocess.som.SelfOrganizingMap1D.train`."""
+    def test_fit(self, som):
+        """Test :meth:`trackstream.preprocess.som.SelfOrganizingMap1D.fit`."""
         assert False
 
     @pytest.mark.skip("TODO!")

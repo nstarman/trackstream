@@ -19,13 +19,15 @@ __credits__ = "MiniSom"
 # IMPORTS
 
 # STDLIB
-import typing as T
 import warnings
+from typing import Any, Callable, Literal, Optional, Sequence, Union
 
 # THIRD PARTY
+import astropy.units as u
 import numpy as np
-import typing_extensions as TE
+from astropy.coordinates import BaseCoordinateFrame, BaseRepresentation, SkyCoord
 from numpy import linalg, pi, random
+from numpy.lib.recfunctions import structured_to_unstructured
 from scipy.stats import binned_statistic
 
 # LOCAL
@@ -39,6 +41,8 @@ warnings.filterwarnings(
     "ignore",
     message="Warning: sigma is too high for the dimension of the map.",
 )
+
+DataType = Union[CoordinateType, BaseRepresentation]
 
 
 ##############################################################################
@@ -78,7 +82,7 @@ class SelfOrganizingMap1D:
         2. current iteration
         3. maximum number of iterations allowed
 
-    random_seed : int, optional (default=None)
+    random_seed : int, optional keyword-only (default=None)
         Random seed to use.
 
     Notes
@@ -94,22 +98,33 @@ class SelfOrganizingMap1D:
     .. [MiniSom] Giuseppe Vettigli. MiniSom: minimalistic and NumPy-based
         implementation of the Self Organizing Map.
     .. [frankenz] Josh Speagle. Frankenz: a photometric redshift monstrosity.
-
     """
 
     def __init__(
         self,
         nlattice: int,
         nfeature: int,
+        frame: BaseCoordinateFrame,
+        *,
         sigma: float = 0.1,
         learning_rate: float = 0.3,
-        decay_function: T.Union[T.Callable, TE.Literal["asymptotic"]] = "asymptotic",
-        random_seed: T.Optional[int] = None,
-        **kwargs: T.Any,
+        decay_function: Union[Callable, Literal["asymptotic"]] = "asymptotic",
+        random_seed: Optional[int] = None,
+        representation_type=None,
+        **kwargs: Any,
     ) -> None:
         if sigma >= 1 or sigma >= nlattice:
             warnings.warn("sigma is too high for the dimension of the map")
 
+        # for interpreting input data
+        if representation_type is None:
+            self._representation_type = frame.representation_type
+        else:
+            self._representation_type = representation_type
+        self._frame = frame.replicate_without_data(representation_type=representation_type)
+        self._units = None
+
+        # normal SOM stuff
         self._nlattice = nlattice
         self._nfeature = nfeature
         self._sigma = sigma
@@ -125,7 +140,23 @@ class SelfOrganizingMap1D:
 
         # random initialization
         self._prototypes = 2 * self._rng.random((nlattice, nfeature)) - 1
-        self._prototypes /= linalg.norm(self._prototypes, axis=-1, keepdims=True)
+        # self._prototypes /= linalg.norm(self._prototypes, axis=-1, keepdims=True)
+
+    @property
+    def frame(self):
+        """Frame of the SOM, for interpreting input data."""
+        return self._frame
+
+    @property
+    def representation_type(self):
+        """Representationtype of the SOM, for interpreting input data."""
+        return self._representation_type
+
+    @property
+    def data_units(self):
+        if self._units is None:
+            raise ValueError("SOM must be fit for data_units")
+        return self._units
 
     @property
     def nlattice(self) -> int:
@@ -147,19 +178,43 @@ class SelfOrganizingMap1D:
         return self._learning_rate
 
     @property
-    def decay_function(self) -> T.Callable:
+    def decay_function(self) -> Callable:
         """Decay function."""
         return self._decay_function
 
     @property
     def prototypes(self):
         "Read-only view of prototypes vectors."
-        # ensure _prototypes is writeable
-        self._prototypes.flags.writeable = True
-
         p = self._prototypes.view()
         p.flags.writeable = False
-        return p
+
+        return self._v_to_crd(p)
+
+    # ===============================================================
+
+    def _crd_to_q(self, crd: DataType, /) -> u.Quantity:
+        """Coordinate to structured Quantity."""
+
+        if isinstance(crd, (BaseCoordinateFrame, SkyCoord)):
+            crd = crd.transform_to(self.frame)
+
+        rep = crd.represent_as(self.representation_type, in_frame_units=True)
+
+        data = rep._values << u.Unit(tuple(rep._units.values()))  # structured quantity
+        return data
+
+    def _crd_to_v(self, crd: Union[DataType, np.ndarray], /) -> np.ndarray:
+        """Coordinate to unstructured array."""
+        if isinstance(crd, np.ndarray):  # TODO! more careful check
+            return crd
+
+        return structured_to_unstructured(self._crd_to_q(crd).value)
+
+    def _v_to_crd(self, arr: np.ndarray, /) -> BaseCoordinateFrame:
+        data = {n: (arr[:, i] << unit) for i, (n, unit) in enumerate(self._units.items())}
+        rep = self.representation_type(**data)
+        crd = self.frame.realize_frame(rep)
+        return crd
 
     # ===============================================================
 
@@ -188,124 +243,116 @@ class SelfOrganizingMap1D:
         return np.sqrt(input_data_sq + weights_flat_sq.T - (2 * cross_term))
 
     # ---------------------------------------------------------------
+    # initialization
 
-    def pca_weights_init(self, data: np.ndarray, **kw: T.Any) -> None:
-        """Initializes the weights to span the first two principal components.
-
-        This initialization doesn't depend on random processes and
-        makes the training process converge faster.
-
-        It is strongly recommended to normalize the data before initializing
-        the weights and use the same normalization for the training data.
-        """
-        pc_length, pc = linalg.eig(np.cov(np.transpose(data)))
-        pc_order = np.argsort(-pc_length)
-
-        pc0 = pc[pc_order[0]]
-        pc1 = pc[pc_order[1]]
-
-        for j, c2 in enumerate(np.linspace(-1, 1, self.nlattice)):
-            self._prototypes[j] = -1 * pc0 + c2 * pc1
-
-    def binned_weights_init(self, data: np.ndarray, byphi: bool=False, **kw: T.Any) -> None:
+    def binned_weights_init(self, data: np.ndarray, byphi: bool = False, **kw: Any) -> None:
         r"""Initialize prototype vectors from binned data.
 
-        Paramters
-        ---------
-        data : (N, D) ndarray
-            D dimensions, the first is the longitude.
+        Parameters
+        ----------
+        data : Frame or Representation
         byphi : bool, optional
             Whether to bin by the longitude, or by :math:`\phi=atan(lat/lon)`
         """
+        q = self._crd_to_q(data)
+        self._units = q.unit
+
+        X = self._crd_to_v(data)
+
         if byphi:
-            x = np.arctan2(data[:, 1], data[:, 0])
+            x1 = np.arctan2(X[:, 1], X[:, 0])
         else:
-            x = data[:, 0]
-        xlen = len(x)
+            x1 = X[:, 0]
+        xlen = len(x1)
 
         # create equi-frequency bins
-        bins = np.interp(np.linspace(0, xlen, self.nlattice + 1), np.arange(xlen), np.sort(x))
+        bins = np.interp(np.linspace(0, xlen, self.nlattice + 1), np.arange(xlen), np.sort(x1))
         # compute the mean positions
-        res = binned_statistic(x, data.T, bins=bins, statistic="median")
+        res = binned_statistic(x1, X.T, bins=bins, statistic="median")
 
         self._prototypes = res.statistic.T
 
     # ---------------------------------------------------------------
+    # fitting
 
-    def quantization(self, data: np.ndarray) -> np.ndarray:
-        """Assigns a code book (weights vector of the winning neuron)
-        to each sample in data.
-        """
-        data = np.array(data, copy=False)
-        winners_coords = np.argmin(self._distance_from_weights(data), axis=1)
-        return self._prototypes[winners_coords]
+    #     def quantization(self, data: DataType) -> np.ndarray:  # TODO!
+    #         """Assigns a code book (weights vector of the winning neuron)
+    #         to each sample in data.
+    #
+    #         Parameters
+    #         ----------
+    #         """
+    #         data = self._crd_to_v(data)
+    #         winners_coords = np.argmin(self._distance_from_weights(data), axis=1)
+    #         ps = self._prototypes[winners_coords]
+    #         return self._v_to_crd(ps)
 
-    def quantization_error(self, data):
-        """
-        Returns the quantization error computed as the average
-        distance between each input sample and its best matching unit.
-        """
-        return linalg.norm(data - self.quantization(data), axis=1).mean()
+    # def quantization_error(self, data):  # TODO!
+    #     """
+    #     Returns the quantization error computed as the average
+    #     distance between each input sample and its best matching unit.
+    #     """
+    #     return linalg.norm(data - self.quantization(data), axis=1).mean()
 
-    def train(
+    def fit(
         self,
         data,
         num_iteration: int,
         random_order=False,
         progress: bool = False,
-        **kw,
     ) -> None:
         """Trains the SOM.
 
         Parameters
         ----------
-        data : `~numpy.ndarray` or list
-            Data matrix.
+        data : Frame or Representation
 
         num_iteration : int
             Maximum number of iterations (one iteration per sample).
+            Must be greater than the length of the data.
         random_order : bool (default=False)
             If True, samples are picked in random order.
             Otherwise the samples are picked sequentially.
 
-        verbose : bool (default=False)
-            If True the status of the training
-            will be printed at each iteration.
-
+        progress : bool (default=False)
+            If True, show a progress bar
         """
         iterations = np.arange(num_iteration) % len(data)
-
         if random_order:
             self._rng.shuffle(iterations)
+
+        if self._units is None:  # if not init weighted
+            q = self._crd_to_q(data)
+            self._units = q.unit
+
+        X = self._crd_to_v(data)
 
         with get_progress_bar(progress, len(iterations)) as pbar:
             for t, iteration in enumerate(iterations):
                 pbar.update(1)
 
-                self.update(
-                    data[iteration],
-                    self.winner(data[iteration]),
+                self._update(
+                    X[iteration],
+                    self.best_matching_unit_index(X[iteration]),
                     t,
                     num_iteration,
                 )
 
-    # ---------------------------------
-
-    def neighborhood(self, c, sigma) -> np.ndarray:
+    def _neighborhood(self, c, sigma) -> np.ndarray:
         """Returns a Gaussian centered in c."""
         d = 2 * pi * sigma ** 2
         ay = np.exp(-np.power(self._yy - self._yy.T[c], 2) / d)
         return (1 * ay).T  # the external product gives a matrix
 
-    def update(self, x, win, t, max_iteration):
+    def _update(self, x, bmui, t, max_iteration):
         """Updates the locations of the prototypes.
 
         Parameters
         ----------
         x : np.array
-            Current pattern to learn.
-        win : tuple
-            Position of the winning neuron for x (array or tuple).
+            Current point to learn.
+        bmui : int
+            Position of the winning prototype for x.
         t : int
             Iteration index
         max_iteration : int
@@ -315,14 +362,177 @@ class SelfOrganizingMap1D:
         # sigma and learning rate decrease with the same rule
         sig = self._decay_function(self._sigma, t, max_iteration)
         # improves the performances
-        g = self.neighborhood(win, sig) * eta
+        g = self._neighborhood(bmui, sig) * eta
         # w_new = eta * neighborhood_function * (x-w)
         self._prototypes += np.einsum("i, ij->ij", g, x - self._prototypes)
 
-    def winner(self, x):
-        """Computes the coordinates of the winning neuron for the sample x."""
+    def best_matching_unit_index(self, point: BaseRepresentation) -> int:
+        """Computes the coordinates of the best prototype for the sample.
+
+        Parameters
+        ----------
+        x : |Representation|
+
+        """
+        x = self._crd_to_v(point)
         activation_map = self._activation_distance(x, self._prototypes)
         return activation_map.argmin()
+
+    # ---------------------------------------------------------------
+    # predicting structure
+
+    def predict(self, crd, origin: Optional[SkyCoord] = None) -> np.ndarray:
+        """Order data from SOM in 2+ND.
+
+        Parameters
+        ----------
+        crd : Frame or Representation
+        origin
+
+        Returns
+        -------
+        ndarray
+
+        Notes
+        -----
+        The SOM creates a 1D lattice of connected nodes ($q$'s, gray) ordered by
+        proximity to the designated origin, then along the lattice.
+        Data points ($p$'s, green) are assigned an order from the SOM-lattice.
+        The distance from the data to each node is computed. Likewise the projection
+        is found of each data point on the edges connecting each SOM node.
+        All projections lying outside the edges (shaded regions) are eliminated,
+        also eliminated are all but the closest nodes. Remaining edges and node
+        connections in dotted block, with projections labeled $e$.
+        Data points are sorted into the closest node regions (blue)
+        and edge regions (shaded).
+        Data points in end-cap node regions are sorted by extended
+        projection on nearest edge.
+        Data points in edge regions are ordered by projection along the edge.
+        Data points in intermediate node regions are ordered by the angle between
+        the edge regions.
+
+        """
+        # length of data, number of features: (x, y, z) or (ra, dec), etc.
+        data = self._crd_to_v(crd)
+
+        data_len, nfeature = data.shape
+        nlattice = self.nlattice
+
+        # vector from one point to next  (nlattice-1, nfeature)
+        lattice_points = self._prototypes
+        p1 = lattice_points[:-1, :]
+        p2 = lattice_points[1:, :]
+        # vector from one point to next  (nlattice-1, nfeature)
+        viip1 = p2 - p1
+        # square distance from one point to next  (nlattice-1, nfeature)
+        liip1 = np.sum(np.square(viip1), axis=1)
+
+        # data - point_i  (D, nlattice-1, nfeature)
+        # for each slice in D,
+        dmi = data[:, None, :] - p1[None, :, :]  # d-p1
+
+        # The line extending the segment is parameterized as p1 + t (p2 - p1).
+        # The projection falls where t = [(p3-p1) . (p2-p1)] / |p2-p1|^2
+        # tM is the matrix of "t"'s.
+        tM = np.sum((dmi * viip1[None, :, :]), axis=-1) / liip1
+
+        projected_points = p1[None, :, :] + tM[:, :, None] * viip1[None, :, :]
+
+        # add in the nodes and find all the distances
+        # the correct "place" to put the data point is within a
+        # projection, unless it outside (by and endpoint)
+        # or inide, but on the convex side of a segment junction
+        all_points = np.empty((data_len, 2 * nlattice - 1, nfeature), dtype=float)
+        all_points[:, 1::2, :] = projected_points
+        all_points[:, 0::2, :] = lattice_points
+        distances = np.linalg.norm(data[:, None, :] - all_points, axis=-1)
+
+        # detect whether it is in the segment
+        # nodes are considered in the segment
+        not_in_projection = np.zeros(all_points.shape[:-1], dtype=bool)
+        not_in_projection[:, 1::2] = np.logical_or(tM <= 0, 1 <= tM)
+
+        # make distances for not-in-segment infinity
+        distances[not_in_projection] = np.inf
+
+        # find the best distance (including nodes)
+        best_distance = np.argmin(distances, axis=1)
+
+        ordering = np.zeros(len(data), dtype=int) - 1
+
+        counter = 0  # count through edge/node groups
+        for i in np.unique(best_distance):
+            # for i in (1, ):
+            # get the data rows for which the best distance is the i'th node/segment
+            rowi = np.where((best_distance == i))[0]
+            numrows = len(rowi)
+
+            # move edge points to corresponding segment
+            if i == 0:
+                i = 1
+            elif i == 2 * (nlattice - 1):
+                i = nlattice - 1
+
+            # odds (remainder 1) are segments
+            if bool(i % 2):
+                ts = tM[rowi, i // 2]
+                rowsorter = np.argsort(ts)
+
+            # evens are by nodes
+            else:  # TODO! find and fix the potential ordering mistake
+                phi1 = np.arctan2(*viip1[i // 2 - 1, :2])
+                phim2 = np.arctan2(*-viip1[i // 2, :2])
+                phi = np.arctan2(*data[rowi, :2].T)
+
+                # detect if in branch cut territory
+                if (np.pi / 2 <= phi1) & (-np.pi <= phim2) & (phim2 <= -np.pi / 2):
+                    phi1 -= 2 * np.pi
+                    phi -= 2 * np.pi
+
+                rowsorter = np.argsort(phi) if phim2 < phi1 else np.argsort(-phi)
+
+            slc = slice(counter, counter + numrows)
+            ordering[slc] = rowi[rowsorter]
+            counter += numrows
+
+        ordering = np.array(ordering, dtype=int)
+
+        # ----------------------------------------
+
+        if origin is not None:
+
+            # the visit order can be backward so need to detect proximity to origin
+            # TODO! more careful if closest point not end point. & adjust SOM!
+            armep = crd[ordering[[0, -1]]]  # end points
+
+            # FIXME! be careful about 2d versus 3d
+            try:
+                sep = armep.separation_3d(origin)
+            except ValueError:
+                sep = armep.separation(origin)
+            # if np.argmin(sep) == 1:
+            #     ordering = ordering[::-1]
+
+        return ordering
+
+    def fit_predict(
+        self,
+        data,
+        num_iteration: int,
+        random_order=False,
+        progress: bool = False,
+        origin: Optional[SkyCoord] = None,
+        **kw,
+    ) -> None:
+        """
+
+        Returns
+        -------
+        ndarray
+        """
+        self.fit(data, num_iteration=num_iteration, random_order=random_order, progress=progress)
+        order = self.predict(data, origin=origin)
+        return order
 
 
 # -------------------------------------------------------------------
@@ -353,7 +563,7 @@ def asymptotic_decay(learning_rate: float, iteration: int, max_iter: float) -> f
 
 def reorder_visits(
     data: CoordinateType,
-    visit_order: T.Sequence,
+    visit_order: Sequence,
     start_ind: int,
 ):
     """Reorder the points from the SOM.
@@ -407,363 +617,3 @@ def reorder_visits(
     new_visit_order = np.concatenate((visit_order[i:], visit_order[:i]))
 
     return new_visit_order
-
-
-##############################################################################
-
-
-# def prepare_SOM(
-#     data: CoordinateType,
-#     *,
-#     learning_rate: float = 2.0,
-#     sigma: float = 20.0,
-#     iterations: int = 10000,
-#     random_seed: T.Optional[int] = None,
-#     progress: bool = False,
-#     nlattice: T.Optional[int] = None,
-#     **kwargs,
-# ) -> T.Callable:
-#     """Apply Self Ordered Mapping to the data.
-#
-#     Currently only implemented for Spherical.
-#
-#     Parameters
-#     ----------
-#     data : ndarray
-#         The data. (lon, lat, distance)
-#     learning_rate : float (optional, keyword-only)
-#         (at the iteration t we have
-#         learning_rate(t) = learning_rate / (1 + t/T)
-#         where T is #num_iteration/2)
-#     sigma : float (optional, keyword-only)
-#         Spread of the neighborhood function, needs to be adequate
-#         to the dimensions of the map.
-#         (at the iteration t we have sigma(t) = sigma / (1 + t/T)
-#         where T is #num_iteration/2)
-#     iterations : int (optional, keyword-only)
-#         number of times the SOM is trained.
-#     random_seed: int (optional, keyword-only)
-#         Random seed to use. (default=None).
-#
-#     Returns
-#     -------
-#     som : SOM instance
-#
-#     """
-#     # length of data, number of features: (x, y, z) or (ra, dec), etc.
-#     data_len, nfeature = data.shape
-#     if nlattice is None:
-#         nlattice = data_len // 10  # allows to be variable
-#
-#     som = SelfOrganizingMap1D(
-#         nlattice,
-#         nfeature,
-#         sigma=sigma,
-#         learning_rate=learning_rate,
-#         # decay_function=None,
-#         neighborhood_function="gaussian",
-#         activation_distance="euclidean",
-#         random_seed=random_seed,
-#     )
-#
-#     weight_init_method = kwargs.get("weight_init_method", "binned_weights_init")
-#     getattr(som, weight_init_method)(data)
-#
-#     return som
-
-
-# def apply_SOM(
-#     data: CoordinateType,
-#     som: T.Optional[T.Callable] = None,
-#     *,
-#     # if som is None, make
-#     learning_rate: float = 2.0,
-#     sigma: float = 20.0,
-#     iterations: int = 10000,
-#     random_seed: T.Optional[int] = None,
-#     progress: bool = False,
-#     reorder: T.Optional[int] = None,
-#     nlattice: T.Optional[int] = None,
-#     **kwargs,
-# ) -> T.Sequence[int]:
-#     """Apply Self Ordered Mapping to the data.
-#
-#     Currently only implemented for Spherical.
-#
-#     Parameters
-#     ----------
-#     data : |SkyCoord|
-#         The data. (lon, lat, distance)
-#
-#     learning_rate : float (optional, keyword-only)
-#         (at the iteration t we have
-#         learning_rate(t) = learning_rate / (1 + t/T)
-#         where T is #num_iteration/2)
-#     sigma : float (optional, keyword-only)
-#         Spread of the neighborhood function, needs to be adequate
-#         to the dimensions of the map.
-#         (at the iteration t we have sigma(t) = sigma / (1 + t/T)
-#         where T is #num_iteration/2)
-#     iterations : int (optional, keyword-only)
-#         number of times the SOM is trained.
-#     random_seed: int (optional, keyword-only)
-#         Random seed to use. (default=None).
-#     reorder : int or None (optional, keyword-only)
-#         If not None (default), the starting index.
-#
-#     Returns
-#     -------
-#     order : sequence
-#
-#     """
-#     # ----------
-#
-#     if not isinstance(data, np.ndarray):
-#         rep = data.represent_as(coord.SphericalRepresentation)
-#         data = rep._values.view("f8").reshape(-1, len(rep.components))
-#
-#     if som is None:
-#         # som, USING_MINISOM = prepare_SOM(
-#         som = prepare_SOM(
-#             data=data,
-#             learning_rate=learning_rate,
-#             sigma=sigma,
-#             iterations=iterations,
-#             random_seed=random_seed,
-#             progress=progress,
-#             # use_minisom=None,
-#             nlattice=nlattice,
-#             **kwargs
-#         )
-#     # else:
-#     #     USING_MINISOM = not isinstance(som, SelfOrganizingMap1D)
-#
-#     # ----------
-#
-#     # # train the data, preserving order
-#     # if USING_MINISOM:
-#     #     som.train(data, iterations, verbose=False, random_order=False)
-#     # else:
-#     #     som.train(
-#     #         data,
-#     #         iterations,
-#     #         verbose=False,
-#     #         random_order=False,
-#     #         progress=progress,
-#     #     )
-#     som.train(
-#         data,
-#         iterations,
-#         verbose=False,
-#         random_order=False,
-#         progress=progress,
-#     )
-#
-#     # get the ordering by "vote" of the Prototypes
-#     visit_order = order_data(som, data)
-#
-#     # Reorder
-#     if reorder is not None:
-#         order = reorder_visits(rep, visit_order, start_ind=reorder)
-#     else:  # don't reorder
-#         order = visit_order
-#
-#     return order, som
-
-# -------------------------------------------------------------------
-
-
-def order_data(som, data):
-    """Order data from SOM in 2+ND.
-
-    Parameters
-    ----------
-    som : `~minisom.MiniSom` or `~trackstream.preprocess.som.SOM`
-    data : (N, M) array_like
-        The first 2 data
-
-    Returns
-    -------
-    `~numpy.ndarray`
-
-    Notes
-    -----
-    The SOM creates a 1D lattice of connected nodes ($q$'s, gray) ordered by
-    proximity to the designated origin, then along the lattice.
-    Data points ($p$'s, green) are assigned an order from the SOM-lattice.
-    The distance from the data to each node is computed. Likewise the projection
-    is found of each data point on the edges connecting each SOM node.
-    All projections lying outside the edges (shaded regions) are eliminated,
-    also eliminated are all but the closest nodes. Remaining edges and node
-    connections in dotted block, with projections labeled $e$.
-    Data points are sorted into the closest node regions (blue)
-    and edge regions (shaded).
-    Data points in end-cap node regions are sorted by extended
-    projection on nearest edge.
-    Data points in edge regions are ordered by projection along the edge.
-    Data points in intermediate node regions are ordered by the angle between
-    the edge regions.
-
-    """
-    # length of data, number of features: (x, y, z) or (ra, dec), etc.
-    data_len, nfeature = data.shape
-    nlattice = som.nlattice
-
-    # vector from one point to next  (nlattice-1, nfeature)
-    lattice_points = som.prototypes
-    p1 = lattice_points[:-1, :]
-    p2 = lattice_points[1:, :]
-    # vector from one point to next  (nlattice-1, nfeature)
-    viip1 = p2 - p1
-    # square distance from one point to next  (nlattice-1, nfeature)
-    liip1 = np.sum(np.square(viip1), axis=1)
-
-    # data - point_i  (D, nlattice-1, nfeature)
-    # for each slice in D,
-    dmi = data[:, None, :] - p1[None, :, :]  # d-p1
-
-    # The line extending the segment is parameterized as p1 + t (p2 - p1).
-    # The projection falls where t = [(p3-p1) . (p2-p1)] / |p2-p1|^2
-    # tM is the matrix of "t"'s.
-    tM = np.sum((dmi * viip1[None, :, :]), axis=-1) / liip1
-
-    projected_points = p1[None, :, :] + tM[:, :, None] * viip1[None, :, :]
-
-    # add in the nodes and find all the distances
-    # the correct "place" to put the data point is within a
-    # projection, unless it outside (by and endpoint)
-    # or inide, but on the convex side of a segment junction
-    all_points = np.empty((data_len, 2 * nlattice - 1, nfeature), dtype=float)
-    all_points[:, 1::2, :] = projected_points
-    all_points[:, 0::2, :] = lattice_points
-    distances = np.linalg.norm(data[:, None, :] - all_points, axis=-1)
-
-    # detect whether it is in the segment
-    # nodes are considered in the segment
-    not_in_projection = np.zeros(all_points.shape[:-1], dtype=bool)
-    not_in_projection[:, 1::2] = np.logical_or(tM <= 0, 1 <= tM)
-
-    # make distances for not-in-segment infinity
-    distances[not_in_projection] = np.inf
-
-    # find the best distance (including nodes)
-    best_distance = np.argmin(distances, axis=1)
-
-    ordering = np.zeros(len(data), dtype=int) - 1
-
-    counter = 0  # count through edge/node groups
-    for i in np.unique(best_distance):
-        # for i in (1, ):
-        # get the data rows for which the best distance is the i'th node/segment
-        rowi = np.where((best_distance == i))[0]
-        numrows = len(rowi)
-
-        # move edge points to corresponding segment
-        if i == 0:
-            i = 1
-        elif i == 2 * (nlattice - 1):
-            i = nlattice - 1
-
-        # odds (remainder 1) are segments
-        if bool(i % 2):
-            ts = tM[rowi, i // 2]
-            rowsorter = np.argsort(ts)
-
-        # evens are by nodes
-        else:  # TODO! find and fix the potential ordering mistake
-            phi1 = np.arctan2(*viip1[i // 2 - 1, :2])
-            phim2 = np.arctan2(*-viip1[i // 2, :2])
-            phi = np.arctan2(*data[rowi, :2].T)
-
-            # detect if in branch cut territory
-            if (np.pi / 2 <= phi1) & (-np.pi <= phim2) & (phim2 <= -np.pi / 2):
-                phi1 -= 2 * np.pi
-                phi -= 2 * np.pi
-
-            rowsorter = np.argsort(phi) if phim2 < phi1 else np.argsort(-phi)
-
-        slc = slice(counter, counter + numrows)
-        ordering[slc] = rowi[rowsorter]
-        counter += numrows
-
-    return ordering
-
-
-# -------------------------------------------------------------------
-
-
-# def apply_SOM_repeat(
-#     data: DataType,
-#     random_seeds: T.Optional[T.Sequence[int]],
-#     *,
-#     dims: int = 1,
-#     learning_rate: float = 0.8,
-#     sigma: float = 4.0,
-#     iterations: int = 10000,
-#     reorder: T.Optional[T.Sequence] = True,
-#     plot: bool = False,
-#     _tqdm: bool = True,
-# ) -> T.Sequence[int]:
-#     """SOM Preprocess.
-#
-#     Parameters
-#     ----------
-#     data : BaseCoordinateFrame instance
-#     random_seeds: Sequence
-#         Random seeds to use.
-#
-#     dims : int (optional, keyword-only)
-#     learning_rate : float (optional, keyword-only)
-#     sigma : float (optional, keyword-only)
-#         Spread of the neighborhood function, needs to be adequate
-#         to the dimensions of the map.
-#         (at the iteration t we have sigma(t) = sigma / (1 + t/T)
-#         where T is #num_iteration/2)
-#     neighborhood_function : str (optional, keyword-only)
-#     iterations : int (optional, keyword-only)
-#
-#     reorder : Sequence (optional, keyword-only)
-#         If not None, the starting index.
-#     plot : bool (optional, keyword-only)
-#
-#     Returns
-#     -------
-#     orders : Sequence
-#         Shape (len(`random_seeds`), len(`data`))
-#
-#     """
-#     if isinstance(
-#         data,
-#         (coord.SkyCoord, coord.BaseCoordinateFrame, coord.BaseRepresentation),
-#     ):
-#         rep = data.represent_as(coord.CartesianRepresentation)
-#         data = rep._values.view("f8").reshape(-1, len(rep.components))
-#     else:
-#         raise TypeError
-#
-#     # -------
-#
-#     nrows = len(random_seeds)
-#     orders = np.empty((nrows, len(data)), dtype=int)
-#
-#     iterator = tqdm(random_seeds) if _tqdm else random_seeds
-#     for i, seed in enumerate(iterator):
-#         visit_order = apply_SOM(
-#             data,
-#             learning_rate=learning_rate,
-#             sigma=sigma,
-#             iterations=iterations,
-#             random_seed=seed,
-#             reorder=None,
-#             plot=False,
-#         )
-#
-#         if reorder is not None:
-#             order = reorder_visits(rep, visit_order, start_ind=reorder)
-#
-#         else:
-#             order = visit_order
-#
-#         orders[i] = order
-#
-#     return orders

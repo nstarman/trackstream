@@ -15,7 +15,6 @@ __all__ = ["find_closest_point", "set_starting_point"]
 # IMPORTS
 
 # STDLIB
-import typing as T
 from collections.abc import Sequence
 
 # THIRD PARTY

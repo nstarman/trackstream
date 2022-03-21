@@ -10,7 +10,7 @@ __all__ = ["intermix_arrays", "make_shuffler"]
 # IMPORTS
 
 # STDLIB
-import typing as T
+from typing import Optional, Sequence, Tuple, Union
 
 # THIRD PARTY
 import numpy as np
@@ -21,7 +21,7 @@ from numpy.random import Generator
 ##############################################################################
 
 
-def intermix_arrays(*arrs: T.Union[T.Sequence, np.ndarray], axis: int = -1) -> np.ndarray:
+def intermix_arrays(*arrs: Union[Sequence, np.ndarray], axis: int = -1) -> np.ndarray:
     """Intermix arrays.
 
     Parameters
@@ -75,8 +75,8 @@ def intermix_arrays(*arrs: T.Union[T.Sequence, np.ndarray], axis: int = -1) -> n
 
 def make_shuffler(
     length: int,
-    rng: T.Optional[Generator] = None,
-) -> T.Tuple[np.ndarray, np.ndarray]:
+    rng: Optional[Generator] = None,
+) -> Tuple[np.ndarray, np.ndarray]:
     """Shuffle and un-shuffle arrays.
 
     Parameters

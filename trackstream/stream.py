@@ -11,8 +11,8 @@ __all__ = ["Stream"]
 # STDLIB
 import itertools
 import re
-import typing as T
 import weakref
+from typing import Any, Optional, Union
 
 # THIRD PARTY
 import astropy.coordinates as coord
@@ -24,7 +24,6 @@ from astropy.utils.decorators import lazyproperty
 # LOCAL
 from trackstream._type_hints import CoordinateType, FrameType
 from trackstream.core import StreamTrack, TrackStream
-from trackstream.preprocess.som import SelfOrganizingMap1D
 from trackstream.utils.descriptors import InstanceDescriptor
 from trackstream.utils.path import path_moments
 
@@ -34,6 +33,8 @@ from trackstream.utils.path import path_moments
 
 
 class StreamBase:
+    """Base-class for streams."""
+
     def _base_repr_(self, max_lines=None):
         """Mirroring implementation in astropy Table."""
         header: str = super().__repr__()
@@ -114,7 +115,7 @@ class Stream:
     data : `~astropy.table.Table`
 
     origin : `~astropy.coordinates.ICRS`
-        The origin point of the rotated reference frame.
+        The origin point of the stream (and rotated reference frame).
 
     data_err : `~astropy.table.QTable` (optional)
         The data_err must have (at least) column names
@@ -134,16 +135,16 @@ class Stream:
         self,
         data: QTable,
         origin: FrameType,
-        data_err: T.Optional[Table] = None,
+        data_err: Optional[Table] = None,
         *,
-        frame: T.Optional[CoordinateType] = None,
-        name: T.Optional[str] = None,
+        frame: Optional[CoordinateType] = None,
+        name: Optional[str] = None,
     ):
         self._name = name
 
         # system attributes
-        self.origin: coord.SkyCoord = coord.SkyCoord(origin, copy=False)
-        self._system_frame: T.Optional[FrameType] = frame
+        self._origin: coord.SkyCoord = coord.SkyCoord(origin, copy=False)
+        self._system_frame: Optional[FrameType] = frame
 
         self._cache = dict()  # TODO! improve
         self._original_coord: coord.SkyCoord = None  # set _normalize_data
@@ -159,19 +160,25 @@ class Stream:
     # -----------------------------------------------------
 
     @property
-    def name(self) -> T.Optional[str]:
+    def name(self) -> Optional[str]:
         """The name of the stream."""
         return self._name
 
     @property
-    def system_frame(self) -> T.Optional[coord.BaseCoordinateFrame]:
+    def origin(self) -> coord.SkyCoord:
+        """Origin in stream frame."""
+        frame = self.frame if self.frame is not None else self.data_frame
+        return self._origin.transform_to(frame)
+
+    @property
+    def system_frame(self) -> Optional[coord.BaseCoordinateFrame]:
         """A system-centric frame.
 
         Determined from the argument ``frame`` at initialization.
         If None (default) and the method ``fit`` has been called,
         then a system frame has been found and cached.
         """
-        frame: T.Optional[coord.BaseCoordinateFrame]
+        frame: Optional[coord.BaseCoordinateFrame]
         if self._system_frame is not None:
             frame = self._system_frame
         else:
@@ -217,7 +224,7 @@ class Stream:
     # ===============================================================
     # Data normalization
 
-    def _normalize_data(self, original: T.Union[Table]) -> QTable:
+    def _normalize_data(self, original: Union[Table]) -> QTable:
         """Normalize data table.
 
         Just calls other functions.
@@ -252,7 +259,7 @@ class Stream:
         self,
         original: Table,
         data: QTable,
-        default_weight: T.Union[float, u.Quantity] = 1.0,
+        default_weight: Union[float, u.Quantity] = 1.0,
     ) -> None:
         """Data probability. Units of percent. Default is 100%.
 
@@ -376,7 +383,7 @@ class Stream:
         if "SOM" in original.colnames:
             data["SOM"] = original["SOM"]
         else:
-            data["SOM"] = None
+            data["SOM"] = -1  # sentinel value
 
     # ===============================================================
     # Fitting
@@ -407,12 +414,12 @@ class Stream:
             raise ValueError("need to fit track.")
         return track
 
-    def fit_track(self, *, force: bool = False, **kwargs: T.Any) -> StreamTrack:
+    def fit_track(self, *, force: bool = False, **kwargs: Any) -> StreamTrack:
         """Make a stream track.
 
         Parameters
         ----------
-        force : bool
+        force : bool, optional keyword-only
             Whether to force a fit, even if already fit.
         **kwargs
             Passed to :meth:`trackstream.TrackStream.fit`.
@@ -440,9 +447,20 @@ class Stream:
 
     def predict_track(
         self,
-        affine: T.Optional[u.Quantity] = None,
+        affine: Optional[u.Quantity] = None,
+        *,
         angular: bool = False,
     ) -> path_moments:
+        """
+        Parameters
+        ----------
+        affine : |Quantity| or None, optional
+        angular : bool, optional keyword-only
+
+        Returns
+        -------
+        `trackstream.utils.path.path_moments`
+        """
         return self.track()
 
     # ===============================================================

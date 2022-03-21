@@ -19,7 +19,7 @@ __all__ = [
 # IMPORTS
 
 # STDLIB
-import typing as T
+from typing import Dict, Optional
 
 # THIRD PARTY
 import astropy.coordinates as coord
@@ -144,7 +144,7 @@ def make_unordered_orbit_data(
 def make_noisy_orbit_data(
     stop: float = stop,
     num: int = num,
-    sigma: T.Optional[T.Dict[str, u.Quantity]] = None,
+    sigma: Optional[Dict[str, u.Quantity]] = None,
     unit: UnitType = unit,
     frame: FrameLikeType = "galactocentric",
     representation_type: RepLikeType = "cartesian",

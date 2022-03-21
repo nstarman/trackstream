@@ -15,8 +15,8 @@ __all__ = [
 # STDLIB
 import copy
 import functools
-import typing as T
 from types import MappingProxyType
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, TypeVar, Union, overload
 
 # THIRD PARTY
 import astropy.coordinates as coord
@@ -39,20 +39,20 @@ if HAS_LMFIT:
 ##############################################################################
 # PARAMETERS
 
-FT = T.TypeVar("FT")
+FT = TypeVar("FT")
 
 ##############################################################################
 # CODE
 ##############################################################################
 
 
-@T.overload
-def scipy_residual_to_lmfit(function: None, *, param_order: T.List[str]) -> functools.partial:
+@overload
+def scipy_residual_to_lmfit(function: None, *, param_order: List[str]) -> functools.partial:
     ...
 
 
-@T.overload
-def scipy_residual_to_lmfit(function: FT, *, param_order: T.List[str]) -> FT:  # noqa: F811
+@overload
+def scipy_residual_to_lmfit(function: FT, *, param_order: List[str]) -> FT:  # noqa: F811
     ...
 
 
@@ -77,7 +77,7 @@ def scipy_residual_to_lmfit(function=None, *, param_order):  # noqa: F811
     if function is None:
         return functools.partial(scipy_residual_to_lmfit, param_order=param_order)
 
-    def lmfit(params: T.Mapping[str, T.Any], *args: T.Any, **kwargs: T.Any) -> T.Sequence:
+    def lmfit(params: Mapping[str, Any], *args: Any, **kwargs: Any) -> Sequence:
         """:mod:`lmfit` version of function.
 
         Parameters
@@ -85,7 +85,7 @@ def scipy_residual_to_lmfit(function=None, *, param_order):  # noqa: F811
         params : `~lmfit.Parameters`
         *args, **kwargs : Any
         """
-        variables: T.List[T.Any] = [params[n].value for n in param_order]
+        variables: List[Any] = [params[n].value for n in param_order]
         return function(variables, *args, **kwargs)
 
     # attach lmfit version to original function
@@ -100,10 +100,10 @@ def scipy_residual_to_lmfit(function=None, *, param_order):  # noqa: F811
 def cartesian_model(
     data: coord.CartesianRepresentation,
     *,
-    lon: T.Union[u.Quantity, float],
-    lat: T.Union[u.Quantity, float],
-    rotation: T.Union[u.Quantity, float],
-) -> T.Tuple[u.Quantity, u.Quantity, u.Quantity]:
+    lon: Union[u.Quantity, float],
+    lat: Union[u.Quantity, float],
+    rotation: Union[u.Quantity, float],
+) -> Tuple[u.Quantity, u.Quantity, u.Quantity]:
     """Model from Cartesian Coordinates.
 
     Parameters
@@ -140,10 +140,10 @@ def cartesian_model(
 
 @scipy_residual_to_lmfit(param_order=["rotation", "lon", "lat"])
 def residual(
-    variables: T.Sequence[float],
+    variables: Sequence[float],
     data: coord.CartesianRepresentation,
     scalar: bool = False,
-) -> T.Union[float, T.Sequence]:
+) -> Union[float, Sequence]:
     r"""How close phi2, the rotated latitude (dec), is to flat.
 
     Parameters
@@ -230,11 +230,9 @@ class RotatedFrameFitter(object):
     data: coord.BaseCoordinateFrame
     origin: coord.ICRS
     bounds: np.ndarray
-    fitter_kwargs: T.Dict[str, T.Any]
+    fitter_kwargs: Dict[str, Any]
 
-    def __init__(
-        self, data: coord.BaseCoordinateFrame, origin: coord.ICRS, **kwargs: T.Any
-    ) -> None:
+    def __init__(self, data: coord.BaseCoordinateFrame, origin: coord.ICRS, **kwargs: Any) -> None:
         super().__init__()
         self.data = data
         self.origin = origin
@@ -280,7 +278,7 @@ class RotatedFrameFitter(object):
         rot_lower: u.Quantity = -180.0 * u.deg,
         rot_upper: u.Quantity = 180.0 * u.deg,
         origin_lim: u.Quantity = 0.005 * u.deg,
-    ) -> T.Tuple[float, float]:
+    ) -> Tuple[float, float]:
         """Make bounds on Rotation parameter.
 
         Parameters
@@ -305,8 +303,8 @@ class RotatedFrameFitter(object):
 
     def align_v_positive_lon(
         self,
-        fit_values: T.Dict[str, T.Any],
-        subsel: T.Union[type(Ellipsis), T.Sequence, slice] = Ellipsis,
+        fit_values: Dict[str, Any],
+        subsel: Union[type(Ellipsis), Sequence, slice] = Ellipsis,
     ):
         """Align the velocity along the positive Longitudinal direction.
 
@@ -386,7 +384,7 @@ class RotatedFrameFitter(object):
     def _fit_representation_scipy(
         self,
         data: coord.CartesianRepresentation,
-        x0: T.Sequence[float],
+        x0: Sequence[float],
         *,
         bounds: np.ndarray,
         fix_origin: bool,
@@ -427,7 +425,7 @@ class RotatedFrameFitter(object):
     def _fit_representation_lmfit(
         self,
         data: coord.CartesianRepresentation,
-        x0: T.Sequence[float],
+        x0: Sequence[float],
         *,
         bounds: np.ndarray,
         fix_origin: bool,
@@ -463,13 +461,13 @@ class RotatedFrameFitter(object):
     # @u.quantity_input(rot0=u.deg)
     def fit(
         self,
-        rot0: T.Optional[u.Quantity] = None,
-        bounds: T.Optional[T.Sequence] = None,
+        rot0: Optional[u.Quantity] = None,
+        bounds: Optional[Sequence] = None,
         *,
-        fix_origin: T.Optional[bool] = None,
-        use_lmfit: T.Optional[bool] = None,
-        leastsquares: T.Optional[bool] = None,
-        align_v: T.Optional[bool] = None,
+        fix_origin: Optional[bool] = None,
+        use_lmfit: Optional[bool] = None,
+        leastsquares: Optional[bool] = None,
+        align_v: Optional[bool] = None,
         **kwargs,
     ):
         """Find Best-Fit Rotated Frame.

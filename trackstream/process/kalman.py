@@ -9,9 +9,9 @@ __all__ = ["KalmanFilter"]
 # IMPORTS
 
 # STDLIB
-import typing as T
 import warnings
 from collections import namedtuple
+from typing import Callable, Dict, Literal, Optional, Sequence, Tuple, Union
 
 # THIRD PARTY
 import numpy as np
@@ -67,10 +67,10 @@ class KalmanFilter:
         self,
         x0: np.ndarray,
         P0: np.ndarray,
-        F0: T.Union[np.ndarray, T.Callable[[float], np.ndarray]] = None,
-        Q0: T.Optional[np.ndarray] = None,
-        H0: T.Optional[np.ndarray] = None,
-        R0: T.Optional[np.ndarray] = None,
+        F0: Union[np.ndarray, Callable[[float], np.ndarray]] = None,
+        Q0: Optional[np.ndarray] = None,
+        H0: Optional[np.ndarray] = None,
+        R0: Optional[np.ndarray] = None,
         **kwargs
     ):
         super().__init__()
@@ -90,13 +90,13 @@ class KalmanFilter:
 
     def fit(
         self,
-        data: T.Union[np.ndarray, T.Sequence],
+        data: Union[np.ndarray, Sequence],
         dts: np.ndarray,
         *,
-        method: T.Literal["stepupdate"],
-        use_filterpy: T.Optional[bool] = None,
+        method: Literal["stepupdate"],
+        use_filterpy: Optional[bool] = None,
         **kwargs
-    ) -> T.Union[kalman_output, T.Tuple[kalman_output, kalman_output]]:
+    ) -> Union[kalman_output, Tuple[kalman_output, kalman_output]]:
         """Run Kalman Filter with updates on each step.
 
         Parameters
@@ -134,16 +134,16 @@ class KalmanFilter:
 
     def fit_with_stepupdate(
         self,
-        data: T.Union[np.ndarray, T.Sequence],
+        data: Union[np.ndarray, Sequence],
         dts: np.ndarray,
-        u: T.Union[np.ndarray, float] = 0.0,
-        B: T.Union[np.ndarray, float] = 1.0,
+        u: Union[np.ndarray, float] = 0.0,
+        B: Union[np.ndarray, float] = 1.0,
         alpha: float = 1.0,
         *,
         full_output: bool = False,
-        use_filterpy: T.Optional[bool] = None,
-        q_kw: T.Optional[T.Dict] = None
-    ) -> T.Union[kalman_output, T.Tuple[kalman_output, kalman_output]]:
+        use_filterpy: Optional[bool] = None,
+        q_kw: Optional[Dict] = None
+    ) -> Union[kalman_output, Tuple[kalman_output, kalman_output]]:
         """Run Kalman Filter with updates on each step.
 
         Parameters
@@ -255,9 +255,6 @@ class KalmanFilter:
 
         return dts
 
-
-##############################################################################
-# END
 
 if conf.use_filterpy and not HAS_FILTERPY:
     warnings.warn("filterpy not installed. Will use built-in.")

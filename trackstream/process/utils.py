@@ -62,7 +62,6 @@ def make_dts(
     -------
     dts : ndarray
         Smoothed distance.
-
     """
     ds = np.linalg.norm(
         ordered_data[1:] - ordered_data[:-1],

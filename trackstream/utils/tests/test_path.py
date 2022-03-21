@@ -7,7 +7,7 @@
 # IMPORTS
 
 # STDLIB
-import typing as T
+from typing import Optional
 
 # THIRD PARTY
 import astropy.coordinates as coord

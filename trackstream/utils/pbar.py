@@ -9,7 +9,7 @@ from __future__ import annotations
 
 # STDLIB
 import logging
-import typing as T
+from typing import Any, Union
 
 # LOCAL
 from trackstream.setup_package import HAS_TQDM
@@ -33,17 +33,17 @@ class _NoOpPBar(object):
     def __init__(self) -> None:
         pass
 
-    def __enter__(self, *args: T.Any, **kwargs: T.Any) -> _NoOpPBar:
+    def __enter__(self, *args: Any, **kwargs: Any) -> _NoOpPBar:
         return self
 
-    def __exit__(self, *args: T.Any, **kwargs: T.Any) -> None:
+    def __exit__(self, *args: Any, **kwargs: Any) -> None:
         pass
 
     def update(self, count: int) -> None:
         pass
 
 
-def get_progress_bar(display: T.Union[bool, str], total: int) -> T.Union[_NoOpPBar, tqdm.tqdm]:
+def get_progress_bar(display: Union[bool, str], total: int) -> Union[_NoOpPBar, tqdm.tqdm]:
     """Get a progress bar.
 
     If :mod:`tqdm` is not installed, this will return a no-op.

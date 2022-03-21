@@ -12,7 +12,7 @@ __all__ = [
 # IMPORTS
 
 # STDLIB
-import typing as T
+from typing import Optional, Sequence
 
 # THIRD PARTY
 import numpy as np
@@ -23,7 +23,7 @@ from scipy import sparse
 ##############################################################################
 
 
-def make_transition_matrix(orders: T.Sequence[T.Sequence]) -> sparse.lil_matrix:
+def make_transition_matrix(orders: Sequence[Sequence]) -> sparse.lil_matrix:
     """Make Transition Matrix from SOM-derived orders.
 
     The SOM-derived orders can vary with the random seed. To account
@@ -64,7 +64,7 @@ def make_transition_matrix(orders: T.Sequence[T.Sequence]) -> sparse.lil_matrix:
 def draw_ordering(
     trmat,
     num: int = 1,
-    rng: T.Optional[np.random.Generator] = None,
+    rng: Optional[np.random.Generator] = None,
 ):
     """Draw ordering(s) from transition matrix.
 

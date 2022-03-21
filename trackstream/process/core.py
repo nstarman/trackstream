@@ -14,7 +14,7 @@ __all__ = [
 # IMPORTS
 
 # STDLIB
-import typing as T
+from typing import Sequence, Tuple, Union
 
 # THIRD PARTY
 import numpy as np
@@ -31,10 +31,10 @@ def predict(
     P: np.ndarray,
     F: np.ndarray,
     Q: np.ndarray,
-    u: T.Union[np.ndarray, float] = 0.0,
-    B: T.Union[np.ndarray, float] = 1.0,
+    u: Union[np.ndarray, float] = 0.0,
+    B: Union[np.ndarray, float] = 1.0,
     alpha: float = 1.0,
-) -> T.Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray]:
     """Predict prior using Kalman filter transition functions.
 
     Parameters
@@ -75,7 +75,7 @@ def predict(
 
 def update(
     x: np.ndarray, P: np.ndarray, z: np.ndarray, R: np.ndarray, H: np.ndarray, **kw
-) -> T.Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Add a new measurement (z) to the Kalman filter.
 
     Implemented to be compatible with `filterpy`.
@@ -146,9 +146,9 @@ def update(
 def rts_smoother(
     Xs: np.ndarray,
     Ps: np.ndarray,
-    Fs: T.Union[T.Sequence[np.ndarray], np.ndarray],
-    Qs: T.Union[T.Sequence[np.ndarray], np.ndarray],
-) -> T.Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    Fs: Union[Sequence[np.ndarray], np.ndarray],
+    Qs: Union[Sequence[np.ndarray], np.ndarray],
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Run Rauch-Tung-Striebel Kalman smoother on Kalman filter series.
 
     Implemented to be compatible with `filterpy`.

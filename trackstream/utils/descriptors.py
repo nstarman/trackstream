@@ -10,14 +10,14 @@ __all__ = ["InstanceDescriptor"]
 # IMPORTS
 
 # STDLIB
-import typing as T
 import weakref
+from typing import Optional, Type, TypeVar, Union
 
 ##############################################################################
 # PARAMETERS
 
 
-ParentType = T.TypeVar("ParentType")
+ParentType = TypeVar("ParentType")
 
 
 ##############################################################################
@@ -27,9 +27,9 @@ ParentType = T.TypeVar("ParentType")
 
 class InstanceDescriptor:
 
-    _parent_attr: T.Optional[str]
-    _parent_cls: T.Optional[T.Type[ParentType]]
-    _parent_ref: T.Optional[weakref.ref]
+    _parent_attr: Optional[str]
+    _parent_cls: Optional[Type[ParentType]]
+    _parent_ref: Optional[weakref.ref]
 
     def __init__(self) -> None:
         # references to parent class and instance
@@ -38,19 +38,19 @@ class InstanceDescriptor:
         self._parent_ref = None
 
     @property
-    def _parent(self) -> T.Union:
+    def _parent(self) -> Union:
         """Parent instance."""
         return self._parent_ref() if self._parent_ref is not None else self._parent_cls
 
     # ------------------------------------
 
-    def __set_name__(self, objcls: T.Type[ParentType], name: str):
+    def __set_name__(self, objcls: Type[ParentType], name: str):
         self._parent_attr = name
 
-    def __get__(self, obj: T.Optional[ParentType], objcls: T.Optional[T.Type[ParentType]]):
+    def __get__(self, obj: Optional[ParentType], objcls: Optional[Type[ParentType]]):
         # accessed from a class
         if obj is None:
-            self._parent_cls: T.Type[ParentType] = objcls
+            self._parent_cls: Type[ParentType] = objcls
             return self
 
         # accessed from an obj

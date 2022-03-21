@@ -11,7 +11,7 @@ __all__ = ["reference_to_skyoffset_matrix", "resolve_framelike"]
 
 # STDLIB
 import functools
-import typing as T
+from typing import Optional, Union, overload
 
 # THIRD PARTY
 import astropy.units as u
@@ -33,9 +33,9 @@ from trackstream.config import conf
 
 
 def reference_to_skyoffset_matrix(
-    lon: T.Union[float, u.Quantity],
-    lat: T.Union[float, u.Quantity],
-    rotation: T.Union[float, u.Quantity],
+    lon: Union[float, u.Quantity],
+    lat: Union[float, u.Quantity],
+    rotation: Union[float, u.Quantity],
 ) -> np.ndarray:
     """Convert a reference coordinate to an sky offset frame [astropy].
 
@@ -99,7 +99,7 @@ def reference_to_skyoffset_matrix(
 
 @functools.singledispatch
 def _resolve_framelike(
-    frame: T.Optional[FrameLikeType],
+    frame: Optional[FrameLikeType],
     error_if_not_type: bool = True,
 ) -> BaseCoordinateFrame:
     if error_if_not_type:
@@ -111,7 +111,7 @@ def _resolve_framelike(
     return frame
 
 
-@T.overload
+@overload
 @_resolve_framelike.register
 def resolve_framelike(frame: None, error_if_not_type: bool = True) -> BaseCoordinateFrame:
     # If no frame is specified, assume that the input footprint is in a
@@ -119,7 +119,7 @@ def resolve_framelike(frame: None, error_if_not_type: bool = True) -> BaseCoordi
     return resolve_framelike(conf.default_frame)
 
 
-@T.overload
+@overload
 @_resolve_framelike.register
 def resolve_framelike(  # noqa: F811
     frame: str,
@@ -130,7 +130,7 @@ def resolve_framelike(  # noqa: F811
     return out
 
 
-@T.overload
+@overload
 @_resolve_framelike.register
 def resolve_framelike(  # noqa: F811
     frame: BaseCoordinateFrame,
@@ -140,7 +140,7 @@ def resolve_framelike(  # noqa: F811
     return out
 
 
-@T.overload
+@overload
 @_resolve_framelike.register
 def resolve_framelike(frame: SkyCoord, error_if_not_type: bool = True) -> BaseCoordinateFrame:  # type: ignore  # noqa: E501, F811
     out: BaseCoordinateFrame = frame.frame.replicate_without_data()
@@ -148,7 +148,7 @@ def resolve_framelike(frame: SkyCoord, error_if_not_type: bool = True) -> BaseCo
 
 
 def resolve_framelike(  # noqa: F811
-    frame: T.Optional[FrameLikeType],
+    frame: Optional[FrameLikeType],
     error_if_not_type: bool = True,
 ) -> BaseCoordinateFrame:
     """Determine the frame and return a blank instance.

@@ -10,7 +10,7 @@ __all__ = ["Path", "path_moments"]
 
 # STDLIB
 import copy
-import typing as T
+from typing import Any, Callable, NamedTuple, Optional, Union
 
 # THIRD PARTY
 import astropy.coordinates as coord
@@ -31,7 +31,7 @@ from trackstream.utils import resolve_framelike
 ##############################################################################
 
 
-class path_moments(T.NamedTuple):
+class path_moments(NamedTuple):
     mean: SkyCoord
     width: u.Quantity
 
@@ -82,23 +82,23 @@ class Path:
         if `path` is not already interpolated and affine is None
     """
 
-    _name: T.Optional[str]
+    _name: Optional[str]
     _frame: coord.BaseCoordinateFrame
-    _original_path: T.Any
+    _original_path: Any
     _iscrd: InterpolatedSkyCoord
-    _original_width: T.Union[u.Quantity, T.Callable, None]
-    _width_fn: T.Optional[T.Callable]
-    _amplitude_fn: T.Optional[T.Callable]
+    _original_width: Union[u.Quantity, Callable, None]
+    _width_fn: Optional[Callable]
+    _amplitude_fn: Optional[Callable]
 
     def __init__(
         self,
-        path: T.Union[InterpolatedCoordinateFrame, InterpolatedSkyCoord],
-        width: T.Union[u.Quantity, T.Callable, None] = None,  # func(affine)
-        amplitude: T.Union[u.Quantity, T.Callable, None] = None,  # FIXME!
+        path: Union[InterpolatedCoordinateFrame, InterpolatedSkyCoord],
+        width: Union[u.Quantity, Callable, None] = None,  # func(affine)
+        amplitude: Union[u.Quantity, Callable, None] = None,  # FIXME!
         *,
-        name: T.Optional[str] = None,
-        affine: T.Optional[u.Quantity] = None,
-        frame: T.Optional[FrameLikeType] = None,
+        name: Optional[str] = None,
+        affine: Optional[u.Quantity] = None,
+        frame: Optional[FrameLikeType] = None,
     ) -> None:
         self._name = str(name) if name is not None else name
 
@@ -143,7 +143,7 @@ class Path:
             self._initialize_width(path, width)
 
     @property
-    def name(self) -> T.Optional[str]:
+    def name(self) -> Optional[str]:
         return self._name
 
     @property  # read-only
@@ -166,7 +166,7 @@ class Path:
     def _initialize_width(
         self,
         path: InterpolatedSkyCoord,
-        width: T.Union[u.Quantity, T.Callable],
+        width: Union[u.Quantity, Callable],
     ) -> None:
         """Initialize the width function."""
         if callable(width):
@@ -195,7 +195,7 @@ class Path:
     # Math on the Track!
 
     def __call__(
-        self, affine: T.Optional[u.Quantity] = None, *, angular: bool = False
+        self, affine: Optional[u.Quantity] = None, *, angular: bool = False
     ) -> path_moments:
         """Call.
 
@@ -228,8 +228,8 @@ class Path:
 
     def position(
         self,
-        affine: T.Optional[u.Quantity] = None,
-    ) -> T.Union[InterpolatedSkyCoord, SkyCoord]:
+        affine: Optional[u.Quantity] = None,
+    ) -> Union[InterpolatedSkyCoord, SkyCoord]:
         """Return the position on the track.
 
         Parameters
@@ -252,7 +252,7 @@ class Path:
 
     # -----------------------
 
-    def width(self, affine: T.Optional[u.Quantity] = None) -> u.Quantity:
+    def width(self, affine: Optional[u.Quantity] = None) -> u.Quantity:
         """Return the (1-sigma) width of the track at affine points.
 
         Parameters
@@ -271,7 +271,7 @@ class Path:
         affine = self.affine if affine is None else affine
         return self._width_fn(affine)
 
-    def width_angular(self, affine: T.Optional[u.Quantity] = None) -> u.Quantity:
+    def width_angular(self, affine: Optional[u.Quantity] = None) -> u.Quantity:
         """Return the (1-sigma) angular width of the track at affine points.
 
         Parameters
@@ -303,8 +303,8 @@ class Path:
         point: CoordinateType,
         *,
         interpolate: bool = True,
-        affine: T.Optional[u.Quantity] = None,
-    ) -> T.Union[coord.Angle, IUSU]:
+        affine: Optional[u.Quantity] = None,
+    ) -> Union[coord.Angle, IUSU]:
         return self.data.separation(point, interpolate=interpolate, affine=affine)
 
     @format_doc(InterpolatedSkyCoord.separation_3d.__doc__)
@@ -313,14 +313,14 @@ class Path:
         point: CoordinateType,
         *,
         interpolate: bool = True,
-        affine: T.Optional[u.Quantity] = None,
-    ) -> T.Union[coord.Distance, IUSU]:
+        affine: Optional[u.Quantity] = None,
+    ) -> Union[coord.Distance, IUSU]:
         return self.data.separation_3d(point, interpolate=interpolate, affine=affine)
 
     # -----------------------------------------------------
 
     def _closest_res_to_point(
-        self, point: CoordinateType, *, angular: bool = False, affine: T.Optional[u.Quantity] = None
+        self, point: CoordinateType, *, angular: bool = False, affine: Optional[u.Quantity] = None
     ) -> OptimizeResult:
         """Closest to stream, ignoring width"""
         if angular:
@@ -336,7 +336,7 @@ class Path:
         return res
 
     def closest_affine_to_point(
-        self, point: CoordinateType, *, angular: bool = False, affine: T.Optional[u.Quantity] = None
+        self, point: CoordinateType, *, angular: bool = False, affine: Optional[u.Quantity] = None
     ) -> u.Quantity:
         """Closest affine, ignoring width"""
         affine = self.affine if affine is None else affine
@@ -345,11 +345,7 @@ class Path:
         return pt_affine
 
     def closest_position_to_point(
-        self, point: CoordinateType, *, angular: bool = False, affine: T.Optional[u.Quantity] = None
+        self, point: CoordinateType, *, angular: bool = False, affine: Optional[u.Quantity] = None
     ) -> SkyCoord:
         """Closest point, ignoring width"""
         return self.position(self.closest_affine_to_point(point, angular=angular, affine=affine))
-
-
-##############################################################################
-# END
