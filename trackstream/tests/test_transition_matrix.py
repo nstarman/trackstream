@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
-"""Testing :mod:`~trackstream.preprocess.utils`."""
+"""Testing :mod:`~trackstream.transition_matrix`."""
+
+__all__ = []
 
 
 ##############################################################################
@@ -15,13 +17,11 @@ import pytest
 
 
 @pytest.mark.skip("TODO")
-def test_find_closest_point():
-    assert False
+def test_make_transition_matrix():
+    """Test :func:`trackstream.transition_matrix`."""
 
 
-@pytest.mark.skip("TODO")
-def test_set_starting_point():
-    assert False
+# -------------------------------------------------------------------
 
 
 ##############################################################################

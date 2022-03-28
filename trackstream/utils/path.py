@@ -10,7 +10,7 @@ __all__ = ["Path", "path_moments"]
 
 # STDLIB
 import copy
-from typing import Any, Callable, NamedTuple, Optional, Union
+from typing import Any, Callable, NamedTuple, Optional, Tuple, Union
 
 # THIRD PARTY
 import astropy.coordinates as coord
@@ -21,9 +21,11 @@ from astropy.utils.decorators import format_doc
 from interpolated_coordinates import InterpolatedCoordinateFrame, InterpolatedSkyCoord
 from interpolated_coordinates.utils import InterpolatedUnivariateSplinewithUnits as IUSU
 from scipy.optimize import OptimizeResult, minimize_scalar
+from astropy.coordinates import concatenate as concatenate_coords
 
 # LOCAL
 from trackstream._type_hints import CoordinateType, FrameLikeType
+from trackstream.base import CommonBase
 from trackstream.utils import resolve_framelike
 
 ##############################################################################
@@ -36,7 +38,7 @@ class path_moments(NamedTuple):
     width: u.Quantity
 
 
-class Path:
+class Path(CommonBase):
     """Paths are an affine-parameterized position and distribution.
 
     Parameters
@@ -93,6 +95,7 @@ class Path:
     def __init__(
         self,
         path: Union[InterpolatedCoordinateFrame, InterpolatedSkyCoord],
+        /,
         width: Union[u.Quantity, Callable, None] = None,  # func(affine)
         amplitude: Union[u.Quantity, Callable, None] = None,  # FIXME!
         *,
@@ -110,7 +113,8 @@ class Path:
             elif isinstance(path, SkyCoord):  # SkyCoord & related
                 frame = path.frame.replicate_without_data()
             # else: pass  # path = Representation handled in resolve_framelike.
-        self._frame = resolve_framelike(frame)  # (an instance, not class)
+
+        super().__init__(frame=frame, representation_type=None)
 
         # --------------
         # path
@@ -145,11 +149,6 @@ class Path:
     @property
     def name(self) -> Optional[str]:
         return self._name
-
-    @property  # read-only
-    def frame(self) -> coord.BaseCoordinateFrame:
-        """The preferred frame (instance) of the Path."""
-        return self._frame
 
     @property
     def data(self) -> InterpolatedSkyCoord:
@@ -349,3 +348,27 @@ class Path:
     ) -> SkyCoord:
         """Closest point, ignoring width"""
         return self.position(self.closest_affine_to_point(point, angular=angular, affine=affine))
+
+
+def concatenate_paths(paths: Tuple[Path, Path]) -> Path:
+    """Concatenate `trackstream.utils.path.Path` instances.
+
+    Parameters
+    ----------
+    paths : tuple[`trackstream.utils.path.Path`, `trackstream.utils.path.Path`]
+
+    Returns
+    -------
+    `trackstream.utils.path.Path`
+    """
+    # TODO! Even better is to override __array_function_ so can use np.concatenate
+    neg_path, pos_path = paths
+    if neg_path.frame != pos_path.frame:
+        raise ValueError
+
+    # TODO! should it be original_path and _original_width?
+    affine = np.concatenate((-neg_path.affine[::-1], pos_path.affine))
+    c = concatenate_coords((neg_path._original_path[::-1], pos_path._original_path))
+    sigma = np.concatenate((neg_path._original_width[::-1], pos_path._original_width))
+
+    return Path(c, width=sigma, affine=affine, frame=pos_path.frame)

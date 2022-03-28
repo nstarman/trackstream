@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Testing :mod:`~trackstream.preprocess.rotated_frame`.
+"""Testing :mod:`~trackstream.rotated_frame`.
 
 .. todo::
 
@@ -25,9 +25,9 @@ import pytest
 from astropy.tests.helper import assert_quantity_allclose
 
 # LOCAL
+from trackstream import rotated_frame
 from trackstream.example_data import example_coords
 from trackstream.example_data.tests import data
-from trackstream.preprocess import rotated_frame
 from trackstream.setup_package import HAS_LMFIT
 
 if HAS_LMFIT:
@@ -112,7 +112,7 @@ def test_cartesian_model(
     deg: bool,
     expected_data,
 ):
-    """Test `~trackstream.preprocess.rotated_frame.cartesian_model`."""
+    """Test `~trackstream.rotated_frame.cartesian_model`."""
     # --------------
     # setup
 
@@ -328,7 +328,7 @@ class TestRotatedFrameFitter:
     ],
 )
 def test_residual(test_data, variables, scalar, expected_lat):
-    """Test `~trackstream.preprocess.rotated_frame.residual`."""
+    """Test `~trackstream.rotated_frame.residual`."""
     res = rotated_frame.residual(variables, test_data.cartesian, scalar=scalar)
 
     # compare result and expected latitude

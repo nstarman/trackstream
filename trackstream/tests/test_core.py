@@ -18,7 +18,7 @@ from astropy.tests.helper import assert_quantity_allclose
 # LOCAL
 from trackstream.core import StreamTrack, TrackStream
 from trackstream.example_data import get_example_pal5
-from trackstream.preprocess.som import SelfOrganizingMap1D
+from trackstream.som import SelfOrganizingMap1D
 from trackstream.stream import Stream
 
 ##############################################################################

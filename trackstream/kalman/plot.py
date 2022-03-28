@@ -4,7 +4,6 @@
 
 
 __all__ = [
-    "plot_dts",
     "plot_path",
 ]
 
@@ -18,47 +17,8 @@ import numpy as np
 from filterpy.stats import plot_covariance  # TODO replace
 
 ##############################################################################
-# PARAMETERS
-
-
-##############################################################################
 # CODE
 ##############################################################################
-
-
-def plot_dts(distances, averaged_distances):
-    """Plot time arrays.
-
-    Parameters
-    ----------
-    distances
-    averaged_distances
-
-    Returns
-    -------
-    `~matplotlib.pyplot.Figure`
-
-    """
-    dts = np.arange(len(distances))  # indices
-
-    fig, ax = plt.subplots()
-
-    ax.scatter(dts, distances, marker="*", c="k", label="p2p distance")
-
-    c = np.arange(0, len(dts))
-    ax.scatter(dts, averaged_distances, c=c, cmap="plasma_r", label="smoothed")
-
-    ax.set_xlabel("index")
-    ax.set_ylabel("distance")
-    ax.set_title("point to point distance")
-
-    plt.legend()
-    plt.tight_layout()
-
-    return fig
-
-
-# -------------------------------------------------------------------
 
 
 def plot_path(data, path, cov=None, true_path=None, *, num_std=1, cov_alpha=0.5, is_ordered=False):

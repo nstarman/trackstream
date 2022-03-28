@@ -10,7 +10,7 @@ References
 
 """
 
-__all__ = ["SelfOrganizingMap1D", "order_data", "reorder_visits"]
+__all__ = ["SelfOrganizingMap1D", "reorder_visits"]
 
 __credits__ = "MiniSom"
 
@@ -32,6 +32,7 @@ from scipy.stats import binned_statistic
 
 # LOCAL
 from trackstream._type_hints import CoordinateType
+from trackstream.base import CommonBase
 from trackstream.utils.pbar import get_progress_bar
 
 ##############################################################################
@@ -50,7 +51,7 @@ DataType = Union[CoordinateType, BaseRepresentation]
 ##############################################################################
 
 
-class SelfOrganizingMap1D:
+class SelfOrganizingMap1D(CommonBase):
     """Initializes a Self-Organizing Map, (modified from [MiniSom]_).
 
     Parameters
@@ -58,7 +59,7 @@ class SelfOrganizingMap1D:
     nlattice : int
         Number of lattice points in the 1D SOM.
     nfeature : int
-        Number of the elements of the vectors in input.
+        Number of dimensions in the input.
 
     sigma : float, optional (default=1.0)
         Spread of the neighborhood function, needs to be adequate
@@ -69,18 +70,6 @@ class SelfOrganizingMap1D:
         (at the iteration t we have
         learning_rate(t) = learning_rate / (1 + t/T)
         where T is #num_iteration/2)
-
-    decay_function : function (default=None)
-        Function that reduces learning_rate and sigma at each iteration
-        the default function is:
-                    learning_rate / (1+t/(max_iterarations/2))
-
-        A custom decay function will need to to take in input
-        three parameters in the following order:
-
-        1. learning rate
-        2. current iteration
-        3. maximum number of iterations allowed
 
     random_seed : int, optional keyword-only (default=None)
         Random seed to use.
@@ -108,20 +97,15 @@ class SelfOrganizingMap1D:
         *,
         sigma: float = 0.1,
         learning_rate: float = 0.3,
-        decay_function: Union[Callable, Literal["asymptotic"]] = "asymptotic",
         random_seed: Optional[int] = None,
-        representation_type=None,
+        representation_type: Optional[BaseRepresentation] = None,
         **kwargs: Any,
     ) -> None:
         if sigma >= 1 or sigma >= nlattice:
             warnings.warn("sigma is too high for the dimension of the map")
 
         # for interpreting input data
-        if representation_type is None:
-            self._representation_type = frame.representation_type
-        else:
-            self._representation_type = representation_type
-        self._frame = frame.replicate_without_data(representation_type=representation_type)
+        super().__init__(frame=frame, representation_type=representation_type)
         self._units = None
 
         # normal SOM stuff
@@ -129,9 +113,7 @@ class SelfOrganizingMap1D:
         self._nfeature = nfeature
         self._sigma = sigma
         self._learning_rate = learning_rate
-
-        decay_function = asymptotic_decay if decay_function == "asymptotic" else decay_function
-        self._decay_function = decay_function
+        self._decay_function = asymptotic_decay
 
         self._rng = random.default_rng(random_seed)
 
@@ -140,17 +122,6 @@ class SelfOrganizingMap1D:
 
         # random initialization
         self._prototypes = 2 * self._rng.random((nlattice, nfeature)) - 1
-        # self._prototypes /= linalg.norm(self._prototypes, axis=-1, keepdims=True)
-
-    @property
-    def frame(self):
-        """Frame of the SOM, for interpreting input data."""
-        return self._frame
-
-    @property
-    def representation_type(self):
-        """Representationtype of the SOM, for interpreting input data."""
-        return self._representation_type
 
     @property
     def data_units(self):
@@ -295,11 +266,7 @@ class SelfOrganizingMap1D:
     #     return linalg.norm(data - self.quantization(data), axis=1).mean()
 
     def fit(
-        self,
-        data,
-        num_iteration: int,
-        random_order=False,
-        progress: bool = False,
+        self, data: DataType, num_iteration: int, random_order=False, progress: bool = False
     ) -> None:
         """Trains the SOM.
 
@@ -317,42 +284,45 @@ class SelfOrganizingMap1D:
         progress : bool (default=False)
             If True, show a progress bar
         """
+        # Number of cycles through the data
         iterations = np.arange(num_iteration) % len(data)
+        # Optionally randomize the cycles
         if random_order:
             self._rng.shuffle(iterations)
 
+        # Get the in internal unitless representation
         if self._units is None:  # if not init weighted
             q = self._crd_to_q(data)
             self._units = q.unit
-
         X = self._crd_to_v(data)
 
+        # Fit the data by sequential update
         with get_progress_bar(progress, len(iterations)) as pbar:
             for t, iteration in enumerate(iterations):
                 pbar.update(1)
 
                 self._update(
                     X[iteration],
-                    self.best_matching_unit_index(X[iteration]),
+                    self._best_matching_unit_index(X[iteration]),
                     t,
                     num_iteration,
                 )
 
-    def _neighborhood(self, c, sigma) -> np.ndarray:
+    def _neighborhood(self, c: int, sigma: float) -> np.ndarray:
         """Returns a Gaussian centered in c."""
         d = 2 * pi * sigma ** 2
         ay = np.exp(-np.power(self._yy - self._yy.T[c], 2) / d)
         return (1 * ay).T  # the external product gives a matrix
 
-    def _update(self, x, bmui, t, max_iteration):
-        """Updates the locations of the prototypes.
+    def _update(self, x: np.ndarray, ibmu: int, t: int, max_iteration: int) -> None:
+        """Update the locations of the prototypes.
 
         Parameters
         ----------
         x : np.array
             Current point to learn.
-        bmui : int
-            Position of the winning prototype for x.
+        ibmu : int
+            Position of the best-matching prototype for x.
         t : int
             Iteration index
         max_iteration : int
@@ -362,59 +332,29 @@ class SelfOrganizingMap1D:
         # sigma and learning rate decrease with the same rule
         sig = self._decay_function(self._sigma, t, max_iteration)
         # improves the performances
-        g = self._neighborhood(bmui, sig) * eta
+        g = self._neighborhood(ibmu, sig) * eta
         # w_new = eta * neighborhood_function * (x-w)
         self._prototypes += np.einsum("i, ij->ij", g, x - self._prototypes)
 
-    def best_matching_unit_index(self, point: BaseRepresentation) -> int:
+    def _best_matching_unit_index(self, x: np.ndarray) -> int:
         """Computes the coordinates of the best prototype for the sample.
 
         Parameters
         ----------
-        x : |Representation|
+        x : array
 
+        Returns
+        -------
+        int
+            The index of the best-matching prototype.
         """
-        x = self._crd_to_v(point)
         activation_map = self._activation_distance(x, self._prototypes)
         return activation_map.argmin()
 
     # ---------------------------------------------------------------
     # predicting structure
 
-    def predict(self, crd, origin: Optional[SkyCoord] = None) -> np.ndarray:
-        """Order data from SOM in 2+ND.
-
-        Parameters
-        ----------
-        crd : Frame or Representation
-        origin
-
-        Returns
-        -------
-        ndarray
-
-        Notes
-        -----
-        The SOM creates a 1D lattice of connected nodes ($q$'s, gray) ordered by
-        proximity to the designated origin, then along the lattice.
-        Data points ($p$'s, green) are assigned an order from the SOM-lattice.
-        The distance from the data to each node is computed. Likewise the projection
-        is found of each data point on the edges connecting each SOM node.
-        All projections lying outside the edges (shaded regions) are eliminated,
-        also eliminated are all but the closest nodes. Remaining edges and node
-        connections in dotted block, with projections labeled $e$.
-        Data points are sorted into the closest node regions (blue)
-        and edge regions (shaded).
-        Data points in end-cap node regions are sorted by extended
-        projection on nearest edge.
-        Data points in edge regions are ordered by projection along the edge.
-        Data points in intermediate node regions are ordered by the angle between
-        the edge regions.
-
-        """
-        # length of data, number of features: (x, y, z) or (ra, dec), etc.
-        data = self._crd_to_v(crd)
-
+    def _order_along_projection(self, data: np.ndarray) -> np.ndarray:
         data_len, nfeature = data.shape
         nlattice = self.nlattice
 
@@ -441,7 +381,7 @@ class SelfOrganizingMap1D:
         # add in the nodes and find all the distances
         # the correct "place" to put the data point is within a
         # projection, unless it outside (by and endpoint)
-        # or inide, but on the convex side of a segment junction
+        # or inside, but on the convex side of a segment junction
         all_points = np.empty((data_len, 2 * nlattice - 1, nfeature), dtype=float)
         all_points[:, 1::2, :] = projected_points
         all_points[:, 0::2, :] = lattice_points
@@ -497,6 +437,61 @@ class SelfOrganizingMap1D:
 
         ordering = np.array(ordering, dtype=int)
 
+        return ordering
+
+    def predict(self, crd: DataType, origin: Optional[SkyCoord] = None) -> np.ndarray:
+        """Order data from SOM in 2+N Dimensions.
+
+        Parameters
+        ----------
+        crd : |SkyCoord| or |Frame| or |Representation|
+            This will generally be the same data used to train the SOM.
+        origin : SkyCoord or None
+
+        Returns
+        -------
+        ndarray
+
+        Notes
+        -----
+        The SOM creates a 1D lattice of connected nodes ($q$'s, gray) ordered by
+        proximity to the designated origin, then along the lattice.
+        Data points ($p$'s, green) are assigned an order from the SOM-lattice.
+        The distance from the data to each node is computed. Likewise the projection
+        is found of each data point on the edges connecting each SOM node.
+        All projections lying outside the edges (shaded regions) are eliminated,
+        also eliminated are all but the closest nodes. Remaining edges and node
+        connections in dotted block, with projections labeled $e$.
+        Data points are sorted into the closest node regions (blue)
+        and edge regions (shaded).
+        Data points in end-cap node regions are sorted by extended
+        projection on nearest edge.
+        Data points in edge regions are ordered by projection along the edge.
+        Data points in intermediate node regions are ordered by the angle between
+        the edge regions.
+        """
+        # length of data, number of features: (x, y, z) or (ra, dec), etc.
+        data = self._crd_to_v(crd)
+
+        # Prediction of ordering. Might need to correct for the origin and
+        # phase wraps.
+        ordering = self._order_along_projection(data)
+
+        # Correct for a phase wrap
+        # TODO! more general correction for arbitrary number of phase wraps
+        qs = self._crd_to_q(crd)
+        oq = qs[qs.dtype.names[0]][ordering]
+
+        if oq.unit.physical_type == "angle":
+            # def unwrap(q, /, visit_order=None, discont=pi/2*u.rad, period=2*pi*u.rad):
+            discont = np.pi / 2 * u.rad
+            period = 2 * np.pi * u.rad
+
+            jumps = np.where(np.diff(oq) >= discont)[0]
+            if jumps:
+                i = jumps[0] + 1
+                ordering = np.concatenate((ordering[i:], ordering[:i]))
+
         # ----------------------------------------
 
         if origin is not None:
@@ -506,10 +501,10 @@ class SelfOrganizingMap1D:
             armep = crd[ordering[[0, -1]]]  # end points
 
             # FIXME! be careful about 2d versus 3d
-            try:
-                sep = armep.separation_3d(origin)
-            except ValueError:
-                sep = armep.separation(origin)
+            # try:
+            #     sep = armep.separation_3d(origin)
+            # except ValueError:
+            #     sep = armep.separation(origin)
             # if np.argmin(sep) == 1:
             #     ordering = ordering[::-1]
 
@@ -561,59 +556,59 @@ def asymptotic_decay(learning_rate: float, iteration: int, max_iter: float) -> f
 ##############################################################################
 
 
-def reorder_visits(
-    data: CoordinateType,
-    visit_order: Sequence,
-    start_ind: int,
-):
-    """Reorder the points from the SOM.
-
-    The SOM does not always keep the starting point at the beginning
-    nor even "direction" of the indices. This function can flip the
-    index ordering and rotate the indices such that the starting point
-    stays at the beginning.
-
-    The rotation is done by snipping and restitching the array at
-    `start_ind`. The "direction" is determined by the distance between
-    data points at visit_order[start_ind-1] and visit_order[start_ind+1].
-
-    Parameters
-    ----------
-    data : CoordinateType
-        The data.
-    visit_order: Sequence
-        Index array ordering `data`. Will be flipped and / or rotated
-        such that `start_ind` is the 0th element and the next element
-        is the closest.
-    start_ind : int
-        The starting index
-
-    Returns
-    -------
-    new_visit_order : Sequence
-        reordering of `visit_order`
-
-    """
-    # index of start_ind in visit_order
-    # this needs to be made the first index.
-    i = list(visit_order).index(start_ind)
-
-    # snipping and restitching
-    # first taking care of the edge cases
-    if i == 0:  # AOK
-        pass
-    elif i == len(visit_order) - 1:  # just reverse.
-        i = 0
-        visit_order = visit_order[::-1]
-    else:  # need to figure out direction before restitching
-        back = (data[visit_order[i]] - data[visit_order[i - 1]]).norm()
-        forw = (data[visit_order[i + 1]] - data[visit_order[i]]).norm()
-
-        if back < forw:  # things got reversed...
-            visit_order = visit_order[::-1]  # flip visit_order
-            i = list(visit_order).index(start_ind)  # re-find index
-
-    # do the stitch
-    new_visit_order = np.concatenate((visit_order[i:], visit_order[:i]))
-
-    return new_visit_order
+# def reorder_visits(
+#     data: CoordinateType,
+#     visit_order: np.ndarray,
+#     start_ind: int,
+# ):
+#     """Reorder the points from the SOM.
+#
+#     The SOM does not always keep the starting point at the beginning
+#     nor even "direction" of the indices. This function can flip the
+#     index ordering and rotate the indices such that the starting point
+#     stays at the beginning.
+#
+#     The rotation is done by snipping and restitching the array at
+#     `start_ind`. The "direction" is determined by the distance between
+#     data points at visit_order[start_ind-1] and visit_order[start_ind+1].
+#
+#     Parameters
+#     ----------
+#     data : CoordinateType
+#         The data.
+#     visit_order: ndarray[int]
+#         Index array ordering `data`. Will be flipped and / or rotated
+#         such that `start_ind` is the 0th element and the next element
+#         is the closest.
+#     start_ind : int
+#         The starting index
+#
+#     Returns
+#     -------
+#     new_visit_order : Sequence
+#         reordering of `visit_order`
+#
+#     """
+#     # index of start_ind in visit_order
+#     # this needs to be made the first index.
+#     i = list(visit_order).index(start_ind)
+#
+#     # snipping and restitching
+#     # first taking care of the edge cases
+#     if i == 0:  # AOK
+#         pass
+#     elif i == len(visit_order) - 1:  # just reverse.
+#         i = 0
+#         visit_order = visit_order[::-1]
+#     else:  # need to figure out direction before restitching
+#         back = (data[visit_order[i]] - data[visit_order[i - 1]]).norm()
+#         forw = (data[visit_order[i + 1]] - data[visit_order[i]]).norm()
+#
+#         if back < forw:  # things got reversed...
+#             visit_order = visit_order[::-1]  # flip visit_order
+#             i = list(visit_order).index(start_ind)  # re-find index
+#
+#     # do the stitch
+#     new_visit_order = np.concatenate((visit_order[i:], visit_order[:i]))
+#
+#     return new_visit_order

@@ -36,12 +36,6 @@ class Conf(_config.ConfigNamespace):
         cfgtype="boolean(default=False)",
     )
 
-    use_minisom = _config.ConfigItem(
-        False,
-        description="Use MiniSOM.",
-        cfgtype="boolean(default=False)",
-    )
-
     # Processing
     # ----------
 

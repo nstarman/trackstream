@@ -18,7 +18,6 @@ from typing import Dict, Optional, Sequence, Union
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import BaseCoordinateFrame, CartesianRepresentation, SkyCoord
-from astropy.coordinates import concatenate as concatenate_coords
 from astropy.table import Table
 from astropy.utils.metadata import MetaAttribute, MetaData
 from astropy.utils.misc import indent
@@ -26,12 +25,12 @@ from scipy.linalg import block_diag
 
 # LOCAL
 from ._type_hints import CoordinateType, FrameLikeType
-from trackstream.preprocess.rotated_frame import FitResult, RotatedFrameFitter
-from trackstream.preprocess.som import SelfOrganizingMap1D
-from trackstream.process.kalman import KalmanFilter, kalman_output
-from trackstream.process.utils import make_dts, make_F, make_H, make_Q, make_R
+from trackstream.kalman.core import FirstOrderNewtonianKalmanFilter, kalman_output
+from trackstream.kalman.helper import make_F, make_H, make_Q, make_R
+from trackstream.rotated_frame import FitResult, RotatedFrameFitter
+from trackstream.som import SelfOrganizingMap1D
 from trackstream.utils.misc import intermix_arrays
-from trackstream.utils.path import Path, path_moments
+from trackstream.utils.path import Path, path_moments, concatenate_paths
 
 ##############################################################################
 # CODE
@@ -45,7 +44,7 @@ class TrackStream:
 
     Parameters
     ----------
-    arm1SOM, arm2SOM : `~trackstream.preprocess.SelfOrganizingMap` or None (optional, keyword-only)
+    arm1SOM, arm2SOM : `~trackstream.SelfOrganizingMap` or None (optional, keyword-only)
         Fiducial SOMs for stream arms 1 and 2, respectively.
     """
 
@@ -180,7 +179,6 @@ class TrackStream:
                 representation_type=arm.frame.representation_type,  # TODO! as args
                 sigma=sigma,
                 learning_rate=learning_rate,
-                # decay_function=None,
                 neighborhood_function="gaussian",
                 activation_distance="euclidean",
                 random_seed=random_seed,
@@ -208,15 +206,15 @@ class TrackStream:
         return visit_order, som
 
     def _fit_kalman_filter(
-        self,
-        data: SkyCoord,
-        w0: Optional[np.ndarray] = None,
-    ) -> Union[kalman_output, KalmanFilter, np.ndarray]:
+        self, data: SkyCoord, frame: BaseCoordinateFrame, **options
+    ) -> Union[kalman_output, FirstOrderNewtonianKalmanFilter, np.ndarray]:
         """Fit data with Kalman filter.
 
         Parameters
         ----------
         stream : Stream
+            In frame `frame`
+        frame : BaseCoordinateFrame
         w0 : array or None, optional
             The starting point of the Kalman filter.
 
@@ -226,43 +224,36 @@ class TrackStream:
         kalman_filter
 
         """
-        arr = data.cartesian.xyz.T.value
-        dts = make_dts(arr, dt0=0.5, N=6, axis=1, plot=False)
+        # TODO! detect if want positions only, or also velocities
+        arr = data.transform_to(frame).cartesian.xyz.T.value
 
         # starting point
-        if w0 is None:  # need to determine a good starting point
+        x0 = options.get("x0", None)
+        if x0 is None:  # need to determine a good starting point
             # Instead of choosing the first point as the starting point,
             # since the stream is in its frame, instead choose the locus of
             # points near the origin.
-            x = arr[:3].mean(axis=0)  # fist point
-            v = [0, 0, 0]  # guess for "velocity"
-            w0 = intermix_arrays(x, v)
+            x0 = arr[:3].mean(axis=0)  # fist point
 
         # TODO! as options
         p = np.array([[0.0001, 0], [0, 1]])
         P0 = block_diag(p, p, p)
 
-        H0 = make_H()
         R0 = make_R([0.05, 0.05, 0.003])[0]  # TODO! actual errors
+        options["q_kw"] = dict(var=0.01, n_dims=3)  # TODO! overridable
 
-        kf = KalmanFilter(
-            w0,
-            P0,
-            F0=make_F,
-            Q0=make_Q,
-            H0=H0,
-            R0=R0,
-            q_kw=dict(var=0.01, n_dims=3),  # TODO! as options
+        kf = FirstOrderNewtonianKalmanFilter(
+            x0, P0, R0=R0, frame=frame, representation_type=CartesianRepresentation, **options  # TODO! from data
         )
 
-        smooth_mean_path = kf.fit(
+        timesteps = kf.make_simple_timesteps(data, dt0=50 * u.pc, width=6, vmin=0.01 * u.pc)
+        mean_path, path = kf.fit(
             arr,
-            dts,
-            method="stepupdate",
+            timesteps=timesteps,
             use_filterpy=None,
         )
 
-        return smooth_mean_path, kf, dts
+        return mean_path, kf, path
 
     # -------------------------------------------
 
@@ -328,65 +319,69 @@ class TrackStream:
 
         # -----
         # Arm 1
-        som = self._arm1_SOM
-        visit_order = None
+        som1 = self._arm1_SOM
+        visit_order1 = None
 
         # 1) try to get from cache (e.g. first time fitting)
-        if som is None:
+        if som1 is None:
             print("SOM is None")
-            visit_order = self._cache.get("arm1_visit_order", None)
-            som = self._cache.get("arm1_SOM", None)
+            visit_order1 = self._cache.get("arm1_visit_order", None)
+            som1 = self._cache.get("arm1_SOM", None)
         # 2) fit, if still None or force continued fit
-        if visit_order is None:
+        if visit_order1 is None:
             print("SOM is still None. kwargs are:", som_fit_kw)
-            visit_order, som = self._fit_SOM(
-                arm1, som=som, origin=stream.origin, **(som_fit_kw or {})
+            visit_order1, som1 = self._fit_SOM(
+                arm1, som=som1, origin=stream.origin, **(som_fit_kw or {})
             )
         elif tune_SOM:
             print("SOM is tuning. kwargs are:", som_fit_kw)
-            # arm1 = arm1[visit_order]  # TODO!
-            visit_order, som = self._fit_SOM(
-                arm1, som=som, origin=stream.origin, **(som_fit_kw or {})
+            # arm1 = arm1[visit_order1]  # TODO!
+            visit_order1, som1 = self._fit_SOM(
+                arm1, som=som1, origin=stream.origin, **(som_fit_kw or {})
             )
         # 3) if it's still None, give up
-        if visit_order is None:
+        if visit_order1 is None:
             raise ValueError()
 
         # cache (even if None)
-        self._cache["arm1_visit_order"] = visit_order
-        self._cache["arm1_SOM"] = som
+        self._cache["arm1_visit_order"] = visit_order1
+        self._cache["arm1_SOM"] = som1
+
+        arm1 = arm1[visit_order1]  # re-order
 
         # -----
         # Arm 2 (if not None)
-        som = self._arm2_SOM
-        visit_order = None
+        som2 = self._arm2_SOM
+        visit_order2 = None
 
         if stream.arm2.has_data:
 
             # 1) try to get from cache (e.g. first time fitting)
-            if som is None:
+            if som2 is None:
                 print("SOM is None")
-                visit_order = self._cache.get("arm2_visit_order", None)
-                som = self._cache.get("arm2_SOM", None)
+                visit_order2 = self._cache.get("arm2_visit_order2", None)
+                som2 = self._cache.get("arm2_SOM", None)
             # 2) fit, if still None or force continued fit
-            if visit_order is None:
+            if visit_order2 is None:
                 print("SOM is still None. kwargs are:", som_fit_kw)
-                visit_order, som = self._fit_SOM(
-                    arm2, som=som, origin=stream.origin, **(som_fit_kw or {})
+                visit_order2, som2 = self._fit_SOM(
+                    arm2, som=som2, origin=stream.origin, **(som_fit_kw or {})
                 )
             elif tune_SOM:
                 print("SOM is tuning. kwargs are:", som_fit_kw)
-                # arm2 = arm2[visit_order]  # TODO!
-                visit_order, som = self._fit_SOM(
-                    arm2, som=som, origin=stream.origin, **(som_fit_kw or {})
+                # arm2 = arm2[visit_order2]  # TODO!
+                visit_order2, som2 = self._fit_SOM(
+                    arm2, som=som2, origin=stream.origin, **(som_fit_kw or {})
                 )
             # 3) if it's still None, give up
-            if visit_order is None:
+            if visit_order2 is None:
                 raise ValueError
 
         # cache (even if None)
-        self._cache["arm2_visit_order"] = visit_order
-        self._cache["arm2_SOM"] = som
+        self._cache["arm2_visit_order"] = visit_order2
+        self._cache["arm2_SOM"] = som2
+        
+        arm2 = arm2[visit_order2]  # re-order
 
         # -------------------
         # Kalman Filter
@@ -397,40 +392,17 @@ class TrackStream:
         # Arm 1  (never None)
         # -----
         kalman_fit_kw = kalman_fit_kw or {}
-        mean1, kf1, dts1 = self._fit_kalman_filter(arm1, **kalman_fit_kw)
+        mean1, kf1, path1 = self._fit_kalman_filter(arm1, frame=frame, **kalman_fit_kw)
         # cache
         self._cache["arm1_mean_path"] = mean1
         self._cache["arm1_kalman"] = kf1
 
-        # TODO! make sure get the frame and units right
-        r1 = CartesianRepresentation(mean1.Xs[:, ::2].T, unit=u.kpc)
-        c1 = frame.realize_frame(r1)  # (not interpolated)
-        sp2p1 = c1[:-1].separation(c1[1:])  # point-2-point sep
-        affine1 = np.concatenate(([min(1e-10 * sp2p1.unit, 1e-10 * sp2p1[0])], sp2p1.cumsum()))
-
-        # covariance matrix. select only the phase-space positions
-        # everything is Gaussian so there are no off-diagonal elements,
-        # so the 1-sigma error is quite easy.
-        cov = mean1.Ps[:, ::2, ::2]
-        var = np.diagonal(cov, axis1=1, axis2=2)
-        sigma1 = np.sqrt(np.sum(np.square(var), axis=-1)) * u.kpc
-
         # Arm 2
         # -----
         if not stream.arm2.has_data:
-            mean2 = kf2 = dts2 = None
+            mean2 = kf2 = None
         else:
-            mean2, kf2, dts2 = self._fit_kalman_filter(arm2, **kalman_fit_kw)
-
-            # TODO! make sure get the frame and units right
-            r2 = CartesianRepresentation(mean2.Xs[:, ::2].T, unit=u.kpc)
-            c2 = frame.realize_frame(r2)  # (not interpolated)
-            sp2p2 = c2[:-1].separation(c2[1:])  # point-2-point sep
-            affine2 = np.concatenate(([min(1e-10 * sp2p2.unit, 1e-10 * sp2p2[0])], sp2p2.cumsum()))
-
-            cov = mean2.Ps[:, ::2, ::2]
-            var = np.diagonal(cov, axis1=1, axis2=2)
-            sigma2 = np.sqrt(np.sum(np.square(var), axis=-1)) * u.kpc
+            mean2, kf2, path2 = self._fit_kalman_filter(arm2, frame=frame, **kalman_fit_kw)
 
         # cache (even if None)
         self._cache["arm2_mean_path"] = mean2
@@ -440,19 +412,7 @@ class TrackStream:
         # Combine together into a single path
         # Need to reverse order of one arm to be indexed toward origin, not away
 
-        if not stream.arm2.has_data:
-            affine, c, sigma = affine1, c1, sigma1
-        else:
-            affine = np.concatenate((-affine2[::-1], affine1))
-            c = concatenate_coords((c2[::-1], c1))
-            sigma = np.concatenate((sigma2[::-1], sigma1))
-
-        path = Path(
-            path=c,
-            width=sigma,
-            affine=affine,
-            frame=frame,
-        )
+        path = concatenate_paths((path2, path1))  # TODO! which negative?
 
         # construct interpolation
         track = StreamTrack(
