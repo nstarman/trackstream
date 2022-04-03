@@ -2,25 +2,24 @@
 
 """Core Functions."""
 
-__all__ = [
-    "TrackStream",
-    "StreamTrack",
-]
-
-
 ##############################################################################
 # IMPORTS
 
+from __future__ import annotations
+
 # STDLIB
-from typing import Dict, Optional, Sequence, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple, TypedDict, Union
 
 # THIRD PARTY
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import BaseCoordinateFrame, CartesianRepresentation, SkyCoord
-from astropy.table import Table
+from astropy.table import QTable, Table
+from astropy.units import Quantity
 from astropy.utils.metadata import MetaAttribute, MetaData
 from astropy.utils.misc import indent
+from interpolated_coordinates import InterpolatedSkyCoord
+from numpy import array, ndarray
 from scipy.linalg import block_diag
 
 # LOCAL
@@ -30,11 +29,29 @@ from trackstream.kalman.helper import make_F, make_H, make_Q, make_R
 from trackstream.rotated_frame import FitResult, RotatedFrameFitter
 from trackstream.som import SelfOrganizingMap1D
 from trackstream.utils.misc import intermix_arrays
-from trackstream.utils.path import Path, path_moments, concatenate_paths
+from trackstream.utils.path import Path, concatenate_paths, path_moments
+
+__all__ = [
+    "TrackStream",
+    "StreamTrack",
+]
 
 ##############################################################################
 # CODE
 ##############################################################################
+
+
+class TrackStreamCachedDict(TypedDict):
+    frame: Optional[BaseCoordinateFrame]
+    frame_fit: Optional[FitResult]
+    arm1_visit_order: Optional[ndarray]
+    arm1_SOM: Optional[SelfOrganizingMap1D]
+    arm1_mean_path: Optional[kalman_output]
+    arm1_kalman: Optional[FirstOrderNewtonianKalmanFilter]
+    arm2_visit_order: Optional[ndarray]
+    arm2_SOM: Optional[SelfOrganizingMap1D]
+    arm2_mean_path: Optional[kalman_output]
+    arm2_kalman: Optional[FirstOrderNewtonianKalmanFilter]
 
 
 class TrackStream:
@@ -44,12 +61,28 @@ class TrackStream:
 
     Parameters
     ----------
-    arm1SOM, arm2SOM : `~trackstream.SelfOrganizingMap` or None (optional, keyword-only)
+    arm1SOM, arm2SOM : `~trackstream.SelfOrganizingMap1D` or None (optional, keyword-only)
         Fiducial SOMs for stream arms 1 and 2, respectively.
     """
 
-    def __init__(self, *, arm1SOM=None, arm2SOM=None):
-        self._cache: Dict[str, object] = {}
+    def __init__(
+        self,
+        *,
+        arm1SOM: Optional[SelfOrganizingMap1D] = None,
+        arm2SOM: Optional[SelfOrganizingMap1D] = None,
+    ) -> None:
+        self._cache = TrackStreamCachedDict(
+            frame=None,
+            frame_fit=None,
+            arm1_visit_order=None,
+            arm1_SOM=None,
+            arm1_mean_path=None,
+            arm1_kalman=None,
+            arm2_visit_order=None,
+            arm2_SOM=None,
+            arm2_mean_path=None,
+            arm2_kalman=None,
+        )
 
         # SOM
         self._arm1_SOM = arm1SOM
@@ -60,11 +93,11 @@ class TrackStream:
 
     def _fit_rotated_frame(
         self,
-        stream: "Stream",
-        rot0: Optional[u.Quantity] = 0 * u.deg,
-        bounds: Optional[Sequence] = None,
-        **kwargs,
-    ):
+        stream: "Stream",  # type: ignore
+        rot0: Optional[Quantity] = 0 * u.deg,
+        bounds: Optional[ndarray] = None,
+        **kwargs: Any,
+    ) -> Tuple[BaseCoordinateFrame, FitResult]:
         """Fit a rotated frame in ICRS coordinates.
 
         Parameters
@@ -101,11 +134,15 @@ class TrackStream:
         align_v : bool or None (optional, keyword-only)
             Whether to align velocity to be in positive direction
 
+        Returns
+        -------
+        BaseCoordinateFrame
+        FitResult
+
         Raises
         ------
         TypeError
             If ``_data_frame`` is None
-
         """
         # Make and run fitter
         fitter = RotatedFrameFitter(
@@ -125,7 +162,7 @@ class TrackStream:
 
     def _fit_SOM(
         self,
-        arm,
+        arm: SkyCoord,
         som: Optional[SelfOrganizingMap1D] = None,
         origin: Optional[SkyCoord] = None,
         *,
@@ -136,8 +173,8 @@ class TrackStream:
         # reorder: Optional[int] = None,
         progress: bool = False,
         nlattice: Optional[int] = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> Tuple[ndarray, SelfOrganizingMap1D]:
         """Reorder data by SOM.
 
         Parameters
@@ -206,8 +243,8 @@ class TrackStream:
         return visit_order, som
 
     def _fit_kalman_filter(
-        self, data: SkyCoord, frame: BaseCoordinateFrame, **options
-    ) -> Union[kalman_output, FirstOrderNewtonianKalmanFilter, np.ndarray]:
+        self, data: SkyCoord, frame: BaseCoordinateFrame, **options: Any
+    ) -> Tuple[kalman_output, FirstOrderNewtonianKalmanFilter, Path]:
         """Fit data with Kalman filter.
 
         Parameters
@@ -236,14 +273,19 @@ class TrackStream:
             x0 = arr[:3].mean(axis=0)  # fist point
 
         # TODO! as options
-        p = np.array([[0.0001, 0], [0, 1]])
+        p = array([[0.0001, 0], [0, 1]])
         P0 = block_diag(p, p, p)
 
-        R0 = make_R([0.05, 0.05, 0.003])[0]  # TODO! actual errors
+        R0 = make_R(array([0.05, 0.05, 0.003]))[0]  # TODO! actual errors
         options["q_kw"] = dict(var=0.01, n_dims=3)  # TODO! overridable
 
         kf = FirstOrderNewtonianKalmanFilter(
-            x0, P0, R0=R0, frame=frame, representation_type=CartesianRepresentation, **options  # TODO! from data
+            x0,
+            P0,
+            R0=R0,
+            frame=frame,
+            representation_type=CartesianRepresentation,
+            **options,  # TODO! from data
         )
 
         timesteps = kf.make_simple_timesteps(data, dt0=50 * u.pc, width=6, vmin=0.01 * u.pc)
@@ -259,14 +301,14 @@ class TrackStream:
 
     def fit(
         self,
-        stream,
+        stream: "Stream",  # type: ignore
         *,
         # frame: Optional[FrameLike] = None,
         tune_SOM: bool = True,
         rotated_frame_fit_kw: Optional[dict] = None,
         som_fit_kw: Optional[dict] = None,
         kalman_fit_kw: Optional[dict] = None,
-    ):
+    ) -> StreamTrack:
         """Fit a data to the data.
 
         Parameters
@@ -288,12 +330,11 @@ class TrackStream:
         # frame orientation.
 
         frame: Optional[BaseCoordinateFrame]
-        frame_fit: Optional[FitResult]
+        frame_fit: Optional[FitResult] = None
 
         # 1) Already provided or in cache.
         #    Either way, don't need to repeat the process.
         frame = stream.system_frame  # NOT .system_frame ?
-        frame_fit = self._cache.get("frame_fit", None)
 
         # 2) Fit (& cache), if still None.
         if frame is None:
@@ -359,7 +400,7 @@ class TrackStream:
             # 1) try to get from cache (e.g. first time fitting)
             if som2 is None:
                 print("SOM is None")
-                visit_order2 = self._cache.get("arm2_visit_order2", None)
+                visit_order2 = self._cache.get("arm2_visit_order", None)
                 som2 = self._cache.get("arm2_SOM", None)
             # 2) fit, if still None or force continued fit
             if visit_order2 is None:
@@ -380,7 +421,7 @@ class TrackStream:
         # cache (even if None)
         self._cache["arm2_visit_order"] = visit_order2
         self._cache["arm2_SOM"] = som2
-        
+
         arm2 = arm2[visit_order2]  # re-order
 
         # -------------------
@@ -433,20 +474,21 @@ class TrackStream:
 
     # ===============================================================
 
-    def predict(self, affine):
-        """Predict from a fit.
 
-        Returns
-        -------
-        StreamTrack instance
-
-        """
-        return self.track(affine)
-
-    def fit_predict(self, stream, affine, **fit_kwargs):
-        """Fit and Predict."""
-        self.fit(stream, **fit_kwargs)
-        return self.predict(affine)
+#     def predict(self, affine: Quantity) -> StreamTrack:
+#         """Predict from a fit.
+#
+#         Returns
+#         -------
+#         StreamTrack instance
+#
+#         """
+#         return self.track(affine)
+#
+#     def fit_predict(self, stream: "Stream", affine: Quantity, **fit_kwargs: Any) -> StreamTrack:
+#         """Fit and Predict."""
+#         self.fit(stream, **fit_kwargs)
+#         return self.predict(affine)
 
 
 ##############################################################################
@@ -479,8 +521,8 @@ class StreamTrack:
         stream_data: Union[Table, CoordinateType, None],
         origin: CoordinateType,
         # frame: Optional[FrameLikeType] = None,
-        **meta,
-    ):
+        **meta: Any,
+    ) -> None:
         # validation of types
         if not isinstance(path, Path):
             raise TypeError("`path` must be <Path>.")
@@ -503,28 +545,28 @@ class StreamTrack:
         self.meta.update(meta)
 
     @property
-    def path(self):
+    def path(self) -> Path:
         return self._path
 
     @property
-    def track(self):
+    def track(self) -> InterpolatedSkyCoord:
         """The path's central track."""
         return self._path.data
 
     @property
-    def affine(self):
+    def affine(self) -> Quantity:
         return self._path.affine
 
     @property
-    def stream_data(self):
+    def stream_data(self) -> QTable:
         return self._stream_data
 
     @property
-    def origin(self):
+    def origin(self) -> SkyCoord:
         return self._origin
 
     @property
-    def frame(self):
+    def frame(self) -> BaseCoordinateFrame:
         return self._path.frame
 
     #######################################################
@@ -532,7 +574,7 @@ class StreamTrack:
 
     def __call__(
         self,
-        affine: Optional[u.Quantity] = None,
+        affine: Optional[Quantity] = None,
         *,
         angular: bool = False,
     ) -> path_moments:
@@ -556,11 +598,11 @@ class StreamTrack:
     def probability(
         self,
         point: SkyCoord,
-        background_model=None,
+        background_model: Optional[Callable[[SkyCoord], Quantity[u.percent]]] = None,
         *,
         angular: bool = False,
-        affine: Optional[u.Quantity] = None,
-    ):
+        affine: Optional[Quantity] = None,
+    ) -> Quantity[u.percent]:
         """Probability point is part of the stream.
 
         .. todo:: angular probability
@@ -585,7 +627,7 @@ class StreamTrack:
     #######################################################
     # misc
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """String representation."""
         s = super().__repr__()
 
@@ -595,7 +637,3 @@ class StreamTrack:
         s += "\n" + indent(repr(self._stream_data)[1:-1])
 
         return s
-
-
-##############################################################################
-# END

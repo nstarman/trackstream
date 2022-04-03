@@ -233,7 +233,3 @@ class Test_StreamTrack:
         frame_name = track.frame.__class__.__name__
         rep_name = track.track.representation_type.__name__
         assert f"StreamTrack ({frame_name}|{rep_name})" in s
-
-
-##############################################################################
-# END

@@ -32,6 +32,3 @@ from . import test_example_coords as example_coords_tests
 ##############################################################################
 
 test = TestRunner.make_test_runner_in(Path(__file__).parent.parent)
-
-##############################################################################
-# END

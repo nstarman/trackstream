@@ -125,7 +125,3 @@ def get_transform_matrix(
         M = matrix_product(M, Mi)
 
     return M
-
-
-##############################################################################
-# END

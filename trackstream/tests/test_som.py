@@ -170,7 +170,3 @@ def test_reorder_visits():
 def test_order_data():
     """Test :func:`trackstream.som.order_data`."""
     assert False
-
-
-##############################################################################
-# END

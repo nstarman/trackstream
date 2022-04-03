@@ -29,6 +29,3 @@ from . import example_data as examples
 from .config import conf
 from .core import StreamTrack, TrackStream
 from .stream import Stream
-
-##############################################################################
-# END

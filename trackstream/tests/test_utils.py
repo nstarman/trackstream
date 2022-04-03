@@ -22,7 +22,3 @@ def test_find_closest_point():
 @pytest.mark.skip("TODO")
 def test_set_starting_point():
     assert False
-
-
-##############################################################################
-# END

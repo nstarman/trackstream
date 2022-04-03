@@ -4,7 +4,6 @@
 """Utilities.
 
 This sub-module is destined for common non-package specific utility functions.
-
 """
 
 
@@ -59,7 +58,7 @@ def find_closest_point(data: CoordinateType, to_point: CoordinateType) -> Coordi
     return start_point, start_ind
 
 
-def set_starting_point(data: CoordinateType, start_ind: int):
+def set_starting_point(data: CoordinateType, start_ind: int) -> CoordinateType:
     """Reorder data to set starting index at row 0.
 
     Parameters
@@ -75,10 +74,6 @@ def set_starting_point(data: CoordinateType, start_ind: int):
     # index order array
     order = list(range(len(data)))
     del order[start_ind]
-    order = np.array([start_ind, *order])
+    new_order = np.array([start_ind, *order])
 
-    return data[order]  # return reordered data
-
-
-##############################################################################
-# END
+    return data[new_order]  # return reordered data

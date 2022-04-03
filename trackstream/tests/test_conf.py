@@ -2,9 +2,7 @@
 
 """Testing :mod:`~trackstream.conf`."""
 
-__all__ = [
-    "Test_conf",
-]
+__all__ = ["Test_conf"]
 
 
 ##############################################################################
@@ -31,22 +29,8 @@ class Test_conf(object):
         """
         cls.conf = Conf()
 
-    # /def
-
     # -------------------------------
 
     def test_use_lmfit(self):
         """Test ``use_lmfit`` configuration."""
         assert self.conf.use_lmfit is False
-
-    # /def
-
-
-# /class
-
-
-# -------------------------------------------------------------------
-
-
-##############################################################################
-# END

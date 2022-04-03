@@ -175,7 +175,3 @@ def resolve_framelike(  # noqa: F811
         True.
     """
     return _resolve_framelike(frame, error_if_not_type=error_if_not_type)
-
-
-##############################################################################
-# END

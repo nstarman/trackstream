@@ -21,13 +21,14 @@ class CommonBase(metaclass=ABCMeta):
         self, *, frame: FrameLikeType, representation_type: Optional[BaseRepresentation] = None
     ) -> None:
         # First resolve frame
-        frame = resolve_framelike(frame)
+        theframe = resolve_framelike(frame)
         # Now can get representation type
         representation_type = (
-            representation_type if representation_type is not None else frame.representation_type
+            representation_type if representation_type is not None else theframe.representation_type
         )
         # Set the frame, with the representation type
-        self._frame = frame.replicate_without_data(representation_type=representation_type)
+        self._frame: BaseCoordinateFrame
+        self._frame = theframe.replicate_without_data(representation_type=representation_type)
 
     @property
     def frame(self) -> BaseCoordinateFrame:

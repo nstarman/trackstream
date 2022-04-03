@@ -7,7 +7,6 @@ __credits__ = ["Jo Bovy"]
 
 
 __all__ = [
-    # functions
     "get_orbit",
     "make_ordered_orbit_data",
     "make_unordered_orbit_data",
@@ -19,7 +18,7 @@ __all__ = [
 # IMPORTS
 
 # STDLIB
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 # THIRD PARTY
 import astropy.coordinates as coord
@@ -27,9 +26,10 @@ import astropy.units as u
 import numpy as np
 from galpy import potential
 from galpy.orbit import Orbit
+from astropy.coordinates import SkyCoord
 
 # LOCAL
-from trackstream._type_hints import FrameLikeType, RepLikeType, UnitType
+from trackstream._type_hints import FrameLikeType, RepresentationLikeType, UnitType
 from trackstream.utils.misc import make_shuffler
 
 ##############################################################################
@@ -44,7 +44,7 @@ unit = u.Myr
 ##############################################################################
 
 
-def get_orbit(stop: float = stop, num: int = num, unit: UnitType = unit):
+def get_orbit(stop: float = stop, num: int = num, unit: UnitType = unit) -> Orbit:
     """Get Orbit.
 
     Parameters
@@ -57,7 +57,6 @@ def get_orbit(stop: float = stop, num: int = num, unit: UnitType = unit):
     -------
     rep: `~galpy.orbit.Orbit`
         Integrated Orbit
-
     """
     # create time integration array
     time = np.linspace(0, stop, num=num) * unit
@@ -77,8 +76,8 @@ def make_ordered_orbit_data(
     num: int = num,
     unit: UnitType = unit,
     frame: FrameLikeType = "galactocentric",
-    representation_type: RepLikeType = "cartesian",
-) -> coord.SkyCoord:
+    representation_type: RepresentationLikeType = "cartesian",
+) -> SkyCoord:
     """Make Ordered Orbit Data.
 
     Parameters
@@ -109,7 +108,7 @@ def make_unordered_orbit_data(
     num: int = num,
     unit: UnitType = unit,
     frame: FrameLikeType = "galactocentric",
-    representation_type: RepLikeType = "cartesian",
+    representation_type: RepresentationLikeType = "cartesian",
 ) -> coord.BaseRepresentation:
     """Make Ordered Orbit Data.
 
@@ -147,9 +146,9 @@ def make_noisy_orbit_data(
     sigma: Optional[Dict[str, u.Quantity]] = None,
     unit: UnitType = unit,
     frame: FrameLikeType = "galactocentric",
-    representation_type: RepLikeType = "cartesian",
-    rnd=None,
-):
+    representation_type: RepresentationLikeType = "cartesian",
+    rnd: Union[int, np.random.Generator, None] = None,
+) -> SkyCoord:
     """Make Ordered Orbit Data.
 
     Parameters
@@ -162,7 +161,7 @@ def make_noisy_orbit_data(
 
     Returns
     -------
-    data : Sequence
+    SkyCoord
         (`num`, 3) array
 
     """
@@ -185,7 +184,7 @@ def make_noisy_orbit_data(
         n: rnd.normal(getattr(usc.data, n).to_value(unit), scale=sigma[n].to_value(unit)) * unit
         for n, unit in usc.data._units.items()
     }
-    nsc = coord.SkyCoord(usc.realize_frame(coord.CartesianRepresentation(**noisy)))
+    nsc = SkyCoord(usc.realize_frame(coord.CartesianRepresentation(**noisy)))
 
     # transformed to desired frame and representation type
     sc = nsc.transform_to(frame)

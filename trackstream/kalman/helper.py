@@ -9,7 +9,6 @@ __all__ = [
     "make_Q",
     "make_H",
     "make_R",
-    # "p2p_distance",
 ]
 
 
@@ -25,6 +24,7 @@ import numpy as np
 from astropy.coordinates import SkyCoord
 from astropy.units import Quantity
 from scipy.linalg import block_diag
+from numpy import ndarray
 
 ##############################################################################
 # CODE
@@ -32,9 +32,14 @@ from scipy.linalg import block_diag
 
 
 def make_timesteps(
-    data: SkyCoord, /, dt0: Quantity, *, width: int = 6, vmin: Quantity = 0.01 * u.pc,
-    onsky=False,
-) -> np.ndarray:
+    data: SkyCoord,
+    /,
+    dt0: Quantity,
+    *,
+    width: int = 6,
+    vmin: Quantity = 0.01 * u.pc,
+    onsky: bool = False,
+) -> ndarray:
     """Make distance arrays.
 
     Parameters
@@ -70,7 +75,7 @@ def make_timesteps(
 # -------------------------------------------------------------------
 
 
-def make_F(dt: float, order: int = 1, n_dims=3) -> np.ndarray:
+def make_F(dt: float, order: int = 1, n_dims: int = 3) -> ndarray:
     """Make Transition Matrix.
 
     Parameters
@@ -84,7 +89,6 @@ def make_F(dt: float, order: int = 1, n_dims=3) -> np.ndarray:
     -------
     F : `~numpy.ndarray`
         Block diagonal transition matrix
-
     """
     # make single-component of F matrix
     if order == 1:
@@ -99,7 +103,7 @@ def make_F(dt: float, order: int = 1, n_dims=3) -> np.ndarray:
 
     fs = [f] * n_dims  # repeat f for number of dimensions
 
-    F = block_diag(*fs)  # F block-diagonal array
+    F: ndarray = block_diag(*fs)  # F block-diagonal array
     return F
 
 
@@ -113,7 +117,7 @@ def make_Q(
     var: float = 1.0,
     n_dims: int = 3,
     order: int = 2,
-) -> np.ndarray:
+) -> ndarray:
     """Make Q Matrix.
 
     Parameters
@@ -140,14 +144,11 @@ def make_Q(
 
     qs = [q] * n_dims  # repeat q for number of dimensions
 
-    Q = var * block_diag(*qs)  # block diagonal stack
+    Q: ndarray = var * block_diag(*qs)  # block diagonal stack
     return Q
 
 
-# -------------------------------------------------------------------
-
-
-def make_H(n_dims: int = 3) -> np.ndarray:
+def make_H(n_dims: int = 3) -> ndarray:
     """Make H Matrix.
 
     Parameters
@@ -164,15 +165,12 @@ def make_H(n_dims: int = 3) -> np.ndarray:
 
     # full matrix is for all components
     # and reduce down to `dim_z` of Kalman Filter, skipping velocity rows
-    H = block_diag(*([h] * n_dims))[::2]
+    H: ndarray = block_diag(*([h] * n_dims))[::2]
 
     return H
 
 
-# -------------------------------------------------------------------
-
-
-def make_R(data) -> np.ndarray:
+def make_R(data: ndarray) -> ndarray:
     """Make R Matrix.
 
     Parameters
@@ -227,7 +225,3 @@ def make_R(data) -> np.ndarray:
 #     full_arc = np.insert(arc, 0, 0)
 #
 #     return full_arc
-
-
-##############################################################################
-# END

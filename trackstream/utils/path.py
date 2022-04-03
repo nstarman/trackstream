@@ -17,11 +17,12 @@ import astropy.coordinates as coord
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import BaseCoordinateFrame, SkyCoord
+from astropy.coordinates import concatenate as concatenate_coords
+from astropy.units import Quantity
 from astropy.utils.decorators import format_doc
 from interpolated_coordinates import InterpolatedCoordinateFrame, InterpolatedSkyCoord
 from interpolated_coordinates.utils import InterpolatedUnivariateSplinewithUnits as IUSU
 from scipy.optimize import OptimizeResult, minimize_scalar
-from astropy.coordinates import concatenate as concatenate_coords
 
 # LOCAL
 from trackstream._type_hints import CoordinateType, FrameLikeType
@@ -360,6 +361,11 @@ def concatenate_paths(paths: Tuple[Path, Path]) -> Path:
     Returns
     -------
     `trackstream.utils.path.Path`
+
+    Raises
+    ------
+    TypeError
+        if ``_original_width`` on either path is not a |Quantity|.
     """
     # TODO! Even better is to override __array_function_ so can use np.concatenate
     neg_path, pos_path = paths
@@ -369,6 +375,11 @@ def concatenate_paths(paths: Tuple[Path, Path]) -> Path:
     # TODO! should it be original_path and _original_width?
     affine = np.concatenate((-neg_path.affine[::-1], pos_path.affine))
     c = concatenate_coords((neg_path._original_path[::-1], pos_path._original_path))
+
+    if not isinstance(neg_path._original_width, Quantity) or not isinstance(
+        pos_path._original_width, Quantity
+    ):
+        raise TypeError
     sigma = np.concatenate((neg_path._original_width[::-1], pos_path._original_width))
 
     return Path(c, width=sigma, affine=affine, frame=pos_path.frame)

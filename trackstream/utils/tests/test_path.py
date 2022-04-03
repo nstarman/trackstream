@@ -214,7 +214,3 @@ class TestPath:
     def test_closest_position_to_point(self, path, point_on, angular, affine_on):
         p = path.closest_position_to_point(point_on)
         assert p.separation(point_on) < 1e-8 * u.deg
-
-
-##############################################################################
-# END

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Generate ."""
+"""Generate example data a la Palomar 5."""
 
 
 ##############################################################################
@@ -8,16 +8,21 @@
 
 # STDLIB
 import pathlib
+from typing import Optional
 
 # THIRD PARTY
 import astropy.coordinates as coord
 import astropy.units as u
 from astropy.table import QTable
+from astropy.units import Quantity
 from astropy.utils.data import get_pkg_data_filename
 from astropy.utils.misc import NumpyRNGContext
 from galpy.orbit import Orbit
 from galpy.potential import LogarithmicHaloPotential
 from streamtools.df import streamspraydf
+
+from trackstream._type_hints import FullPathLike
+
 
 __all__ = ["get_example_pal5"]
 
@@ -31,7 +36,9 @@ DIR = pathlib.Path(__file__).parent
 ##############################################################################
 
 
-def make_stream_from_Vasiliev18(name, tdisrupt=5 * u.Gyr, *, write=None) -> QTable:
+def make_stream_from_Vasiliev18(
+    name: str, tdisrupt: Quantity = 5 * u.Gyr, *, write: Optional[FullPathLike] = None
+) -> QTable:
     """Make and write data table.
 
     Parameters
@@ -121,7 +128,7 @@ def make_stream_from_Vasiliev18(name, tdisrupt=5 * u.Gyr, *, write=None) -> QTab
     return data
 
 
-def get_example_stream(name):
+def get_example_stream(name: str) -> QTable:
     try:
         fname = get_pkg_data_filename(f"example_data/{name.lower()}_ex.ecsv", package="trackstream")
     except Exception as e:
@@ -133,12 +140,11 @@ def get_example_stream(name):
     return data
 
 
-def get_example_pal5():
+def get_example_pal5() -> QTable:
     return get_example_stream("Pal_5")
 
 
 ##############################################################################
-# END
 
 
 if __name__ == "__main__":

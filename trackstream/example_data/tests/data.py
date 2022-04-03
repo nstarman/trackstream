@@ -48,7 +48,3 @@ rgcentric = example_coords.RotatedGalactocentric(
 
 gcentric = rgcentric.transform_to(coord.Galactocentric)
 gcentric.representation_type = coord.SphericalRepresentation
-
-
-##############################################################################
-# END

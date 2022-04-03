@@ -2,9 +2,6 @@
 
 """Testing :mod:`~trackstream.transition_matrix`."""
 
-__all__ = []
-
-
 ##############################################################################
 # IMPORTS
 
@@ -19,10 +16,3 @@ import pytest
 @pytest.mark.skip("TODO")
 def test_make_transition_matrix():
     """Test :func:`trackstream.transition_matrix`."""
-
-
-# -------------------------------------------------------------------
-
-
-##############################################################################
-# END

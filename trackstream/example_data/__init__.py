@@ -45,6 +45,3 @@ from .example_orbit import (
     make_unordered_orbit_data,
 )
 from .example_pal5 import get_example_pal5
-
-##############################################################################
-# END

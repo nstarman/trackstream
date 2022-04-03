@@ -11,12 +11,12 @@ __all__ = ["__version__"]
 
 # this indicates whether or not we are in the package's setup.py
 try:
-    _ASTROPY_SETUP_
+    _ASTROPY_SETUP_  # type: ignore
 except NameError:
     # STDLIB
     import builtins
 
-    builtins._ASTROPY_SETUP_ = False
+    builtins._ASTROPY_SETUP_ = False  # type: ignore
 
 try:
     # LOCAL
@@ -25,7 +25,7 @@ except ImportError:
     __version__ = ""
 
 
-if not _ASTROPY_SETUP_:
+if not _ASTROPY_SETUP_:  # type: ignore
     # STDLIB
     import os
     from warnings import warn
@@ -69,9 +69,3 @@ if not _ASTROPY_SETUP_:
                     del e
                 except Exception:
                     raise orig_error
-
-# /if
-
-
-##############################################################################
-# END

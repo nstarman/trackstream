@@ -25,8 +25,9 @@ from typing import Any, Callable, Literal, Optional, Sequence, Union
 # THIRD PARTY
 import astropy.units as u
 import numpy as np
+from astropy.units import StructuredUnit, Quantity, Unit
 from astropy.coordinates import BaseCoordinateFrame, BaseRepresentation, SkyCoord
-from numpy import linalg, pi, random
+from numpy import linalg, pi, random, ndarray
 from numpy.lib.recfunctions import structured_to_unstructured
 from scipy.stats import binned_statistic
 
@@ -124,10 +125,10 @@ class SelfOrganizingMap1D(CommonBase):
         self._prototypes = 2 * self._rng.random((nlattice, nfeature)) - 1
 
     @property
-    def data_units(self):
+    def data_units(self) -> StructuredUnit:
         if self._units is None:
             raise ValueError("SOM must be fit for data_units")
-        return self._units
+        return self._units  # type: ignore
 
     @property
     def nlattice(self) -> int:
@@ -154,7 +155,7 @@ class SelfOrganizingMap1D(CommonBase):
         return self._decay_function
 
     @property
-    def prototypes(self):
+    def prototypes(self) -> BaseCoordinateFrame:
         "Read-only view of prototypes vectors."
         p = self._prototypes.view()
         p.flags.writeable = False
@@ -163,7 +164,7 @@ class SelfOrganizingMap1D(CommonBase):
 
     # ===============================================================
 
-    def _crd_to_q(self, crd: DataType, /) -> u.Quantity:
+    def _crd_to_q(self, crd: DataType, /) -> Quantity:
         """Coordinate to structured Quantity."""
 
         if isinstance(crd, (BaseCoordinateFrame, SkyCoord)):
@@ -171,30 +172,32 @@ class SelfOrganizingMap1D(CommonBase):
 
         rep = crd.represent_as(self.representation_type, in_frame_units=True)
 
-        data = rep._values << u.Unit(tuple(rep._units.values()))  # structured quantity
+        data = rep._values << Unit(tuple(rep._units.values()))  # structured quantity
         return data
 
-    def _crd_to_v(self, crd: Union[DataType, np.ndarray], /) -> np.ndarray:
+    def _crd_to_v(self, crd: Union[DataType, ndarray], /) -> ndarray:
         """Coordinate to unstructured array."""
-        if isinstance(crd, np.ndarray):  # TODO! more careful check
+        if isinstance(crd, ndarray):  # TODO! more careful check
             return crd
 
-        return structured_to_unstructured(self._crd_to_q(crd).value)
+        v: ndarray = structured_to_unstructured(self._crd_to_q(crd).value)
+        return v
 
-    def _v_to_crd(self, arr: np.ndarray, /) -> BaseCoordinateFrame:
-        data = {n: (arr[:, i] << unit) for i, (n, unit) in enumerate(self._units.items())}
+    def _v_to_crd(self, arr: ndarray, /) -> BaseCoordinateFrame:
+        data = {n: (arr[:, i] << unit) for i, (n, unit) in enumerate(self.data_units.items())}
         rep = self.representation_type(**data)
         crd = self.frame.realize_frame(rep)
         return crd
 
     # ===============================================================
 
-    def _activation_distance(self, x, w) -> float:
-        return linalg.norm(np.subtract(x, w), axis=-1)
+    def _activation_distance(self, x: ndarray, w: ndarray) -> ndarray:
+        distance: ndarray = linalg.norm(np.subtract(x, w), axis=-1)
+        return distance
         # TODO! change to ChiSquare
         # REDUCES TO GAUSSIAN LIKELIHOOD
 
-    def _distance_from_weights(self, data: np.ndarray) -> np.ndarray:
+    def _distance_from_weights(self, data: ndarray) -> ndarray:
         """Euclidean distance matrix.
 
         Parameters
@@ -211,12 +214,13 @@ class SelfOrganizingMap1D(CommonBase):
         input_data_sq = np.power(data, 2).sum(axis=1, keepdims=True)
         weights_flat_sq = np.power(weights_flat, 2).sum(axis=1, keepdims=True)
         cross_term = np.dot(data, weights_flat.T)
-        return np.sqrt(input_data_sq + weights_flat_sq.T - (2 * cross_term))
+        distance: ndarray = np.sqrt(input_data_sq + weights_flat_sq.T - (2 * cross_term))
+        return distance
 
     # ---------------------------------------------------------------
     # initialization
 
-    def binned_weights_init(self, data: np.ndarray, byphi: bool = False, **kw: Any) -> None:
+    def binned_weights_init(self, data: ndarray, byphi: bool = False, **kw: Any) -> None:
         r"""Initialize prototype vectors from binned data.
 
         Parameters
@@ -246,7 +250,7 @@ class SelfOrganizingMap1D(CommonBase):
     # ---------------------------------------------------------------
     # fitting
 
-    #     def quantization(self, data: DataType) -> np.ndarray:  # TODO!
+    #     def quantization(self, data: DataType) -> ndarray:  # TODO!
     #         """Assigns a code book (weights vector of the winning neuron)
     #         to each sample in data.
     #
@@ -266,7 +270,7 @@ class SelfOrganizingMap1D(CommonBase):
     #     return linalg.norm(data - self.quantization(data), axis=1).mean()
 
     def fit(
-        self, data: DataType, num_iteration: int, random_order=False, progress: bool = False
+        self, data: DataType, num_iteration: int, random_order: bool = False, progress: bool = False
     ) -> None:
         """Trains the SOM.
 
@@ -308,13 +312,13 @@ class SelfOrganizingMap1D(CommonBase):
                     num_iteration,
                 )
 
-    def _neighborhood(self, c: int, sigma: float) -> np.ndarray:
+    def _neighborhood(self, c: int, sigma: float) -> ndarray:
         """Returns a Gaussian centered in c."""
         d = 2 * pi * sigma ** 2
-        ay = np.exp(-np.power(self._yy - self._yy.T[c], 2) / d)
-        return (1 * ay).T  # the external product gives a matrix
+        ay: ndarray = np.exp(-np.power(self._yy - self._yy.T[c], 2) / d).T
+        return ay  # the external product gives a matrix
 
-    def _update(self, x: np.ndarray, ibmu: int, t: int, max_iteration: int) -> None:
+    def _update(self, x: ndarray, ibmu: int, t: int, max_iteration: int) -> None:
         """Update the locations of the prototypes.
 
         Parameters
@@ -336,7 +340,7 @@ class SelfOrganizingMap1D(CommonBase):
         # w_new = eta * neighborhood_function * (x-w)
         self._prototypes += np.einsum("i, ij->ij", g, x - self._prototypes)
 
-    def _best_matching_unit_index(self, x: np.ndarray) -> int:
+    def _best_matching_unit_index(self, x: ndarray) -> int:
         """Computes the coordinates of the best prototype for the sample.
 
         Parameters
@@ -349,12 +353,13 @@ class SelfOrganizingMap1D(CommonBase):
             The index of the best-matching prototype.
         """
         activation_map = self._activation_distance(x, self._prototypes)
-        return activation_map.argmin()
+        bmu = int(activation_map.argmin())
+        return bmu
 
     # ---------------------------------------------------------------
     # predicting structure
 
-    def _order_along_projection(self, data: np.ndarray) -> np.ndarray:
+    def _order_along_projection(self, data: ndarray) -> ndarray:
         data_len, nfeature = data.shape
         nlattice = self.nlattice
 
@@ -439,7 +444,7 @@ class SelfOrganizingMap1D(CommonBase):
 
         return ordering
 
-    def predict(self, crd: DataType, origin: Optional[SkyCoord] = None) -> np.ndarray:
+    def predict(self, crd: DataType, origin: Optional[SkyCoord] = None) -> ndarray:
         """Order data from SOM in 2+N Dimensions.
 
         Parameters
@@ -512,13 +517,12 @@ class SelfOrganizingMap1D(CommonBase):
 
     def fit_predict(
         self,
-        data,
+        data: DataType,
         num_iteration: int,
-        random_order=False,
+        random_order: bool = False,
         progress: bool = False,
         origin: Optional[SkyCoord] = None,
-        **kw,
-    ) -> None:
+    ) -> ndarray:
         """
 
         Returns
@@ -558,7 +562,7 @@ def asymptotic_decay(learning_rate: float, iteration: int, max_iter: float) -> f
 
 # def reorder_visits(
 #     data: CoordinateType,
-#     visit_order: np.ndarray,
+#     visit_order: ndarray,
 #     start_ind: int,
 # ):
 #     """Reorder the points from the SOM.

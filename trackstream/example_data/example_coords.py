@@ -22,8 +22,19 @@ __all__ = [
 # THIRD PARTY
 import astropy.coordinates as coord
 import astropy.units as u
+from astropy.coordinates import (
+    Galactocentric,
+    BaseCoordinateFrame,
+    SphericalRepresentation,
+    SphericalCosLatDifferential,
+    RepresentationMapping,
+    ICRS,
+    StaticMatrixTransform,
+    frame_transform_graph,
+)
 from astropy.coordinates.matrix_utilities import matrix_transpose
 from astropy.utils.decorators import format_doc
+from numpy import ndarray
 
 # LOCAL
 from trackstream.utils import reference_to_skyoffset_matrix
@@ -33,7 +44,7 @@ from trackstream.utils import reference_to_skyoffset_matrix
 ##############################################################################
 
 
-class RotatedFrame(coord.BaseCoordinateFrame):
+class RotatedFrame(BaseCoordinateFrame):
     """Example Rotated frame.
 
     Implemented from an Astropy [astropy]_ SkyOffset Frame.
@@ -72,22 +83,18 @@ class RotatedFrame(coord.BaseCoordinateFrame):
         Ptak, A., Refsdal, B., Servillat, M., & Streicher, O. (2013).
         Astropy: A community Python package for astronomy.
         Astronomy and Astrophysics, 558, A33.
-
     """
 
-    default_representation = coord.SphericalRepresentation
-    default_differential = coord.SphericalCosLatDifferential
+    default_representation = SphericalRepresentation
+    default_differential = SphericalCosLatDifferential
 
     frame_specific_representation_info = {
-        coord.SphericalRepresentation: [
-            coord.RepresentationMapping("lon", "phi1"),
-            coord.RepresentationMapping("lat", "phi2"),
-            coord.RepresentationMapping("distance", "distance"),
+        SphericalRepresentation: [
+            RepresentationMapping("lon", "phi1"),
+            RepresentationMapping("lat", "phi2"),
+            RepresentationMapping("distance", "distance"),
         ],
     }
-
-
-# /class
 
 
 # ------------------------------------------------------------------
@@ -100,9 +107,6 @@ class RotatedICRS(RotatedFrame):
     pass
 
 
-# /class
-
-
 # Generate the rotation matrix
 RA = 20 * u.deg
 DEC = 30 * u.deg
@@ -110,24 +114,25 @@ ICRS_ROTATION = 135.7 * u.deg
 ICRS_ROT_MATRIX = reference_to_skyoffset_matrix(RA, DEC, ICRS_ROTATION)
 
 
-@coord.frame_transform_graph.transform(
-    coord.StaticMatrixTransform,
-    coord.ICRS,
+@frame_transform_graph.transform(
+    StaticMatrixTransform,
+    ICRS,
     RotatedICRS,
 )
-def icrs_to_rotated():
+def icrs_to_rotated() -> ndarray:
     """Transformation matrix from ICRS Cartesian to rotated coordinates."""
     return ICRS_ROT_MATRIX
 
 
-@coord.frame_transform_graph.transform(
-    coord.StaticMatrixTransform,
+@frame_transform_graph.transform(
+    StaticMatrixTransform,
     RotatedICRS,
-    coord.ICRS,
+    ICRS,
 )
-def rotated_to_icrs():
+def rotated_to_icrs() -> ndarray:
     """Transformation matrix from rotated coordinates to ICRS Cartesian."""
-    return matrix_transpose(ICRS_ROT_MATRIX)
+    matrix: ndarray = matrix_transpose(ICRS_ROT_MATRIX)
+    return matrix
 
 
 # ------------------------------------------------------------------
@@ -138,9 +143,6 @@ class RotatedGalactocentric(RotatedFrame):
     """Example Rotated Galactocentric frame."""
 
     pass
-
-
-# /class
 
 
 # Generate the rotation matrix
@@ -154,25 +156,22 @@ GALACTOCENTRIC_ROT_MATRIX = reference_to_skyoffset_matrix(
 )
 
 
-@coord.frame_transform_graph.transform(
-    coord.StaticMatrixTransform,
-    coord.Galactocentric,
+@frame_transform_graph.transform(
+    StaticMatrixTransform,
+    Galactocentric,
     RotatedGalactocentric,
 )
-def Galactocentric_to_rotated():
+def Galactocentric_to_rotated() -> ndarray:
     """Transformation matrix from GC Cartesian to rotated coordinates."""
     return GALACTOCENTRIC_ROT_MATRIX
 
 
-@coord.frame_transform_graph.transform(
-    coord.StaticMatrixTransform,
+@frame_transform_graph.transform(
+    StaticMatrixTransform,
     RotatedGalactocentric,
-    coord.Galactocentric,
+    Galactocentric,
 )
-def rotated_to_Galactocentric():
+def rotated_to_Galactocentric() -> ndarray:
     """Transformation matrix from rotated coordinates to GC Cartesian."""
-    return matrix_transpose(GALACTOCENTRIC_ROT_MATRIX)
-
-
-##############################################################################
-# END
+    matrix: ndarray = matrix_transpose(GALACTOCENTRIC_ROT_MATRIX)
+    return matrix

@@ -7,9 +7,9 @@ Note that this is not (necessarily) static typing.
 """
 
 __all__ = [
+    "EllipsisType",
+    "FullPathLike",
     "ArrayLike",
-    # coordinates
-    "FrameType",
     "CoordinateType",
     "FrameLikeType",
     # units
@@ -24,6 +24,7 @@ __credits__ = ["Astropy"]
 # IMPORTS
 
 # STDLIB
+import os
 from typing import TypeVar, Union
 
 # THIRD PARTY
@@ -35,6 +36,11 @@ import numpy as np
 # TYPES
 ##############################################################################
 
+
+EllipsisType = type(Ellipsis)
+FullPathLike = Union[str, bytes, os.PathLike]
+
+
 # -------------------------------------
 # NumPy types
 
@@ -44,12 +50,9 @@ ArrayLike = Union[float, np.ndarray]  # np.generic isn't compatible
 # -------------------------------------
 # Astropy types
 
-RepLikeType = Union[coord.BaseRepresentation, str]
+RepresentationLikeType = Union[coord.BaseRepresentation, str]
 
-FrameType = TypeVar("FrameType", bound=coord.BaseCoordinateFrame)
-"""|Frame|"""
-
-CoordinateType = Union[FrameType, coord.SkyCoord]
+CoordinateType = Union[coord.BaseCoordinateFrame, coord.SkyCoord]
 """|Frame| or |SkyCoord|"""
 
 FrameLikeType = Union[CoordinateType, str]
@@ -60,6 +63,3 @@ UnitType = Union[u.UnitBase, u.FunctionUnitBase]
 
 UnitLikeType = Union[UnitType, str]
 """|Unit| or :class:`~astropy.units.FunctionUnitBase` or str"""
-
-##############################################################################
-# END

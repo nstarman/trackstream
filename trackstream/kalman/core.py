@@ -10,17 +10,16 @@ __all__ = ["FirstOrderNewtonianKalmanFilter"]
 
 # STDLIB
 import warnings
-from collections import namedtuple
-from typing import Any, Callable, Dict, Literal, Optional, Sequence, Tuple, Union
+from types import FunctionType
+from typing import Any, Callable, Dict, Literal, NamedTuple, Optional, Sequence, Tuple, Union
 
 # THIRD PARTY
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import BaseCoordinateFrame, BaseRepresentation, SkyCoord
 from astropy.units import Quantity
-from numpy import dot, linalg, ndarray
+from numpy import array, dot, linalg, ndarray
 from scipy.stats import multivariate_normal
-from astropy.coordinates import BaseCoordinateFrame, BaseRepresentation
 
 # LOCAL
 from . import helper
@@ -28,7 +27,7 @@ from trackstream.base import CommonBase
 from trackstream.config import conf
 from trackstream.setup_package import HAS_FILTERPY
 from trackstream.utils.misc import intermix_arrays
-from trackstream.utils.path import Path
+from trackstream.utils.path import Path, path_moments
 
 if HAS_FILTERPY:
     # THIRD PARTY
@@ -39,10 +38,13 @@ if HAS_FILTERPY:
 ##############################################################################
 # PARAMETERS
 
-kalman_output = namedtuple(
-    "kalman_output",
-    field_names=["Xs", "Ps", "Qs"],
-)
+
+class kalman_output(NamedTuple):
+    timesteps: ndarray
+    Xs: ndarray
+    Ps: ndarray
+    Qs: ndarray
+
 
 ##############################################################################
 # CODE
@@ -77,7 +79,7 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         *,
         frame: BaseCoordinateFrame,
         representation_type: Optional[BaseRepresentation] = None,
-        kfv0: ndarray = None,
+        kfv0: Optional[ndarray] = None,
         F0: Union[None, ndarray, Callable[[float], ndarray]] = None,
         Q0: Optional[ndarray] = None,
         R0: ndarray,
@@ -89,13 +91,12 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         ndims = len(x0)
         if ndims < 2 or ndims > 6:
             raise ValueError
-        if kfv0 is None:
-            kfv0 = [0] * ndims
 
         # TODO! x0 as a Representation (or higher) object
+        _kfv0: ndarray = array([0] * ndims) if kfv0 is None else kfv0
 
         # Initial state
-        self._x0 = intermix_arrays(x0, kfv0)
+        self._x0 = intermix_arrays(x0, _kfv0)
         self._P0 = P0  # TODO! make optional
         self._H = helper.make_H(n_dims=ndims)
         self._F0 = F0 if not callable(F0) else None
@@ -107,17 +108,10 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         self._process_noise_model = Q0 if callable(Q0) else helper.make_Q
 
         # Running
-        self._timesteps = None
-        self._x = None
-        self._P = None
-        # self._F = None
-        self._Q = None
-        self._R = None
+        self.__result: Optional[kalman_output] = None
+        self.__smooth_result: Optional[kalman_output] = None
 
-        # Smoothed
-        self._xs = None
-        self._Ps = None
-        self._Qs = None
+    # ---------------------------------------------------------------
 
     @property
     def x0(self) -> ndarray:
@@ -130,12 +124,12 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         return self._P0
 
     @property
-    def F0(self) -> ndarray:
+    def F0(self) -> Optional[ndarray]:
         """Initial state-transition model."""
         return self._F0
 
     @property
-    def Q0(self) -> ndarray:
+    def Q0(self) -> Optional[ndarray]:
         return self._Q0
 
     @property
@@ -151,12 +145,28 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         return self._options
 
     @property
-    def state_transition_model(self) -> Callable[[float], ndarray]:
+    def state_transition_model(self) -> Any:  # TODO!
         return self._state_transition_model
 
     @property
-    def process_noise_model(self) -> Callable[[float], ndarray]:
+    def process_noise_model(self) -> Callable:
         return self._process_noise_model
+
+    # ---------------------------------------------------------------
+    # Requires the Kalman filter to be run
+    # TODO better error type than ValueError
+
+    @property
+    def _result(self) -> kalman_output:
+        if self.__result is None:
+            raise ValueError(f"need to run {self.__class__.__qualname__}.fit()")
+        return self.__result
+
+    @property
+    def _smooth_result(self) -> kalman_output:
+        if self.__smooth_result is None:
+            raise ValueError(f"need to run {self.__class__.__qualname__}.fit()")
+        return self.__smooth_result
 
     #######################################################
     # Math (2 phase + smoothing)
@@ -213,7 +223,7 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         return x, P
 
     def _math_update(
-        self, x: ndarray, P: ndarray, z: ndarray, R: ndarray, H: ndarray, **kw
+        self, x: ndarray, P: ndarray, z: ndarray, R: ndarray, H: ndarray, **kw: Any
     ) -> Tuple[ndarray, ndarray, ndarray, ndarray, ndarray, ndarray]:
         """Add a new measurement (z) to the Kalman filter.
 
@@ -359,7 +369,7 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         Returns
         -------
         smooth : `~kalman_output`
-            "Xs", "Ps", "Qs"
+            "timesteps", "Xs", "Ps", "Qs"
         """
         kw = {**self.options, **kwargs}  # copy
 
@@ -372,7 +382,7 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
 
         # ------ setup ------
         self._original_data = data  # save the data used to fit
-        self._t = timesteps  # save the timesteps
+        self._timesteps = timesteps  # save the timesteps
         # TODO! check timesteps start with 0
 
         # starting points
@@ -392,8 +402,8 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         # iterate predict & update steps
         for i, (z, dt) in enumerate(zip(data, dts)):
             # F, Q
-            F = self._state_transition_model(dt)
-            Q = self._process_noise_model(dt, **kwargs)
+            F = self.state_transition_model(dt)
+            Q = self.process_noise_model(dt, **kwargs)
 
             # predict & update
             x, P = predicter(x, P=P, F=F, Q=Q)
@@ -404,18 +414,18 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
             Qs[i] = Q
 
         # save
-        self._x = Xs
-        self._P = Ps
-        self._Q = Qs
+        self.__result = kalman_output(timesteps, Xs, Ps, Qs)
 
         # smoothed
         try:
-            self._xs, self._Ps, _, self._Qs = smoother(Xs, Ps, Fs, Qs)
-            smooth = kalman_output(self._xs, self._Ps, self._Qs)
+            xs, Ps, _, Qs = smoother(Xs, Ps, Fs, Qs)
 
         except Exception:
             print("FIXME!")
-            smooth = kalman_output(self._x, self._P, self._Q)
+            smooth = self._result
+        else:
+            smooth = kalman_output(timesteps, xs, Ps, Qs)
+            self.__smooth_result = smooth
 
         # TODO! make sure get the frame and units right
         r = self.representation_type(smooth.Xs[:, ::2].T, unit=u.kpc)
@@ -436,7 +446,7 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
 
         return smooth, path
 
-    def predict(self, affine):
+    def predict(self, affine: Quantity) -> path_moments:
         """"""
         return self._path(affine)
 

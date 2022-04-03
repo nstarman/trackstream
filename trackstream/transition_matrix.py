@@ -17,13 +17,15 @@ from typing import Optional, Sequence
 # THIRD PARTY
 import numpy as np
 from scipy import sparse
+from numpy import ndarray
+from astropy.table import Table
 
 ##############################################################################
 # CODE
 ##############################################################################
 
 
-def make_transition_matrix(orders: Sequence[Sequence]) -> sparse.lil_matrix:
+def make_transition_matrix(orders: ndarray) -> sparse.lil_matrix:
     """Make Transition Matrix from SOM-derived orders.
 
     The SOM-derived orders can vary with the random seed. To account
@@ -62,15 +64,15 @@ def make_transition_matrix(orders: Sequence[Sequence]) -> sparse.lil_matrix:
 
 
 def draw_ordering(
-    trmat,
+    trmat: Table,
     num: int = 1,
     rng: Optional[np.random.Generator] = None,
-):
+) -> ndarray:
     """Draw ordering(s) from transition matrix.
 
     Parameters
     ----------
-    trmat : ndarray
+    trmat : Table
         Transition matrix. square.
     num : int, optional
         number of orderings to draw
@@ -117,10 +119,7 @@ def draw_ordering(
     return orders.T
 
 
-# -------------------------------------------------------------------
-
-
-def draw_most_probable_ordering(trmat):
+def draw_most_probable_ordering(trmat: Table) -> ndarray:
     """Draw most probably ordering from transition matrix.
 
     Parameters
@@ -134,7 +133,7 @@ def draw_most_probable_ordering(trmat):
 
     Returns
     -------
-    best_order : `~numpy.ndarray`
+    best_order : ndarray
         Same length as `trmat`.
 
     Notes
@@ -155,7 +154,3 @@ def draw_most_probable_ordering(trmat):
         best_order[i] = inds[np.argmax(probs)]
 
     return best_order
-
-
-##############################################################################
-# END

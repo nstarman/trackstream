@@ -19,13 +19,10 @@ __all__ = [
 import os.path
 
 # THIRD PARTY
-import astropy.coordinates as coord
 import numpy as np
+from astropy.coordinates import BaseCoordinateFrame, Galactocentric
 from astropy.table import QTable
 from astropy.utils.data import get_pkg_data_filename
-
-# LOCAL
-from trackstream._type_hints import FrameType
 
 ##############################################################################
 # CODE
@@ -57,7 +54,7 @@ def _load_nbody() -> QTable:
 # -------------------------------------------------------------------
 
 
-def get_nbody(subsample: slice = slice(100, None, 400)) -> FrameType:
+def get_nbody(subsample: slice = slice(100, None, 400)) -> BaseCoordinateFrame:
     """Get NBody.
 
     Parameters
@@ -67,12 +64,11 @@ def get_nbody(subsample: slice = slice(100, None, 400)) -> FrameType:
     Returns
     -------
     `~astropy.coordinates.Galactocentric`
-
     """
     full_data: QTable = _load_nbody()
     sub_data: QTable = full_data[subsample][["x", "y", "z"]]
 
-    data: FrameType = coord.Galactocentric(
+    data: BaseCoordinateFrame = Galactocentric(
         x=sub_data["x"],
         y=sub_data["y"],
         z=sub_data["z"],
@@ -105,7 +101,3 @@ def get_nbody_array(subsample: slice = slice(100, None, 400)) -> np.ndarray:
     )
 
     return data
-
-
-##############################################################################
-# END

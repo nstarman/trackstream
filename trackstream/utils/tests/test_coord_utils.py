@@ -77,7 +77,3 @@ class Test_resolve_framelike:
         else:
             with pytest.raises(TypeError):
                 resolve_framelike(object(), error_if_not_type=error_if_not_type)
-
-
-##############################################################################
-# END

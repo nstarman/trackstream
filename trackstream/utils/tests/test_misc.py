@@ -62,7 +62,3 @@ def test_make_shuffler():
     shuffler, undo = make_shuffler(10, rng=np.random.default_rng())
     assert isinstance(shuffler, np.ndarray) & isinstance(undo, np.ndarray)
     assert np.all(shuffler[undo] == np.arange(10))
-
-
-##############################################################################
-# END

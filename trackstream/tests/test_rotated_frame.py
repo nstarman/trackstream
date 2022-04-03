@@ -338,7 +338,3 @@ def test_residual(test_data, variables, scalar, expected_lat):
         u.Quantity(expected_lat).to_value(),
         atol=1e-12,
     )
-
-
-##############################################################################
-# END
