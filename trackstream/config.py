@@ -27,15 +27,6 @@ class Conf(_config.ConfigNamespace):
         cfgtype="string",
     )
 
-    # Preprocessing
-    # -------------
-
-    use_lmfit = _config.ConfigItem(
-        False,
-        description="Use lmfit.",
-        cfgtype="boolean(default=False)",
-    )
-
     # Processing
     # ----------
 

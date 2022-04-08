@@ -9,20 +9,21 @@ __all__ = ["plot_rotation_frame_residual"]
 ##############################################################################
 # IMPORTS
 
+# STDLIB
 from typing import Any, Tuple
 
 # THIRD PARTY
 import astropy.units as u
 import matplotlib.pyplot as plt
 import numpy as np
-from numpy import ndarray
 from astropy.coordinates import (
     BaseCoordinateFrame,
-    SphericalRepresentation,
     CartesianRepresentation,
+    SphericalRepresentation,
 )
 from astropy.visualization import imshow_norm
-from matplotlib.axes._subplots import AxesSubplot
+from matplotlib.pyplot import Axes
+from numpy import ndarray
 
 # LOCAL
 from .rotated_frame import residual as fit_rotated_frame_residual
@@ -38,7 +39,7 @@ def plot_rotation_frame_residual(
     num_rots: int = 3600,
     scalar: bool = True,
     **kwargs: Any,
-) -> Tuple[plt.Figure, AxesSubplot]:
+) -> Tuple[plt.Figure, Axes]:
     """Plot residual from finding the optimal rotated frame.
 
     Parameters

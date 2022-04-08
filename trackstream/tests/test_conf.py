@@ -28,9 +28,3 @@ class Test_conf(object):
 
         """
         cls.conf = Conf()
-
-    # -------------------------------
-
-    def test_use_lmfit(self):
-        """Test ``use_lmfit`` configuration."""
-        assert self.conf.use_lmfit is False

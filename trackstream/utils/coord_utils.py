@@ -20,7 +20,7 @@ from astropy.coordinates import BaseCoordinateFrame, SkyCoord, sky_coordinate_pa
 from astropy.coordinates.matrix_utilities import matrix_product, rotation_matrix
 
 # LOCAL
-from trackstream._type_hints import ArrayLike, FrameLikeType
+from trackstream._type_hints import FrameLikeType
 from trackstream.config import conf
 
 ##############################################################################

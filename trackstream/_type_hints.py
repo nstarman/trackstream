@@ -25,7 +25,7 @@ __credits__ = ["Astropy"]
 
 # STDLIB
 import os
-from typing import TypeVar, Union
+from typing import Union
 
 # THIRD PARTY
 import astropy.coordinates as coord
@@ -63,3 +63,7 @@ UnitType = Union[u.UnitBase, u.FunctionUnitBase]
 
 UnitLikeType = Union[UnitType, str]
 """|Unit| or :class:`~astropy.units.FunctionUnitBase` or str"""
+
+
+class DummyAttribute:
+    __is_abstract_attribute__: bool

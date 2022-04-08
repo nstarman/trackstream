@@ -8,12 +8,16 @@
 from __future__ import annotations
 
 # STDLIB
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, TypedDict, Union
+from typing import Any, Callable, Optional, Tuple, TypedDict, Union
 
 # THIRD PARTY
 import astropy.units as u
-import numpy as np
-from astropy.coordinates import BaseCoordinateFrame, CartesianRepresentation, SkyCoord
+from astropy.coordinates import (
+    BaseCoordinateFrame,
+    CartesianRepresentation,
+    SkyCoord,
+    UnitSphericalRepresentation,
+)
 from astropy.table import QTable, Table
 from astropy.units import Quantity
 from astropy.utils.metadata import MetaAttribute, MetaData
@@ -23,12 +27,11 @@ from numpy import array, ndarray
 from scipy.linalg import block_diag
 
 # LOCAL
-from ._type_hints import CoordinateType, FrameLikeType
+from ._type_hints import CoordinateType
 from trackstream.kalman.core import FirstOrderNewtonianKalmanFilter, kalman_output
-from trackstream.kalman.helper import make_F, make_H, make_Q, make_R
+from trackstream.kalman.helper import make_R
 from trackstream.rotated_frame import FitResult, RotatedFrameFitter
 from trackstream.som import SelfOrganizingMap1D
-from trackstream.utils.misc import intermix_arrays
 from trackstream.utils.path import Path, concatenate_paths, path_moments
 
 __all__ = [
@@ -41,9 +44,10 @@ __all__ = [
 ##############################################################################
 
 
-class TrackStreamCachedDict(TypedDict):
+class _TrackStreamCachedDict(TypedDict):
     frame: Optional[BaseCoordinateFrame]
     frame_fit: Optional[FitResult]
+    frame_fitter: Optional[RotatedFrameFitter]
     arm1_visit_order: Optional[ndarray]
     arm1_SOM: Optional[SelfOrganizingMap1D]
     arm1_mean_path: Optional[kalman_output]
@@ -61,32 +65,40 @@ class TrackStream:
 
     Parameters
     ----------
+    onsky : bool or None, optional
+        Should the track be fit by on-sky or with distances.
+        If None (default) the data is inspected to see if it has distances.
+
     arm1SOM, arm2SOM : `~trackstream.SelfOrganizingMap1D` or None (optional, keyword-only)
         Fiducial SOMs for stream arms 1 and 2, respectively.
     """
 
     def __init__(
         self,
+        onsky: Optional[bool] = None,
         *,
         arm1SOM: Optional[SelfOrganizingMap1D] = None,
         arm2SOM: Optional[SelfOrganizingMap1D] = None,
     ) -> None:
-        self._cache = TrackStreamCachedDict(
-            frame=None,
-            frame_fit=None,
-            arm1_visit_order=None,
-            arm1_SOM=None,
-            arm1_mean_path=None,
-            arm1_kalman=None,
-            arm2_visit_order=None,
-            arm2_SOM=None,
-            arm2_mean_path=None,
-            arm2_kalman=None,
-        )
+        self.onsky = onsky  # mutable
 
         # SOM
         self._arm1_SOM = arm1SOM
         self._arm2_SOM = arm2SOM
+
+        self._cache = _TrackStreamCachedDict(
+            frame=None,
+            frame_fit=None,
+            frame_fitter=None,
+            arm1_visit_order=None,
+            arm1_SOM=arm1SOM,
+            arm1_mean_path=None,
+            arm1_kalman=None,
+            arm2_visit_order=None,
+            arm2_SOM=arm2SOM,
+            arm2_mean_path=None,
+            arm2_kalman=None,
+        )
 
     # ===============================================================
     # Fit
@@ -122,14 +134,9 @@ class TrackStream:
 
         fix_origin : bool or None (optional, keyword-only)
             Whether to fix the origin point. Default is False.
-        use_lmfit : bool or None (optional, keyword-only)
-            Whether to use ``lmfit`` package.
-            None (default) falls back to config file.
         leastsquares : bool or None (optional, keyword-only)
-            If `use_lmfit` is False, whether to to use
-            :func:`~scipy.optimize.least_square` or
-            :func:`~scipy.optimize.minimize`
-            Default is False
+            Whether to to use :func:`~scipy.optimize.least_square` or
+            :func:`~scipy.optimize.minimize`. Default is `False`.
 
         align_v : bool or None (optional, keyword-only)
             Whether to align velocity to be in positive direction
@@ -146,8 +153,8 @@ class TrackStream:
         """
         # Make and run fitter
         fitter = RotatedFrameFitter(
-            data=stream.data_coords,
-            origin=stream.origin,
+            data=stream.data_coords,  # always start from original coordinates
+            origin=stream.origin.transform_to(stream.data_frame),
             **kwargs,
         )
         fitted = fitter.fit(rot0=rot0, bounds=bounds)
@@ -155,6 +162,7 @@ class TrackStream:
         # Cache and return results
         self._cache["frame"] = fitted.frame  # SkyOffsetICRS
         self._cache["frame_fit"] = fitted
+        self._cache["frame_fitter"] = fitter
 
         return fitted.frame, fitted
 
@@ -205,9 +213,8 @@ class TrackStream:
             data_len = len(arm)
             nfeature = len(arm.representation_component_names)
 
-            nlattice = data_len // 10 if nlattice is None else nlattice
-            if nlattice == 0:
-                raise ValueError
+            # determine number of lattice points, with a minimum of 5
+            nlattice = max(data_len // 10, 5) if nlattice is None else nlattice
 
             som = SelfOrganizingMap1D(
                 nlattice,
@@ -222,6 +229,7 @@ class TrackStream:
             )
 
             # call method to initialize SOM weights
+            print("bin init", arm.frame.replicate_without_data())
             som.binned_weights_init(arm, **kwargs)
 
         # get the ordering by "vote" of the Prototypes
@@ -259,10 +267,10 @@ class TrackStream:
         -------
         mean_path
         kalman_filter
-
         """
         # TODO! detect if want positions only, or also velocities
-        arr = data.transform_to(frame).cartesian.xyz.T.value
+        # TODO! not in cartesian, also on-sky
+        data = data.transform_to(frame)
 
         # starting point
         x0 = options.get("x0", None)
@@ -270,7 +278,7 @@ class TrackStream:
             # Instead of choosing the first point as the starting point,
             # since the stream is in its frame, instead choose the locus of
             # points near the origin.
-            x0 = arr[:3].mean(axis=0)  # fist point
+            x0 = data.cartesian[:3].mean()  # fist point  # FIXME!
 
         # TODO! as options
         p = array([[0.0001, 0], [0, 1]])
@@ -288,9 +296,17 @@ class TrackStream:
             **options,  # TODO! from data
         )
 
-        timesteps = kf.make_simple_timesteps(data, dt0=50 * u.pc, width=6, vmin=0.01 * u.pc)
+        # TODO! onsky versus 3d
+        if issubclass(data.data.__class__, UnitSphericalRepresentation):
+            dt0 = 0.5 * u.deg
+            vmin = 0.01 * u.deg
+        else:
+            dt0 = 50 * u.pc
+            vmin = 0.01 * u.pc
+        timesteps = kf.make_simple_timesteps(data, dt0=dt0, width=6, vmin=vmin)
+
         mean_path, path = kf.fit(
-            arr,
+            data,
             timesteps=timesteps,
             use_filterpy=None,
         )
@@ -302,6 +318,8 @@ class TrackStream:
     def fit(
         self,
         stream: "Stream",  # type: ignore
+        /,
+        onsky: Optional[bool] = None,
         *,
         # frame: Optional[FrameLike] = None,
         tune_SOM: bool = True,
@@ -313,6 +331,11 @@ class TrackStream:
 
         Parameters
         ----------
+        stream : `trackstream.Stream`, positional-only
+        onsky : bool or None, optional
+            Should the track be fit by on-sky or with distances.
+            If None (default) the data is inspected to see if it has distances.
+
         tune_SOM : bool, optional keyword-only
         rotated_frame_fit_kw : dict or None, optional keyword-only
         som_fit_kw : dict or None, optional keyword-only
@@ -323,6 +346,16 @@ class TrackStream:
         StreamTrack instance
             Also stores as ``.track``
         """
+        onsky = self.onsky if onsky is None else onsky
+        if onsky is None:  # ie self.onsky is None
+            onsky = not stream.has_distances
+        elif not onsky and not stream.has_distances:
+            raise ValueError(
+                "This stream does not have distance information; cannot compute 3d track."
+            )
+
+        # FIXME!
+
         # -------------------
         # Fit Rotated Frame
         # this step applies to all arms. In fact, it will perform better if
@@ -339,15 +372,7 @@ class TrackStream:
         # 2) Fit (& cache), if still None.
         if frame is None:
             kw: dict = rotated_frame_fit_kw or {}
-            frame, frame_fit = self._fit_rotated_frame(stream, **kw)
-
-        # Cache the fit frame on the stream. This is used for transforming the
-        # coordinates into the system frame (if that wasn't provided to the
-        # stream on initialization).
-        # TODO! don't override cache if it's the exact same
-        self._cache["frame"] = frame  # SkyOffsetICRS
-        self._cache["frame_fit"] = frame_fit
-        stream._cache["frame"] = frame
+            frame = stream.fit_frame(**kw)
 
         # get arms, in frame
         # done after caching b/c coords can use the cache
@@ -441,7 +466,7 @@ class TrackStream:
         # Arm 2
         # -----
         if not stream.arm2.has_data:
-            mean2 = kf2 = None
+            mean2 = kf2 = path2 = None
         else:
             mean2, kf2, path2 = self._fit_kalman_filter(arm2, frame=frame, **kalman_fit_kw)
 
@@ -453,7 +478,10 @@ class TrackStream:
         # Combine together into a single path
         # Need to reverse order of one arm to be indexed toward origin, not away
 
-        path = concatenate_paths((path2, path1))  # TODO! which negative?
+        if path2 is not None:
+            path = concatenate_paths((path2, path1))  # TODO! which negative?
+        else:
+            path = path1
 
         # construct interpolation
         track = StreamTrack(
@@ -637,3 +665,9 @@ class StreamTrack:
         s += "\n" + indent(repr(self._stream_data)[1:-1])
 
         return s
+
+
+# LOCAL
+# This is to solve the circular dependency in type hint forward references
+# isort: skip
+from trackstream.stream import Stream  # noqa: E402

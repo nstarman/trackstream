@@ -19,15 +19,6 @@ else:
 
 try:
     # THIRD PARTY
-    import lmfit as lf  # noqa: F401
-except ImportError:
-    HAS_LMFIT = False
-else:
-    HAS_LMFIT = True
-
-
-try:
-    # THIRD PARTY
     import tqdm  # noqa: F401
 except ImportError:
     HAS_TQDM = False
@@ -35,4 +26,4 @@ else:
     HAS_TQDM = True
 
 
-__all__ = ["HAS_FILTERPY", "HAS_LMFIT", "HAS_TQDM"]
+__all__ = ["HAS_FILTERPY", "HAS_TQDM"]

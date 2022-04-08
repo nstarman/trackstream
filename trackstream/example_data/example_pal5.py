@@ -21,8 +21,8 @@ from galpy.orbit import Orbit
 from galpy.potential import LogarithmicHaloPotential
 from streamtools.df import streamspraydf
 
+# LOCAL
 from trackstream._type_hints import FullPathLike
-
 
 __all__ = ["get_example_pal5"]
 

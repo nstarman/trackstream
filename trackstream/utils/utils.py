@@ -14,15 +14,14 @@ __all__ = ["find_closest_point", "set_starting_point"]
 # IMPORTS
 
 # STDLIB
-from collections.abc import Sequence
+from typing import Any, Callable, Optional, TypeVar, cast
 
 # THIRD PARTY
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import BaseRepresentation, CartesianRepresentation
 
 # LOCAL
-from trackstream._type_hints import CoordinateType
+from trackstream._type_hints import CoordinateType, DummyAttribute
 
 ##############################################################################
 # CODE
@@ -77,3 +76,15 @@ def set_starting_point(data: CoordinateType, start_ind: int) -> CoordinateType:
     new_order = np.array([start_ind, *order])
 
     return data[new_order]  # return reordered data
+
+
+R = TypeVar("R")
+
+
+def abstract_attribute(obj: Optional[Callable[[Any], R]] = None) -> R:
+    # https://stackoverflow.com/a/50381071
+    _obj = cast(Any, obj)
+    if obj is None:
+        _obj = DummyAttribute()
+    _obj.__is_abstract_attribute__ = True
+    return cast(R, _obj)

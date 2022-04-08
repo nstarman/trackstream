@@ -25,7 +25,7 @@ except ImportError:
     __version__ = ""
 
 
-if not _ASTROPY_SETUP_:  # type: ignore
+if not _ASTROPY_SETUP_:  # type: ignore  # noqa: F821
     # STDLIB
     import os
     from warnings import warn

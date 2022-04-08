@@ -9,17 +9,16 @@ __all__ = ["plot_path"]
 ##############################################################################
 # IMPORTS
 
+# STDLIB
 from typing import Optional, Tuple
 
 # THIRD PARTY
 import matplotlib.pyplot as plt
 import numpy as np
-from filterpy.stats import plot_covariance  # TODO replace
 from astropy.coordinates import CartesianRepresentation
+from filterpy.stats import plot_covariance  # TODO replace
+from matplotlib.pyplot import Axes, Figure
 from numpy import ndarray
-from matplotlib.pyplot import Figure
-from matplotlib.axes._subplots import AxesSubplot
-
 
 ##############################################################################
 # CODE
@@ -35,7 +34,7 @@ def plot_path(
     num_std: int = 1,
     cov_alpha: float = 0.5,
     is_ordered: bool = False
-) -> Tuple[Figure, AxesSubplot]:
+) -> Tuple[Figure, Axes]:
     """Plot time arrays.
 
     Parameters

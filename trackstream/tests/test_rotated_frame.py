@@ -28,42 +28,10 @@ from astropy.tests.helper import assert_quantity_allclose
 from trackstream import rotated_frame
 from trackstream.example_data import example_coords
 from trackstream.example_data.tests import data
-from trackstream.setup_package import HAS_LMFIT
-
-if HAS_LMFIT:
-    # THIRD PARTY
-    import lmfit as lf
-
-
-##############################################################################
-# Fixtures
-
 
 ##############################################################################
 # TESTS
 ##############################################################################
-
-
-@pytest.mark.skipif(not HAS_LMFIT, reason="needs `lmfit`")
-def test_scipy_residual_to_lmfit():
-    """Test ``scipy_residual_to_lmfit``."""
-
-    @rotated_frame.scipy_residual_to_lmfit(param_order=["var0", "var1"])
-    def residual(variables, x, data):
-        var0 = variables[0]
-        var1 = variables[1]
-        return data - (var0 * x + var1)
-
-    # normal residual
-    vars = [1, 2]
-    x = np.arange(0, 10)
-    expect = vars[0] * x + vars[1]
-    assert all(np.equal(residual(vars, x, expect), np.zeros_like(x)))
-
-    # scipy residual
-    ps = lf.Parameters()
-    ps.add_many(("var0", 1), ("var1", 2))
-    assert all(np.equal(residual.lmfit(ps, x, expect), np.zeros_like(x)))
 
 
 @pytest.mark.parametrize(
@@ -185,7 +153,7 @@ class TestRotatedFrameFitter:
     def test_default_fit_options(self):
         """Test ``RotatedFrameFitter.default_fit_options``."""
         got = self.RFF.default_fit_options
-        expect = dict(fix_origin=True, use_lmfit=None, leastsquares=False, align_v=True)
+        expect = dict(fix_origin=True, leastsquares=False, align_v=True)
 
         assert (set(got.keys()) == set(expect.keys())) & all(
             [expect[k] == v for k, v in got.items()],
@@ -242,40 +210,24 @@ class TestRotatedFrameFitter:
     def test_fit_has_rot0(self):
         """
         Test ``fit`` with ``rot0`` specified and all else defaults.
-        This triggers all the ``if X is None`` checks, including the 2nd one for
-        ``use_lmfit`` (a configuration parameter) since it is not in
-        ``_default_options``
+        This triggers all the ``if X is None`` checks.
         """
         fr = self.RFF.fit(rot0=79 * u.deg)
         assert isinstance(fr, rotated_frame.FitResult)
         assert fr.fitresult.success
         assert u.allclose(fr.residual, 0 * u.deg, atol=1e-6 * u.deg)
 
-    @pytest.mark.skipif(HAS_LMFIT, reason="cannot have lmfit installed")
-    def test_fit_lmfit_fail(self):
-        """Test ``RotatedFrameFitter.fit`` with lmfit."""
-        with pytest.raises(ImportError, match="`lmfit`"):
-            self.RFF.fit(rot0=79 * u.deg, use_lmfit=True)
-
-    @pytest.mark.skipif(not HAS_LMFIT, reason="requires lmfit")
-    def test_fit_lmfit(self):
-        """Test ``RotatedFrameFitter.fit`` with lmfit."""
-        fr = self.RFF.fit(rot0=79 * u.deg, use_lmfit=True)
-        assert isinstance(fr, rotated_frame.FitResult)
-        assert fr.fitresult.success
-        assert u.allclose(fr.residual, 0 * u.deg, atol=1e-6 * u.deg)
-
     # ---------------------------------------------------------------
 
-    @pytest.mark.skip("TODO!")
-    def test_plot_data(self):
-        """Test ``RotatedFrameFitter.plot_data``."""
-        assert False
+    # @pytest.mark.skip("TODO!")
+    # def test_plot_data(self):
+    #     """Test ``RotatedFrameFitter.plot_data``."""
+    #     assert False
 
-    @pytest.mark.skip("TODO!")
-    def test_plot_residual(self):
-        """Test ``RotatedFrameFitter.plot_residual``."""
-        assert False
+    # @pytest.mark.skip("TODO!")
+    # def test_plot_residual(self):
+    #     """Test ``RotatedFrameFitter.plot_residual``."""
+    #     assert False
 
 
 # -------------------------------------------------------------------

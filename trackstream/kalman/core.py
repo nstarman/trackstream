@@ -9,31 +9,26 @@ __all__ = ["FirstOrderNewtonianKalmanFilter"]
 # IMPORTS
 
 # STDLIB
-import warnings
-from types import FunctionType
-from typing import Any, Callable, Dict, Literal, NamedTuple, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, NamedTuple, Optional, Sequence, Tuple, Union
 
 # THIRD PARTY
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import BaseCoordinateFrame, BaseRepresentation, SkyCoord
+from astropy.coordinates import (
+    BaseCoordinateFrame,
+    BaseRepresentation,
+    CartesianRepresentation,
+    SkyCoord,
+)
 from astropy.units import Quantity
 from numpy import array, dot, linalg, ndarray
-from scipy.stats import multivariate_normal
+from numpy.lib.recfunctions import structured_to_unstructured
 
 # LOCAL
 from . import helper
 from trackstream.base import CommonBase
-from trackstream.config import conf
-from trackstream.setup_package import HAS_FILTERPY
 from trackstream.utils.misc import intermix_arrays
-from trackstream.utils.path import Path, path_moments
-
-if HAS_FILTERPY:
-    # THIRD PARTY
-    from filterpy.kalman import predict as filterpy_predict
-    from filterpy.kalman import rts_smoother as filterpy_rts_smoother
-    from filterpy.kalman import update as filterpy_update
+from trackstream.utils.path import Path
 
 ##############################################################################
 # PARAMETERS
@@ -56,10 +51,11 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
 
     Parameters
     ----------
-    x0 : ndarray
+    x0 : (D,) CartesianRepresentation
         Initial position.
-    P0 : ndarray
-        Initial covariance.
+    P0 : (2D, 2D) ndarray
+        Initial covariance. Must be in the same coordinate representation
+        as `x0`.
 
     frame : BaseCoordinateFrame, keyword-only
         The frame of the data, without
@@ -74,7 +70,7 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
 
     def __init__(
         self,
-        x0: ndarray,
+        x0: CartesianRepresentation,  # TODO! as SkyCoord
         P0: ndarray,
         *,
         frame: BaseCoordinateFrame,
@@ -88,9 +84,12 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         super().__init__(frame=frame, representation_type=representation_type)
         self._options = kwargs
 
-        ndims = len(x0)
+        ndims = len(x0.components)  # TODO! better setup for 2 dimensions
         if ndims < 2 or ndims > 6:
             raise ValueError
+
+        x0 = x0.represent_as(self.representation_type)
+        x0 = structured_to_unstructured(x0._values)
 
         # TODO! x0 as a Representation (or higher) object
         _kfv0: ndarray = array([0] * ndims) if kfv0 is None else kfv0
@@ -102,6 +101,8 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         self._F0 = F0 if not callable(F0) else None
         self._Q0 = Q0 if not callable(Q0) else None
         self._R0 = R0  # TODO! make function
+
+        self._I = np.eye(2 * ndims)
 
         # functions
         self._state_transition_model = F0 if callable(F0) else helper.make_F
@@ -149,8 +150,9 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         return self._state_transition_model
 
     @property
-    def process_noise_model(self) -> Callable:
-        return self._process_noise_model
+    def process_noise_model(self) -> Callable[..., ndarray]:
+        model: Callable = self._process_noise_model
+        return model
 
     # ---------------------------------------------------------------
     # Requires the Kalman filter to be run
@@ -170,27 +172,6 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
 
     #######################################################
     # Math (2 phase + smoothing)
-
-    def _get_math_methods(
-        self, use_filterpy: Optional[bool]
-    ) -> Tuple[Callable, Callable, Callable]:
-        """Get the math methods."""
-        if use_filterpy is None:
-            use_filterpy = conf.use_filterpy
-
-        if use_filterpy and HAS_FILTERPY:
-            predicter = filterpy_predict
-            updater = filterpy_update
-            smoother = filterpy_rts_smoother
-        else:
-            predicter = self._math_predict
-            updater = self._math_update
-            smoother = self._math_smoother
-
-            if use_filterpy:
-                warnings.warn("can't use filterpy.")
-
-        return predicter, updater, smoother
 
     def _math_predict(
         self, x: ndarray, P: ndarray, F: ndarray, Q: ndarray, **kw: Any
@@ -216,73 +197,74 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
             Prior covariance matrix. The 'predicted' covariance.
         """
         # predict position (not including control matrix)
-        x = F @ x
+        x = dot(F, x)
         # & covariance matrix
-        P = F @ P @ F.T + Q
+        P = dot(dot(F, P), F.T) + Q
 
         return x, P
 
     def _math_update(
-        self, x: ndarray, P: ndarray, z: ndarray, R: ndarray, H: ndarray, **kw: Any
-    ) -> Tuple[ndarray, ndarray, ndarray, ndarray, ndarray, ndarray]:
-        """Add a new measurement (z) to the Kalman filter.
+        self, z: ndarray, x: ndarray, P: ndarray, R: ndarray, H: ndarray, **kw: Any
+    ) -> Tuple[ndarray, ndarray]:
+        """Add a new measurement to the Kalman filter.
 
-        Implemented to be compatible with `filterpy`.
+        Implemented to be compatible with :mod:`filterpy`.
 
         Parameters
         ----------
-        x : ndarray
-            State estimate vector. Dimensions (x, 1).
-        P : ndarray
-            Covariance matrix. Dimensions (x, x)
-        z : ndarray
-            Measurement. Dimensions (z, 1)
-        R : ndarray
-            Measurement noise matrix. Dimensions (z, z)
-        H : ndarray
-            Measurement function.  Dimensions (x, x)
+        z : (D, 1) ndarray
+            Measurement.
+        x : (2D, 1) ndarray
+            State estimate vector.
+        P : (2D, 2D) ndarray
+            Covariance matrix.
+        R : (D, D) ndarray
+            Measurement noise matrix
+        H : (2D, 2D) ndarray
+            Measurement function.
 
         **kw : Any
             Absorbs extra arguments for ``filterpy`` compatibility.
 
         Returns
         -------
-        x : ndarray
+        x : (2D, 1) ndarray
             Posterior state estimate.
-        P : ndarray
+        P : (2D, 2D) ndarray
             Posterior covariance matrix.
-        resid : ndarray
+        residual : (2D, 1) ndarray
             Residual between measurement and prediction
-        K : ndarray
+        K : (D, D) ndarray
             Kalman gain
-        S : ndarray
+        S : (D, D) ndarray
             System uncertainty in measurement space.
-        log_lik : ndarray
+        log_lik : (D, D) ndarray
             Log-likelihood. A multivariate normal.
         """
-        S = H @ P @ H.T + R  # system uncertainty in measurement space
-        K = (P @ H.T) @ linalg.inv(S)  # Kalman gain
+        S = dot(dot(H, P), H.T) + R  # system uncertainty in measurement space
+        K = dot(dot(P, H.T), linalg.inv(S))  # Kalman gain
 
-        predict = H @ x  # prediction in measurement space
-        resid = z - predict  # measurement and prediction residual
+        predict = dot(H, x)  # prediction in measurement space
+        residual = z - predict  # measurement and prediction residual
 
-        x = x + K @ resid  # predict new x using Kalman gain
+        x = x + dot(K, residual)  # predict new x using Kalman gain
 
-        KH = K @ H
-        ImKH = np.eye(KH.shape[0]) - KH
+        KH = dot(K, H)
+        ImKH = self._I - KH
         # stable representation from Filterpy
         # P = (1 - KH)P(1 - KH)' + KRK'
-        P = ImKH @ P @ ImKH.T + K @ R @ K.T
+        P = dot(dot(ImKH, P), ImKH.T) + dot(dot(K, R), K.T)
 
-        # log-likelihood
-        log_lik = multivariate_normal.logpdf(
-            z.flatten(),
-            mean=dot(H, x).flatten(),
-            cov=S,
-            allow_singular=True,
-        )
+        # # log-likelihood
+        # from scipy.stats import multivariate_normal
+        # log_lik = multivariate_normal.logpdf(
+        #     z.flatten(),
+        #     mean=dot(H, x).flatten(),
+        #     cov=S,
+        #     allow_singular=True,
+        # )
 
-        return x, P, resid, K, S, log_lik
+        return x, P  # , residual, K, S, log_lik
 
     def _math_smoother(
         self,
@@ -321,7 +303,7 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         # copy
         x = Xs.copy()
         P = Ps.copy()
-        Ppred = Ps.copy()
+        P_pred = Ps.copy()
 
         # initialize parameters
         n, dim_x = Xs.shape
@@ -330,16 +312,16 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         # iterate through, running Kalman system again.
         for i in reversed(range(n - 1)):  # [n-2, ..., 0]
             # prediction
-            Ppred[i] = Fs[i] @ P[i] @ Fs[i].T + Qs[i]
+            P_pred[i] = dot(dot(Fs[i], P[i]), Fs[i].T) + Qs[i]
             # Kalman gain
-            K[i] = P[i] @ Fs[i].T @ linalg.inv(Ppred[i])
+            K[i] = dot(dot(P[i], Fs[i].T), linalg.inv(P_pred[i]))
 
             # update position and covariance
-            xprior = Fs[i] @ x[i]
-            x[i] = x[i] + K[i] @ (x[i + 1] - xprior)
-            P[i] = P[i] + K[i] @ (P[i + 1] - Ppred[i]) @ K[i].T
+            x_prior = dot(Fs[i], x[i])
+            x[i] = x[i] + dot(K[i], (x[i + 1] - x_prior))
+            P[i] = P[i] + dot(dot(K[i], P[i + 1] - P_pred[i]), K[i].T)
 
-        return x, P, K, Ppred
+        return x, P, K, P_pred
 
     #######################################################
     # Fit
@@ -377,13 +359,13 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         if len(dts) != len(data):
             raise ValueError(f"len(timesteps)={len(timesteps)} is not {len(data)+1}")
 
-        # Kalman filter math methods
-        predicter, updater, smoother = self._get_math_methods(use_filterpy)
-
         # ------ setup ------
         self._original_data = data  # save the data used to fit
         self._timesteps = timesteps  # save the timesteps
         # TODO! check timesteps start with 0
+
+        data = data.transform_to(self.frame).represent_as(self.representation_type)
+        data = structured_to_unstructured(data._values)
 
         # starting points
         x, P = self.x0, self.P0
@@ -401,13 +383,13 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
 
         # iterate predict & update steps
         for i, (z, dt) in enumerate(zip(data, dts)):
-            # F, Q
+            # F, Q  # TODO! precompute this, not each time
             F = self.state_transition_model(dt)
-            Q = self.process_noise_model(dt, **kwargs)
+            Q = self.process_noise_model(dt, **kw)
 
             # predict & update
-            x, P = predicter(x, P=P, F=F, Q=Q)
-            x, P, *_ = updater(x, P=P, z=z, R=R, H=self._H)
+            x, P = self._math_predict(x=x, P=P, F=F, Q=Q)
+            x, P = self._math_update(x=x, P=P, z=z, R=R, H=self._H)
 
             # append results
             Xs[i], Ps[i] = x, P
@@ -418,7 +400,7 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
 
         # smoothed
         try:
-            xs, Ps, _, Qs = smoother(Xs, Ps, Fs, Qs)
+            xs, Ps, _, Qs = self._math_smoother(Xs, Ps, Fs, Qs)
 
         except Exception:
             print("FIXME!")
@@ -446,9 +428,9 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
 
         return smooth, path
 
-    def predict(self, affine: Quantity) -> path_moments:
-        """"""
-        return self._path(affine)
+    # def predict(self, affine: Quantity) -
+    #     """"""
+    #     return self._path(affine)
 
     # def fit_predict(
     #     self,
@@ -476,7 +458,3 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
             vmin=vmin,
         )
         return timesteps  # TODO! Quantity
-
-
-if conf.use_filterpy and not HAS_FILTERPY:
-    warnings.warn("filterpy not installed. Will use built-in.")

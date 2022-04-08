@@ -20,15 +20,14 @@ __all__ = [
 # IMPORTS
 
 # THIRD PARTY
-import astropy.coordinates as coord
 import astropy.units as u
 from astropy.coordinates import (
-    Galactocentric,
-    BaseCoordinateFrame,
-    SphericalRepresentation,
-    SphericalCosLatDifferential,
-    RepresentationMapping,
     ICRS,
+    BaseCoordinateFrame,
+    Galactocentric,
+    RepresentationMapping,
+    SphericalCosLatDifferential,
+    SphericalRepresentation,
     StaticMatrixTransform,
     frame_transform_graph,
 )

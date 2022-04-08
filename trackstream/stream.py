@@ -2,32 +2,33 @@
 
 """Core Functions."""
 
-__all__ = ["Stream"]
-
-
 ##############################################################################
 # IMPORTS
 
+from __future__ import annotations
+
 # STDLIB
-import itertools
 import re
-import weakref
 from abc import ABCMeta, abstractmethod
-from typing import Any, Dict, Optional, Union
+from functools import cached_property
+from typing import Any, Dict, Optional, Tuple, Union
 
 # THIRD PARTY
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import BaseCoordinateFrame, SkyCoord
+from astropy.coordinates import BaseCoordinateFrame, SkyCoord, UnitSphericalRepresentation
 from astropy.table import Column, QTable, Table
 from astropy.utils.decorators import lazyproperty
 
 # LOCAL
-from trackstream._type_hints import CoordinateType, FrameLikeType
+from trackstream._type_hints import FrameLikeType
 from trackstream.core import StreamTrack, TrackStream
 from trackstream.utils.coord_utils import resolve_framelike
 from trackstream.utils.descriptors import InstanceDescriptor
 from trackstream.utils.path import path_moments
+from trackstream.utils.utils import abstract_attribute
+
+__all__ = ["Stream"]
 
 ##############################################################################
 # PARAMETERS
@@ -40,30 +41,54 @@ _ABC_MSG = "Can't instantiate abstract class {} with abstract method {}"
 
 
 class StreamBase(metaclass=ABCMeta):
-    """Abstract base class for streams."""
+    """Abstract base class for streams.
 
-    @abstractmethod
-    @property
-    def _data_max_lines(self) -> int:
-        raise TypeError(_ABC_MSG.format(self.__class__.__qualname__, "_data_max_lines"))
+    Streams must define the following attributes / properties.
 
-    @abstractmethod
+    Attributes
+    ----------
+    _data_max_lines : int
+    data : BaseCoordinateFrame
+    frame : BaseCoordinateFrame
+    name : str
+    """
+
+    _data_max_lines: int = abstract_attribute()
+
     @property
+    @abstractmethod
     def data(self) -> BaseCoordinateFrame:
         """The stream data."""
         raise TypeError(_ABC_MSG.format(self.__class__.__qualname__, "data"))
 
-    @abstractmethod
     @property
+    @abstractmethod
+    def coords(self) -> SkyCoord:
+        """Coordinates."""
+        raise TypeError(_ABC_MSG.format(self.__class__.__qualname__, "name"))
+
+    @property
+    @abstractmethod
     def frame(self) -> BaseCoordinateFrame:
-        """The coordinate frame of the data."""
+        """The coordinate frame of the stream."""
         raise TypeError(_ABC_MSG.format(self.__class__.__qualname__, "frame"))
 
-    @abstractmethod
     @property
-    def name(self) -> BaseCoordinateFrame:
+    @abstractmethod
+    def name(self) -> Optional[str]:
         """The name of the stream."""
         raise TypeError(_ABC_MSG.format(self.__class__.__qualname__, "name"))
+
+    @property
+    @abstractmethod
+    def origin(self) -> SkyCoord:
+        """Origin in stream frame."""
+        raise TypeError(_ABC_MSG.format(self.__class__.__qualname__, "name"))
+
+    @property
+    def has_distances(self) -> SkyCoord:
+        """Return `True` if ``.coords`` has distance information."""
+        return not issubclass(self.coords.data.__class__, UnitSphericalRepresentation)
 
     # ===============================================================
 
@@ -71,7 +96,7 @@ class StreamBase(metaclass=ABCMeta):
         """Mirroring implementation in astropy Table."""
         header: str = super().__repr__()
         frame: str = repr(self.frame)
-        name: str = getattr(self, "full_name", self.name)  # name, with fallback
+        name: str = str(getattr(self, "full_name", self.name))  # name, with fallback
 
         datarep: str = self.data._base_repr_(
             html=False,
@@ -89,25 +114,42 @@ class StreamBase(metaclass=ABCMeta):
 # ===================================================================
 
 
-class StreamArmDescriptor(InstanceDescriptor[Stream], StreamBase):
-    @lazyproperty
+class StreamArmDescriptor(InstanceDescriptor["Stream"], StreamBase):
+    """Descriptor on a `Stream` to have substreams describing a stream arm.
+
+    This is an instance-level descriptor, so most attributes / methods point to
+    corresponding methods on the parent instance.
+
+    Attributes
+    ----------
+    full_name : str
+        Full name of the stream arm, including the parent name.
+    has_data : bool
+        Boolean of whether this arm has data.
+    index : `astropy.table.Column`
+        Boolean array of which stars in the parent table are in this arm.
+    """
+
+    @cached_property
     def name(self) -> str:
-        attr_name = list(filter(None, re.split("(\d+)", self._parent_attr)))
+        attr_name = list(filter(None, re.split(r"(\d+)", self._parent_attr)))
         # e.g. arm1 -> ["arm", "1"]
         return " ".join(attr_name)
 
-    @lazyproperty
+    @cached_property
     def full_name(self) -> str:
-        parent_name = pn if isinstance(pn := self._parent.name, str) else "Stream"
-        return " ".join((parent_name + ",", self.name))
+        """Full name of the stream arm, including the parent name."""
+        parent_name: str = pn if isinstance(pn := self._parent.name, str) else "Stream"
+        name_parts: Tuple[str, str] = (parent_name, self.name)
+        return ", ".join(name_parts)
 
     @property
     def index(self) -> Column:
-        """Boolean array of which stars are in this arm."""
+        """Boolean array of which stars in the parent table are in this arm."""
         tailcolumn: Column = self._parent.data["tail"]
         return tailcolumn == self._parent_attr
 
-    @lazyproperty
+    @cached_property
     def has_data(self) -> bool:
         """Boolean of whether this arm has data."""
         return any(self.index)
@@ -126,13 +168,16 @@ class StreamArmDescriptor(InstanceDescriptor[Stream], StreamBase):
         arm = self._parent.coords[self.index]
         return arm
 
-    @property
+    @cached_property
     def frame(self) -> BaseCoordinateFrame:
-        return self._parent.frame
+        return self._parent.frame.replicate_without_data()
+
+    @cached_property
+    def origin(self) -> SkyCoord:
+        return self._parent.origin
 
     @lazyproperty
     def _data_max_lines(self) -> int:
-        """Maximum number of lines in the Table to print."""
         data_max_lines = self._parent._data_max_lines
         return data_max_lines
 
@@ -140,7 +185,7 @@ class StreamArmDescriptor(InstanceDescriptor[Stream], StreamBase):
 # ===================================================================
 
 
-class Stream:
+class Stream(StreamBase):
     """A Stellar Stream.
 
     Parameters
@@ -189,15 +234,18 @@ class Stream:
         self._system_frame = resolve_framelike(frame) if frame is not None else frame
 
         self._cache = dict()  # TODO! improve
-        self._original_coord = None  # set _normalize_data
 
         # ---- Process the data ----
         # processed data
+
+        self._original_coord = None  # set in _normalize_data
         self._data: QTable = self._normalize_data(data)
         self._data_max_lines: int = 10
 
         # ---- fitting the data ----
-        self._tracker = TrackStream()
+        # Should the default fit by on-sky or with distances?
+        onsky = issubclass(self.coords.data.__class__, UnitSphericalRepresentation)
+        self._tracker = TrackStream(onsky=onsky)
 
     # -----------------------------------------------------
 
@@ -208,7 +256,6 @@ class Stream:
 
     @property
     def origin(self) -> SkyCoord:
-        """Origin in stream frame."""
         frame = self.frame if self.frame is not None else self.data_frame
         return self._origin.transform_to(frame)
 
@@ -437,13 +484,25 @@ class Stream:
     # Fitting
 
     def fit_frame(self, *, force: bool = False, **kw: Any) -> BaseCoordinateFrame:
-        """Fit a frame to the data."""
+        """Fit a frame to the data.
+
+        The frame is an on-sky rotated frame.
+        To prevent a frame from being fit, the desired frame should be passed
+        to the Stream constructor at initialization.
+
+        Returns
+        -------
+        BaseCoordinateFrame
+            The fit frame.
+        """
         if self._system_frame is not None:
             raise Exception("a system frame was given at initialization.")
         elif self.system_frame is not None and not force:
             raise Exception("already fit. use ``force`` to re-fit.")
 
         frame, frame_fit = self._tracker._fit_rotated_frame(self, **kw)
+        # fitting with _fit_rotated_frame caches the frame, frame_fit, and
+        # the fitter itself on `_tracker`
 
         self._cache["frame"] = frame
         return frame
@@ -462,6 +521,7 @@ class Stream:
             raise ValueError("need to fit track.")
         return track
 
+    # TODO! add override for fitting in 2D when have 3D data
     def fit_track(self, *, force: bool = False, **kwargs: Any) -> StreamTrack:
         """Make a stream track.
 
@@ -516,7 +576,7 @@ class Stream:
 
     def _base_repr_(self, max_lines: Optional[int] = None) -> str:
         """Mirroring implementation in astropy Table."""
-        header: str = super().__repr__()
+        header: str = object.__repr__(self)
         frame: str = repr(self.frame)
 
         datarep: str = self.data._base_repr_(

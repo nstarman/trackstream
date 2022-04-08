@@ -7,7 +7,7 @@
 # IMPORTS
 
 # STDLIB
-from typing import Optional
+from typing import Any, Callable, Optional, Union
 
 # THIRD PARTY
 import astropy.coordinates as coord
@@ -46,12 +46,12 @@ class TestPath:
         """Test has expected type annotations."""
         annot = path_cls.__annotations__
 
-        assert annot["_name"] is T.Optional[str]
+        assert annot["_name"] is Optional[str]
         assert annot["_frame"] is coord.BaseCoordinateFrame
-        assert annot["_original_path"] is T.Any
+        assert annot["_original_path"] is Any
         assert annot["_iscrd"] is icoord.InterpolatedSkyCoord
-        assert annot["_original_width"] is T.Union[u.Quantity, T.Callable, None]
-        assert annot["_width_fn"] is T.Optional[T.Callable]
+        assert annot["_original_width"] is Union[u.Quantity, Callable, None]
+        assert annot["_width_fn"] is Optional[Callable]
 
     # -----------------------------------------------------
 

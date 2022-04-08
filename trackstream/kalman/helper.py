@@ -16,15 +16,15 @@ __all__ = [
 # IMPORTS
 
 # STDLIB
-from typing import Sequence
+import warnings
 
 # THIRD PARTY
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, UnitSphericalRepresentation
 from astropy.units import Quantity
-from scipy.linalg import block_diag
 from numpy import ndarray
+from scipy.linalg import block_diag
 
 ##############################################################################
 # CODE
@@ -37,7 +37,7 @@ def make_timesteps(
     dt0: Quantity,
     *,
     width: int = 6,
-    vmin: Quantity = 0.01 * u.pc,
+    vmin: Quantity = 0.01 * u.one,  # will error
     onsky: bool = False,
 ) -> ndarray:
     """Make distance arrays.
@@ -49,16 +49,21 @@ def make_timesteps(
 
     N : int,  optional keyword-only
         Number of indices for convolution window. Default is 6.
-    vmin : Quantity, optional keyword-only
+    vmin : Quantity['length'] or Quantity['angle'], optional keyword-only
         Minimum distance, post-convolution. Default is 0.01
 
     Returns
     -------
     timesteps : (N+1,) ndarray
         Smoothed distances, starting with 0.
+
+    Raises
     """
     # point-to-point distance
     if onsky:
+        ds = data[1:].separation(data[:-1])
+    elif issubclass(data.data.__class__, UnitSphericalRepresentation):
+        warnings.warn("This object does not have a distance; cannot compute 3d separation.")
         ds = data[1:].separation(data[:-1])
     else:
         ds = data[1:].separation_3d(data[:-1])
@@ -140,7 +145,7 @@ def make_Q(
             ],
         )
     else:
-        NotImplementedError
+        raise NotImplementedError
 
     qs = [q] * n_dims  # repeat q for number of dimensions
 

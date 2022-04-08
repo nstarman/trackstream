@@ -12,13 +12,13 @@ __all__ = [
 # IMPORTS
 
 # STDLIB
-from typing import Optional, Sequence
+from typing import Optional, cast
 
 # THIRD PARTY
 import numpy as np
-from scipy import sparse
-from numpy import ndarray
 from astropy.table import Table
+from numpy import ndarray
+from scipy import sparse
 
 ##############################################################################
 # CODE
@@ -93,13 +93,13 @@ def draw_ordering(
     and a random number is uniformly generated to select the *j* index.
 
     """
-    rng = rng if rng is not None else np.random.default_rng()
+    _rng = cast(np.random.Generator, np.random.default_rng()) if rng is None else rng
     size = trmat.shape[0]
     shape = (size, num)
 
     # The selection function for which index *j* to select in each row *i*
     # flipped to get half-open bound (0, 1]
-    alpha = rng.uniform(low=1.0, high=0.0, size=shape)
+    alpha = _rng.uniform(low=1.0, high=0.0, size=shape)
     orders = np.full(shape, -1, dtype=int)
 
     # iterating through rows of trmat, selecting the transition pair.

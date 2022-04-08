@@ -9,9 +9,6 @@ References
 .. [frankenz] Josh Speagle. Frankenz: a photometric redshift monstrosity.
 
 """
-
-__all__ = ["SelfOrganizingMap1D", "reorder_visits"]
-
 __credits__ = "MiniSom"
 
 
@@ -20,14 +17,14 @@ __credits__ = "MiniSom"
 
 # STDLIB
 import warnings
-from typing import Any, Callable, Literal, Optional, Sequence, Union
+from typing import Any, Callable, Optional, Union
 
 # THIRD PARTY
 import astropy.units as u
 import numpy as np
-from astropy.units import StructuredUnit, Quantity, Unit
 from astropy.coordinates import BaseCoordinateFrame, BaseRepresentation, SkyCoord
-from numpy import linalg, pi, random, ndarray
+from astropy.units import Quantity, StructuredUnit, Unit
+from numpy import linalg, ndarray, pi, random
 from numpy.lib.recfunctions import structured_to_unstructured
 from scipy.stats import binned_statistic
 
@@ -35,6 +32,8 @@ from scipy.stats import binned_statistic
 from trackstream._type_hints import CoordinateType
 from trackstream.base import CommonBase
 from trackstream.utils.pbar import get_progress_bar
+
+__all__ = ["SelfOrganizingMap1D"]
 
 ##############################################################################
 # PARAMETERS
@@ -58,7 +57,7 @@ class SelfOrganizingMap1D(CommonBase):
     Parameters
     ----------
     nlattice : int
-        Number of lattice points in the 1D SOM.
+        Number of lattice points (prototypes) in the 1D SOM.
     nfeature : int
         Number of dimensions in the input.
 
@@ -242,8 +241,11 @@ class SelfOrganizingMap1D(CommonBase):
 
         # create equi-frequency bins
         bins = np.interp(np.linspace(0, xlen, self.nlattice + 1), np.arange(xlen), np.sort(x1))
+
         # compute the mean positions
         res = binned_statistic(x1, X.T, bins=bins, statistic="median")
+
+        # TODO! set minimumseparation
 
         self._prototypes = res.statistic.T
 
@@ -490,7 +492,7 @@ class SelfOrganizingMap1D(CommonBase):
         if oq.unit.physical_type == "angle":
             # def unwrap(q, /, visit_order=None, discont=pi/2*u.rad, period=2*pi*u.rad):
             discont = np.pi / 2 * u.rad
-            period = 2 * np.pi * u.rad
+            # period = 2 * np.pi * u.rad
 
             jumps = np.where(np.diff(oq) >= discont)[0]
             if jumps:
@@ -506,12 +508,13 @@ class SelfOrganizingMap1D(CommonBase):
             armep = crd[ordering[[0, -1]]]  # end points
 
             # FIXME! be careful about 2d versus 3d
-            # try:
-            #     sep = armep.separation_3d(origin)
-            # except ValueError:
-            #     sep = armep.separation(origin)
-            # if np.argmin(sep) == 1:
-            #     ordering = ordering[::-1]
+            try:
+                sep = armep.separation_3d(origin)
+            except ValueError:
+                sep = armep.separation(origin)
+
+            if np.argmin(sep) == 1:  # the end point is closer than the start
+                ordering = ordering[::-1]
 
         return ordering
 

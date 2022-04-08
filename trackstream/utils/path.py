@@ -10,7 +10,7 @@ __all__ = ["Path", "path_moments"]
 
 # STDLIB
 import copy
-from typing import Any, Callable, NamedTuple, Optional, Tuple, Union
+from typing import Any, Callable, NamedTuple, Optional, Tuple, Union, cast
 
 # THIRD PARTY
 import astropy.coordinates as coord
@@ -27,7 +27,6 @@ from scipy.optimize import OptimizeResult, minimize_scalar
 # LOCAL
 from trackstream._type_hints import CoordinateType, FrameLikeType
 from trackstream.base import CommonBase
-from trackstream.utils import resolve_framelike
 
 ##############################################################################
 # CODE
@@ -328,10 +327,10 @@ class Path(CommonBase):
         else:
             sep_fn = self.separation_3d(point, interpolate=True, affine=affine)
 
-        affine = self.affine if affine is None else affine
+        afn = self.affine if affine is None else affine
         res: OptimizeResult = minimize_scalar(
             lambda afn: sep_fn(afn).value,
-            bounds=[affine.value.min(), affine.value.max()],
+            bounds=[afn.value.min(), afn.value.max()],
         )
         return res
 
@@ -339,10 +338,10 @@ class Path(CommonBase):
         self, point: CoordinateType, *, angular: bool = False, affine: Optional[u.Quantity] = None
     ) -> u.Quantity:
         """Closest affine, ignoring width"""
-        affine = self.affine if affine is None else affine
-        res = self._closest_res_to_point(point, angular=angular, affine=affine)
-        pt_affine = res.x << affine.unit
-        return pt_affine
+        afn = self.affine if affine is None else affine
+        res = self._closest_res_to_point(point, angular=angular, affine=afn)
+        pt_afn = res.x << afn.unit
+        return pt_afn
 
     def closest_position_to_point(
         self, point: CoordinateType, *, angular: bool = False, affine: Optional[u.Quantity] = None
@@ -376,10 +375,13 @@ def concatenate_paths(paths: Tuple[Path, Path]) -> Path:
     affine = np.concatenate((-neg_path.affine[::-1], pos_path.affine))
     c = concatenate_coords((neg_path._original_path[::-1], pos_path._original_path))
 
-    if not isinstance(neg_path._original_width, Quantity) or not isinstance(
-        pos_path._original_width, Quantity
-    ):
+    negow = neg_path._original_width
+    posow = pos_path._original_width
+    if not isinstance(negow, Quantity) or not isinstance(posow, Quantity):
         raise TypeError
-    sigma = np.concatenate((neg_path._original_width[::-1], pos_path._original_width))
+    else:
+        negow = cast(Quantity, negow)
+        posow = cast(Quantity, posow)
+    sigma = np.concatenate((negow[::-1], posow))
 
     return Path(c, width=sigma, affine=affine, frame=pos_path.frame)

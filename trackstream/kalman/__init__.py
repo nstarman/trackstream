@@ -9,5 +9,5 @@ __all__ = ["FirstOrderNewtonianKalmanFilter"]
 # IMPORTS
 
 # LOCAL
-from . import core, helper, plot
+from . import core, helper, plot  # noqa: F401, F403
 from .core import FirstOrderNewtonianKalmanFilter
