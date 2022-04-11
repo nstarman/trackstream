@@ -58,7 +58,7 @@ CoordinateType = Union[coord.BaseCoordinateFrame, coord.SkyCoord]
 FrameLikeType = Union[CoordinateType, str]
 """|Frame| or |SkyCoord| or `str`"""
 
-UnitType = Union[u.UnitBase, u.FunctionUnitBase]
+UnitType = Union[u.Unit, u.IrreducibleUnit, u.UnitBase, u.FunctionUnitBase]
 """|Unit| or :class:`~astropy.units.FunctionUnitBase`"""
 
 UnitLikeType = Union[UnitType, str]

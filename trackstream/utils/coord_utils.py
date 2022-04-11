@@ -11,21 +11,15 @@ __all__ = ["reference_to_skyoffset_matrix", "resolve_framelike"]
 
 # STDLIB
 import functools
-from typing import Optional, Union, overload
+from typing import Any, Type, Union, cast, overload
 
 # THIRD PARTY
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import BaseCoordinateFrame, SkyCoord, sky_coordinate_parsers
+from astropy.coordinates import BaseCoordinateFrame as BaseFrame
+from astropy.coordinates import SkyCoord
+from astropy.coordinates.sky_coordinate_parsers import _get_frame_class
 from astropy.coordinates.matrix_utilities import matrix_product, rotation_matrix
-
-# LOCAL
-from trackstream._type_hints import FrameLikeType
-from trackstream.config import conf
-
-##############################################################################
-# PARAMETERS
-
 
 ##############################################################################
 # CODE
@@ -98,11 +92,8 @@ def reference_to_skyoffset_matrix(
 
 
 @functools.singledispatch
-def _resolve_framelike(
-    frame: Optional[FrameLikeType],
-    error_if_not_type: bool = True,
-) -> BaseCoordinateFrame:
-    if error_if_not_type:
+def _resolve_framelike(frame: Any, type_error: bool = True) -> BaseFrame:
+    if type_error:
         raise TypeError(
             "Input coordinate frame must be an astropy "
             "coordinates frame subclass *instance*, not a "
@@ -113,65 +104,52 @@ def _resolve_framelike(
 
 @overload
 @_resolve_framelike.register
-def resolve_framelike(frame: None, error_if_not_type: bool = True) -> BaseCoordinateFrame:
-    # If no frame is specified, assume that the input footprint is in a
-    # frame specified in the configuration
-    return resolve_framelike(conf.default_frame)
-
-
-@overload
-@_resolve_framelike.register
-def resolve_framelike(  # noqa: F811
-    frame: str,
-    error_if_not_type: bool = True,
-) -> BaseCoordinateFrame:
+def resolve_framelike(frame: str, type_error: bool = True) -> BaseFrame:  # noqa: F811
     # strings can be turned into frames using the private SkyCoord parsers
-    out: BaseCoordinateFrame = sky_coordinate_parsers._get_frame_class(frame.lower())()
+    out: BaseFrame = cast(Type[BaseFrame], _get_frame_class(frame.lower()))()
     return out
 
 
 @overload
 @_resolve_framelike.register
-def resolve_framelike(  # noqa: F811
-    frame: BaseCoordinateFrame,
-    error_if_not_type: bool = True,
-) -> BaseCoordinateFrame:
-    out: BaseCoordinateFrame = frame.replicate_without_data()
+def resolve_framelike(frame: BaseFrame, type_error: bool = True) -> BaseFrame:
+    out: BaseFrame = frame.replicate_without_data()
+    out.representation_type = frame.representation_type
     return out
 
 
 @overload
 @_resolve_framelike.register
-def resolve_framelike(frame: SkyCoord, error_if_not_type: bool = True) -> BaseCoordinateFrame:  # type: ignore  # noqa: E501, F811
-    out: BaseCoordinateFrame = frame.frame.replicate_without_data()
+def resolve_framelike(frame: SkyCoord, type_error: bool = True) -> BaseFrame:  # noqa: E501, F811
+    out: BaseFrame = frame.frame.replicate_without_data()
+    out.representation_type = frame.representation_type
     return out
 
 
-def resolve_framelike(  # noqa: F811
-    frame: Optional[FrameLikeType],
-    error_if_not_type: bool = True,
-) -> BaseCoordinateFrame:
+def resolve_framelike(  # type: ignore
+    frame: Union[str, BaseFrame, SkyCoord], type_error: bool = True
+) -> BaseFrame:  # noqa: F811
     """Determine the frame and return a blank instance.
 
     Parameters
     ----------
     frame : frame-like instance or None (optional)
-        If BaseCoordinateFrame, replicates without data.
+        If BaseCoordianteFrame, replicates without data.
         If str, uses astropy parsers to determine frame class
         If None (default), gets default frame name from config, and parses.
 
-    error_if_not_type : bool
+    type_error : bool
         Whether to raise TypeError if `frame` is not one of the allowed types.
 
     Returns
     -------
-    frame : `~astropy.coordinates.BaseCoordinateFrame` instance
+    frame : `~astropy.coordinates.BaseCoordianteFrame` instance
         Replicated without data.
 
     Raises
     ------
     TypeError
-        If `frame` is not one of the allowed types and 'error_if_not_type' is
+        If `frame` is not one of the allowed types and 'type_error' is
         True.
     """
-    return _resolve_framelike(frame, error_if_not_type=error_if_not_type)
+    return _resolve_framelike(frame, type_error=type_error)

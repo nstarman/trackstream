@@ -83,11 +83,6 @@ class TestPath:
         assert path.frame == iscrd.frame.replicate_without_data()
         assert isinstance(path.data, icoord.InterpolatedSkyCoord)
 
-        # Frame = None, path is Representation-like -> default frame
-        path = path_cls(iscrd.data, width, name="test_init", affine=affine, frame=None)
-        assert path.frame == resolve_framelike(None)
-        assert isinstance(path.data, icoord.InterpolatedSkyCoord)
-
     @pytest.mark.skip("TODO!")
     def test_init_width(self):
         assert False

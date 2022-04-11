@@ -213,7 +213,7 @@ class TestRotatedFrameFitter:
         This triggers all the ``if X is None`` checks.
         """
         fr = self.RFF.fit(rot0=79 * u.deg)
-        assert isinstance(fr, rotated_frame.FitResult)
+        assert isinstance(fr, rotated_frame.FrameOptimizeResult)
         assert fr.fitresult.success
         assert u.allclose(fr.residual, 0 * u.deg, atol=1e-6 * u.deg)
 

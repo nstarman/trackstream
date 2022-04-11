@@ -17,13 +17,13 @@ __credits__ = "MiniSom"
 
 # STDLIB
 import warnings
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional, Tuple, Union, Type, cast
 
 # THIRD PARTY
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import BaseCoordinateFrame, BaseRepresentation, SkyCoord
-from astropy.units import Quantity, StructuredUnit, Unit
+from astropy.units import Quantity, StructuredUnit
 from numpy import linalg, ndarray, pi, random
 from numpy.lib.recfunctions import structured_to_unstructured
 from scipy.stats import binned_statistic
@@ -51,15 +51,39 @@ DataType = Union[CoordinateType, BaseRepresentation]
 ##############################################################################
 
 
+def _equifrequency_bins_with_bounds(bins: ndarray, maxsep: float) -> ndarray:
+    """Respace equi-frequency bins to have a maximum separation
+
+    Parameters
+    ----------
+    bins : ndarray
+        The bins to make sure are correctly spaced.
+    maxsep : float
+        Maximum separation between bins.
+
+    Returns
+    -------
+    ndarray
+        Better-spaced bins.
+    """
+    seps = np.nonzero(np.diff(bins) > maxsep)[0]
+    bins[seps + 1] = bins[seps] + maxsep  # move it closer
+    if len(seps) > 0:
+        return _equifrequency_bins_with_bounds(bins, maxsep)
+    return bins
+
+
 class SelfOrganizingMap1D(CommonBase):
-    """Initializes a Self-Organizing Map, (modified from [MiniSom]_).
+    """Initializes a Self-Organizing Map.
+
+    Inspired by the design of [MiniSom]_
 
     Parameters
     ----------
     nlattice : int
         Number of lattice points (prototypes) in the 1D SOM.
-    nfeature : int
-        Number of dimensions in the input.
+    onsky : bool or None
+        Whether to fit on-sky or 3d.
 
     sigma : float, optional (default=1.0)
         Spread of the neighborhood function, needs to be adequate
@@ -89,16 +113,18 @@ class SelfOrganizingMap1D(CommonBase):
     .. [frankenz] Josh Speagle. Frankenz: a photometric redshift monstrosity.
     """
 
+    _units: Optional[u.StructuredUnit]
+
     def __init__(
         self,
         nlattice: int,
-        nfeature: int,
+        onsky: Optional[bool],
         frame: BaseCoordinateFrame,
         *,
         sigma: float = 0.1,
         learning_rate: float = 0.3,
         random_seed: Optional[int] = None,
-        representation_type: Optional[BaseRepresentation] = None,
+        representation_type: Optional[Type[BaseRepresentation]] = None,
         **kwargs: Any,
     ) -> None:
         if sigma >= 1 or sigma >= nlattice:
@@ -108,9 +134,10 @@ class SelfOrganizingMap1D(CommonBase):
         super().__init__(frame=frame, representation_type=representation_type)
         self._units = None
 
+        self._onsky = onsky
+
         # normal SOM stuff
         self._nlattice = nlattice
-        self._nfeature = nfeature
         self._sigma = sigma
         self._learning_rate = learning_rate
         self._decay_function = asymptotic_decay
@@ -118,10 +145,23 @@ class SelfOrganizingMap1D(CommonBase):
         self._rng = random.default_rng(random_seed)
 
         # used to evaluate the neighborhood function
-        self._yy = np.arange(nlattice).astype(float)
+        self._yy = np.arange(nlattice, dtype=float)
 
-        # random initialization
-        self._prototypes = 2 * self._rng.random((nlattice, nfeature)) - 1
+        # random initialization, if onsky is known
+        if self.onsky is not None:
+            self.init_prototypes_random(self.onsky)
+
+    @property
+    def onsky(self) -> Optional[bool]:
+        """Whether to fit on-sky or 3d."""
+        return self._onsky
+
+    @onsky.setter
+    def onsky(self, value: Optional[bool]) -> None:
+        """Set `onsky`, raising `ValueError` if setting to `None`."""
+        if value is None:
+            raise ValueError
+        self._onsky = value
 
     @property
     def data_units(self) -> StructuredUnit:
@@ -137,7 +177,9 @@ class SelfOrganizingMap1D(CommonBase):
     @property
     def nfeature(self) -> int:
         """Number of features."""
-        return self._nfeature
+        if self.onsky is None:
+            raise ValueError
+        return 2 if self.onsky else 3
 
     @property
     def sigma(self) -> float:
@@ -163,18 +205,17 @@ class SelfOrganizingMap1D(CommonBase):
 
     # ===============================================================
 
-    def _crd_to_q(self, crd: DataType, /) -> Quantity:
+    def _crd_to_q(self, crd: SkyCoord, /) -> Quantity:
         """Coordinate to structured Quantity."""
 
-        if isinstance(crd, (BaseCoordinateFrame, SkyCoord)):
-            crd = crd.transform_to(self.frame)
-
+        crd = crd.transform_to(self.frame)
         rep = crd.represent_as(self.representation_type, in_frame_units=True)
 
-        data = rep._values << Unit(tuple(rep._units.values()))  # structured quantity
+        units: Tuple[u.UnitBase, ...] = tuple(rep._units.values())
+        data = rep._values << StructuredUnit(units)  # structured quantity
         return data
 
-    def _crd_to_v(self, crd: Union[DataType, ndarray], /) -> ndarray:
+    def _crd_to_v(self, crd: Union[SkyCoord, ndarray], /) -> ndarray:
         """Coordinate to unstructured array."""
         if isinstance(crd, ndarray):  # TODO! more careful check
             return crd
@@ -219,33 +260,68 @@ class SelfOrganizingMap1D(CommonBase):
     # ---------------------------------------------------------------
     # initialization
 
-    def binned_weights_init(self, data: ndarray, byphi: bool = False, **kw: Any) -> None:
+    def init_prototypes_random(self, onsky: Optional[bool]) -> None:
+        """Randomly initialize prototype vectors.
+
+        Parameters
+        ----------
+        onsky : bool or None
+        """
+        self.onsky = onsky  # raises ValueError if assigning `None`
+        self._prototypes = 2 * self._rng.random((self.nlattice, self.nfeature)) - 1
+
+    def init_prototypes_binned(
+        self,
+        data: SkyCoord,
+        onsky: Optional[bool],
+        byphi: bool = False,
+        maxsep: Optional[Quantity] = None,
+        **_: Any,
+    ) -> None:
         r"""Initialize prototype vectors from binned data.
 
         Parameters
         ----------
-        data : Frame or Representation
+        data : SkyCoord
         byphi : bool, optional
             Whether to bin by the longitude, or by :math:`\phi=atan(lat/lon)`
+        maxsep : Quantity or None, optional keyword-only
+            Maximum separation (in data space) between prototypes.
         """
-        q = self._crd_to_q(data)
-        self._units = q.unit
+        _onsky = self.onsky if onsky is None else onsky
+        self.onsky = _onsky  # raises ValueError if assigning `None`
 
+        # Get the data as a structured Quantity to set the units parameter
+        q = self._crd_to_q(data)
+        self._units = cast(u.StructuredUnit, q.unit)
+
+        # Get the data as an array to bin
         X = self._crd_to_v(data)
 
+        # Determine the binning coordinate
         if byphi:
             x1 = np.arctan2(X[:, 1], X[:, 0])
         else:
             x1 = X[:, 0]
         xlen = len(x1)
 
-        # create equi-frequency bins
+        # Create equi-frequency bins
         bins = np.interp(np.linspace(0, xlen, self.nlattice + 1), np.arange(xlen), np.sort(x1))
 
-        # compute the mean positions
-        res = binned_statistic(x1, X.T, bins=bins, statistic="median")
+        # Optionally respace the bins to have a maximum separation
+        if maxsep is not None:
+            maxsep_v = maxsep.to_value(self._units[0])  # get value
+            # Check respacing is even possible
+            if (np.abs(max(x1) - min(x1)) / self.nlattice) > maxsep_v:
+                raise ValueError(
+                    f"{self.nlattice} bins is not enough to cover [{min(x1)}, {max(x1)}] "
+                    f"with a maximum bin separation of {maxsep_v}"
+                )
+            # Respace bins
+            bins = _equifrequency_bins_with_bounds(bins, maxsep_v)
 
-        # TODO! set minimumseparation
+        # Compute the mean positions
+        res = binned_statistic(x1, X.T, bins=bins, statistic="median")
 
         self._prototypes = res.statistic.T
 
@@ -272,13 +348,13 @@ class SelfOrganizingMap1D(CommonBase):
     #     return linalg.norm(data - self.quantization(data), axis=1).mean()
 
     def fit(
-        self, data: DataType, num_iteration: int, random_order: bool = False, progress: bool = False
+        self, data: SkyCoord, num_iteration: int, random_order: bool = False, progress: bool = False
     ) -> None:
         """Trains the SOM.
 
         Parameters
         ----------
-        data : Frame or Representation
+        data : SkyCoord
 
         num_iteration : int
             Maximum number of iterations (one iteration per sample).
@@ -299,7 +375,7 @@ class SelfOrganizingMap1D(CommonBase):
         # Get the in internal unitless representation
         if self._units is None:  # if not init weighted
             q = self._crd_to_q(data)
-            self._units = q.unit
+            self._units = cast(u.StructuredUnit, q.unit)
         X = self._crd_to_v(data)
 
         # Fit the data by sequential update
@@ -446,12 +522,12 @@ class SelfOrganizingMap1D(CommonBase):
 
         return ordering
 
-    def predict(self, crd: DataType, origin: Optional[SkyCoord] = None) -> ndarray:
+    def predict(self, crd: SkyCoord, origin: Optional[SkyCoord] = None) -> ndarray:
         """Order data from SOM in 2+N Dimensions.
 
         Parameters
         ----------
-        crd : |SkyCoord| or |Frame| or |Representation|
+        crd : SkyCoord
             This will generally be the same data used to train the SOM.
         origin : SkyCoord or None
 
@@ -487,9 +563,10 @@ class SelfOrganizingMap1D(CommonBase):
         # Correct for a phase wrap
         # TODO! more general correction for arbitrary number of phase wraps
         qs = self._crd_to_q(crd)
-        oq = qs[qs.dtype.names[0]][ordering]
+        oq = cast(Quantity, qs[qs.dtype.names[0]][ordering])
+        oqunit = cast(u.UnitBase, oq.unit)
 
-        if oq.unit.physical_type == "angle":
+        if oqunit.physical_type == "angle":
             # def unwrap(q, /, visit_order=None, discont=pi/2*u.rad, period=2*pi*u.rad):
             discont = np.pi / 2 * u.rad
             # period = 2 * np.pi * u.rad
@@ -505,13 +582,13 @@ class SelfOrganizingMap1D(CommonBase):
 
             # the visit order can be backward so need to detect proximity to origin
             # TODO! more careful if closest point not end point. & adjust SOM!
-            armep = crd[ordering[[0, -1]]]  # end points
+            armep = cast(SkyCoord, crd[ordering[[0, -1]]])  # end points
 
-            # FIXME! be careful about 2d versus 3d
-            try:
-                sep = armep.separation_3d(origin)
-            except ValueError:
+            sep: Quantity
+            if self.onsky:
                 sep = armep.separation(origin)
+            else:
+                sep = armep.separation_3d(origin)
 
             if np.argmin(sep) == 1:  # the end point is closer than the start
                 ordering = ordering[::-1]
@@ -520,17 +597,22 @@ class SelfOrganizingMap1D(CommonBase):
 
     def fit_predict(
         self,
-        data: DataType,
+        data: SkyCoord,
         num_iteration: int,
         random_order: bool = False,
         progress: bool = False,
         origin: Optional[SkyCoord] = None,
     ) -> ndarray:
-        """
+        """Fit then predict.
 
         Returns
         -------
         ndarray
+
+        See Also
+        --------
+        trackstream.SelfOrganizingMap1D.fit
+        trackstream.SelfOrganizingMap1D.predict
         """
         self.fit(data, num_iteration=num_iteration, random_order=random_order, progress=progress)
         order = self.predict(data, origin=origin)

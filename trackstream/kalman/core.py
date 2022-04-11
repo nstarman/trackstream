@@ -9,7 +9,7 @@ __all__ = ["FirstOrderNewtonianKalmanFilter"]
 # IMPORTS
 
 # STDLIB
-from typing import Any, Callable, Dict, NamedTuple, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, NamedTuple, Optional, Sequence, Tuple, Type, Union, cast
 
 # THIRD PARTY
 import astropy.units as u
@@ -74,7 +74,7 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         P0: ndarray,
         *,
         frame: BaseCoordinateFrame,
-        representation_type: Optional[BaseRepresentation] = None,
+        representation_type: Optional[Type[BaseRepresentation]] = None,
         kfv0: Optional[ndarray] = None,
         F0: Union[None, ndarray, Callable[[float], ndarray]] = None,
         Q0: Optional[ndarray] = None,
@@ -88,14 +88,14 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         if ndims < 2 or ndims > 6:
             raise ValueError
 
-        x0 = x0.represent_as(self.representation_type)
-        x0 = structured_to_unstructured(x0._values)
+        _x0 = x0.represent_as(self.representation_type)
+        _x0 = structured_to_unstructured(_x0._values)
 
         # TODO! x0 as a Representation (or higher) object
         _kfv0: ndarray = array([0] * ndims) if kfv0 is None else kfv0
 
         # Initial state
-        self._x0 = intermix_arrays(x0, _kfv0)
+        self._x0 = intermix_arrays(_x0, _kfv0)
         self._P0 = P0  # TODO! make optional
         self._H = helper.make_H(n_dims=ndims)
         self._F0 = F0 if not callable(F0) else None
@@ -331,8 +331,7 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         data: SkyCoord,
         /,
         timesteps: ndarray,
-        *,
-        use_filterpy: Optional[bool] = None,
+        representation_type: Optional[Type[BaseRepresentation]] = None,
         **kwargs: Any,
     ) -> Tuple[kalman_output, Path]:
         """Run Kalman Filter with updates on each step.
@@ -353,7 +352,7 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         smooth : `~kalman_output`
             "timesteps", "Xs", "Ps", "Qs"
         """
-        kw = {**self.options, **kwargs}  # copy
+        q_kw = {**self.options.get("q_kw", {}), **kwargs}  # copy
 
         dts = np.diff(timesteps)
         if len(dts) != len(data):
@@ -365,7 +364,7 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         # TODO! check timesteps start with 0
 
         data = data.transform_to(self.frame).represent_as(self.representation_type)
-        data = structured_to_unstructured(data._values)
+        Z: ndarray = structured_to_unstructured(data._values)
 
         # starting points
         x, P = self.x0, self.P0
@@ -374,7 +373,7 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         F = self.state_transition_model(dts[0]) if self.F0 is None else self.F0
         Q = self.process_noise_model(dts[0]) if self.Q0 is None else self.Q0
 
-        n = len(data)
+        n = len(Z)
         # initialize arrays
         Xs = np.empty((n, *np.shape(x)))
         Ps = np.empty((n, *np.shape(P)))
@@ -382,10 +381,12 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         Qs = np.empty((n, *np.shape(Q)))
 
         # iterate predict & update steps
-        for i, (z, dt) in enumerate(zip(data, dts)):
+        z: ndarray
+        dt: float
+        for i, (z, dt) in enumerate(zip(Z, dts)):
             # F, Q  # TODO! precompute this, not each time
             F = self.state_transition_model(dt)
-            Q = self.process_noise_model(dt, **kw)
+            Q = self.process_noise_model(dt, **q_kw)
 
             # predict & update
             x, P = self._math_predict(x=x, P=P, F=F, Q=Q)
@@ -402,8 +403,8 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         try:
             xs, Ps, _, Qs = self._math_smoother(Xs, Ps, Fs, Qs)
 
-        except Exception:
-            print("FIXME!")
+        except Exception as e:
+            print("FIXME!", str(e))
             smooth = self._result
         else:
             smooth = kalman_output(timesteps, xs, Ps, Qs)
@@ -411,7 +412,8 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
 
         # TODO! make sure get the frame and units right
         r = self.representation_type(smooth.Xs[:, ::2].T, unit=u.kpc)
-        c = self.frame.realize_frame(r)  # (not interpolated)
+        c = SkyCoord(self.frame.realize_frame(r), copy=False)  # (not interpolated)
+        c.representation_type = self.representation_type
 
         # covariance matrix. select only the phase-space positions
         # everything is Gaussian so there are no off-diagonal elements,
@@ -421,10 +423,20 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         sigma = np.sqrt(np.sum(np.square(var), axis=-1)) * u.kpc
 
         # TODO! is this the Affine wanted?
-        sp2p = c[:-1].separation(c[1:])  # point-2-point sep
-        affine = np.concatenate(([min(1e-10 * sp2p.unit, 1e-10 * sp2p[0])], sp2p.cumsum()))
+        ci = cast(SkyCoord, c[:-1])
+        sp2p = ci.separation(c[1:])  # point-2-point sep
+        affine = np.concatenate(([min(Quantity(1e-10, sp2p.unit), 1e-10 * sp2p[0])], sp2p.cumsum()))
 
-        self._path = path = Path(c, width=sigma, affine=affine, frame=self.frame)
+        print("rep_type", c.representation_type, c.data.__class__, self.frame.representation_type)
+
+        self._path = path = Path(
+            c, width=sigma, affine=affine, frame=self.frame, representation_type=representation_type
+        )
+
+        print(
+            "rep_type",
+            path.representation_type,
+        )
 
         return smooth, path
 
@@ -449,12 +461,16 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
 
     @staticmethod
     def make_simple_timesteps(
-        ordered_data: SkyCoord, /, dt0: Quantity, *, width: int = 6, vmin: Quantity = 0.01 * u.pc
+        ordered_data: SkyCoord,
+        /,
+        dt0: Quantity,
+        *,
+        width: int = 6,
+        vmin: Quantity = Quantity(0.01, u.pc),
     ) -> ndarray:
+        onsky = True if cast(u.UnitBase, dt0.unit).physical_type == "angle" else False
+
         timesteps = helper.make_timesteps(
-            ordered_data,
-            dt0=dt0,
-            width=width,
-            vmin=vmin,
+            ordered_data, dt0=dt0, width=width, vmin=vmin, onsky=onsky
         )
         return timesteps  # TODO! Quantity

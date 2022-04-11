@@ -14,10 +14,7 @@ import pytest
 
 # LOCAL
 from trackstream.config import conf
-from trackstream.utils.coord_utils import (  # reference_to_skyoffset_matrix,
-    cartesian_to_spherical,
-    resolve_framelike,
-)
+from trackstream.utils.coord_utils import resolve_framelike
 
 ##############################################################################
 # TESTS

@@ -11,18 +11,20 @@ __all__ = ["Path", "path_moments"]
 # STDLIB
 import copy
 from typing import Any, Callable, NamedTuple, Optional, Tuple, Union, cast
+from typing import Type
 
 # THIRD PARTY
 import astropy.coordinates as coord
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import BaseCoordinateFrame, SkyCoord
+from astropy.coordinates import BaseCoordinateFrame, SkyCoord, BaseRepresentation
 from astropy.coordinates import concatenate as concatenate_coords
 from astropy.units import Quantity
 from astropy.utils.decorators import format_doc
 from interpolated_coordinates import InterpolatedCoordinateFrame, InterpolatedSkyCoord
 from interpolated_coordinates.utils import InterpolatedUnivariateSplinewithUnits as IUSU
 from scipy.optimize import OptimizeResult, minimize_scalar
+from astropy.utils.misc import indent
 
 # LOCAL
 from trackstream._type_hints import CoordinateType, FrameLikeType
@@ -35,7 +37,7 @@ from trackstream.base import CommonBase
 
 class path_moments(NamedTuple):
     mean: SkyCoord
-    width: u.Quantity
+    width: Quantity
 
 
 class Path(CommonBase):
@@ -88,20 +90,27 @@ class Path(CommonBase):
     _frame: coord.BaseCoordinateFrame
     _original_path: Any
     _iscrd: InterpolatedSkyCoord
-    _original_width: Union[u.Quantity, Callable, None]
+    _original_width: Union[Quantity, Callable, None]
     _width_fn: Optional[Callable]
     _amplitude_fn: Optional[Callable]
 
     def __init__(
         self,
-        path: Union[InterpolatedCoordinateFrame, InterpolatedSkyCoord],
+        path: Union[
+            InterpolatedCoordinateFrame,
+            InterpolatedSkyCoord,
+            BaseRepresentation,
+            SkyCoord,
+            BaseCoordinateFrame,
+        ],
         /,
-        width: Union[u.Quantity, Callable, None] = None,  # func(affine)
-        amplitude: Union[u.Quantity, Callable, None] = None,  # FIXME!
+        width: Union[Quantity, Callable, None] = None,  # func(affine)
+        amplitude: Union[Quantity, Callable, None] = None,  # FIXME!
         *,
         name: Optional[str] = None,
-        affine: Optional[u.Quantity] = None,
+        affine: Optional[Quantity] = None,
         frame: Optional[FrameLikeType] = None,
+        representation_type: Optional[Type[BaseRepresentation]] = None,
     ) -> None:
         self._name = str(name) if name is not None else name
 
@@ -109,12 +118,17 @@ class Path(CommonBase):
         if frame is None:
             # unless `path` has a frame (is not `BaseRepresentation`).
             if isinstance(path, BaseCoordinateFrame):
-                frame = path.replicate_without_data()
+                _frame = path.replicate_without_data()
+                _frame.representation_type = path.representation_type
             elif isinstance(path, SkyCoord):  # SkyCoord & related
-                frame = path.frame.replicate_without_data()
-            # else: pass  # path = Representation handled in resolve_framelike.
+                _frame = path.frame.replicate_without_data()
+                _frame.representation_type = path.representation_type
+            else:  # path = Representation handled in resolve_framelike.
+                _frame = frame
+        else:
+            _frame = frame
 
-        super().__init__(frame=frame, representation_type=None)
+        super().__init__(frame=_frame, representation_type=representation_type)
 
         # --------------
         # path
@@ -125,14 +139,24 @@ class Path(CommonBase):
         #              BaseCoordinateFrame, InterpolatedCoordinateFrame
         #              SkyCoord, InterpolatedSkyCoord
         # need to end up with a InterpolatedSkyCoord
-        if isinstance(path, coord.BaseRepresentation):  # works for interp
-            path = self.frame.realize_frame(path)
+        path_f: Union[
+            InterpolatedCoordinateFrame, InterpolatedSkyCoord, SkyCoord, BaseCoordinateFrame
+        ]
+        if isinstance(path, BaseRepresentation):  # works for interp
+            path_f = self.frame.realize_frame(path)
+            path_f.representation_type = self.representation_type
+        else:
+            path_f = path
 
-        if isinstance(path, coord.BaseCoordinateFrame):
-            path = InterpolatedCoordinateFrame(path, affine=affine)
+        path_if: Union[InterpolatedCoordinateFrame, InterpolatedSkyCoord, SkyCoord]
+        if isinstance(path_f, BaseCoordinateFrame):
+            path_if = InterpolatedCoordinateFrame(path_f, affine=affine)
+        else:
+            path_if = path_f
 
-        path = InterpolatedSkyCoord(path, affine=affine)
-        self._iscrd = path.transform_to(self.frame)
+        path_isc = InterpolatedSkyCoord(path_if, affine=affine)
+        self._iscrd = path_isc.transform_to(self.frame)
+        self._iscrd.representation_type = self.representation_type
 
         # --------------
         # Width
@@ -144,7 +168,7 @@ class Path(CommonBase):
         self._width_fn = None
 
         if width is not None:
-            self._initialize_width(path, width)
+            self._initialize_width(path_isc, width)
 
     @property
     def name(self) -> Optional[str]:
@@ -156,7 +180,7 @@ class Path(CommonBase):
         return self._iscrd
 
     @property
-    def affine(self) -> u.Quantity:
+    def affine(self) -> Quantity:
         """Affine parameter along ``path``."""
         return self.data.affine
 
@@ -165,7 +189,7 @@ class Path(CommonBase):
     def _initialize_width(
         self,
         path: InterpolatedSkyCoord,
-        width: Union[u.Quantity, Callable],
+        width: Union[Quantity, Callable],
     ) -> None:
         """Initialize the width function."""
         if callable(width):
@@ -173,29 +197,44 @@ class Path(CommonBase):
             _ws = width(path.affine)
             if _ws.unit.physical_type != "length":
                 raise ValueError("width must have units of length")
-            o_w = width
+            o_w = cast(Quantity, width)
 
         else:
             # Clean
-            o_w = u.Quantity(width, copy=False)
+            o_w = Quantity(width, copy=False)
+            o_w_unit = cast(u.UnitBase, o_w.unit)
 
             # Check
-            if o_w.unit.physical_type != "length":
+            if o_w_unit.physical_type != "length":
                 raise ValueError("width must have units of length")
 
             # Interpolate (first check if need to broadcast)
-            _ws = np.ones(len(path)) * o_w if o_w.isscalar else o_w
+            _ws = cast(Quantity, np.ones(len(path)) * o_w) if o_w.isscalar else o_w
             width = IUSU(path.affine, _ws)
 
         self._original_width = copy.deepcopy(o_w)
         self._width_fn = width
 
+    def __repr__(self) -> str:
+        rs = []
+
+        # 0) header (standard repr)
+        header: str = object.__repr__(self)
+        rs.append(header)
+
+        # 1) name
+        name = str(self.name)
+        rs.append("  Name: " + name)
+
+        # 2) data
+        rs.append(indent(repr(self.data), width=2))
+
+        return "\n".join(rs)
+
     #################################################################
     # Math on the Track!
 
-    def __call__(
-        self, affine: Optional[u.Quantity] = None, *, angular: bool = False
-    ) -> path_moments:
+    def __call__(self, affine: Optional[Quantity] = None, *, angular: bool = False) -> path_moments:
         """Call.
 
         Parameters
@@ -227,7 +266,7 @@ class Path(CommonBase):
 
     def position(
         self,
-        affine: Optional[u.Quantity] = None,
+        affine: Optional[Quantity] = None,
     ) -> Union[InterpolatedSkyCoord, SkyCoord]:
         """Return the position on the track.
 
@@ -251,7 +290,7 @@ class Path(CommonBase):
 
     # -----------------------
 
-    def width(self, affine: Optional[u.Quantity] = None) -> u.Quantity:
+    def width(self, affine: Optional[Quantity] = None) -> Quantity:
         """Return the (1-sigma) width of the track at affine points.
 
         Parameters
@@ -270,7 +309,7 @@ class Path(CommonBase):
         affine = self.affine if affine is None else affine
         return self._width_fn(affine)
 
-    def width_angular(self, affine: Optional[u.Quantity] = None) -> u.Quantity:
+    def width_angular(self, affine: Optional[Quantity] = None) -> Quantity:
         """Return the (1-sigma) angular width of the track at affine points.
 
         Parameters
@@ -284,13 +323,14 @@ class Path(CommonBase):
         `~astropy.unitss.Quantity`
             Path angular width evaluated at ``affine``.
         """
-        width = self.width(affine)
-        if width.unit.physical_type == "angle":
+        width: Quantity = self.width(affine)
+        width_u = cast(u.UnitBase, width.unit)
+        if width_u.physical_type == "angle":
             return width
 
         # TODO! is there a more succinct Astropy func for this?
         r = self.data(affine).represent_as(coord.SphericalRepresentation)
-        distance = r.distance.to_value(width.unit)
+        distance = r.distance.to_value(width_u)
 
         return np.abs(np.arctan2(width.value, distance)) << u.rad
 
@@ -302,7 +342,7 @@ class Path(CommonBase):
         point: CoordinateType,
         *,
         interpolate: bool = True,
-        affine: Optional[u.Quantity] = None,
+        affine: Optional[Quantity] = None,
     ) -> Union[coord.Angle, IUSU]:
         return self.data.separation(point, interpolate=interpolate, affine=affine)
 
@@ -312,20 +352,21 @@ class Path(CommonBase):
         point: CoordinateType,
         *,
         interpolate: bool = True,
-        affine: Optional[u.Quantity] = None,
+        affine: Optional[Quantity] = None,
     ) -> Union[coord.Distance, IUSU]:
         return self.data.separation_3d(point, interpolate=interpolate, affine=affine)
 
     # -----------------------------------------------------
 
     def _closest_res_to_point(
-        self, point: CoordinateType, *, angular: bool = False, affine: Optional[u.Quantity] = None
+        self, point: CoordinateType, *, angular: bool = False, affine: Optional[Quantity] = None
     ) -> OptimizeResult:
         """Closest to stream, ignoring width"""
         if angular:
             sep_fn = self.separation(point, interpolate=True, affine=affine)
         else:
             sep_fn = self.separation_3d(point, interpolate=True, affine=affine)
+        sep_fn = cast(IUSU, sep_fn)
 
         afn = self.affine if affine is None else affine
         res: OptimizeResult = minimize_scalar(
@@ -335,8 +376,8 @@ class Path(CommonBase):
         return res
 
     def closest_affine_to_point(
-        self, point: CoordinateType, *, angular: bool = False, affine: Optional[u.Quantity] = None
-    ) -> u.Quantity:
+        self, point: CoordinateType, *, angular: bool = False, affine: Optional[Quantity] = None
+    ) -> Quantity:
         """Closest affine, ignoring width"""
         afn = self.affine if affine is None else affine
         res = self._closest_res_to_point(point, angular=angular, affine=afn)
@@ -344,7 +385,7 @@ class Path(CommonBase):
         return pt_afn
 
     def closest_position_to_point(
-        self, point: CoordinateType, *, angular: bool = False, affine: Optional[u.Quantity] = None
+        self, point: CoordinateType, *, angular: bool = False, affine: Optional[Quantity] = None
     ) -> SkyCoord:
         """Closest point, ignoring width"""
         return self.position(self.closest_affine_to_point(point, angular=angular, affine=affine))

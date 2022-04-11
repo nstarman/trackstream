@@ -18,7 +18,7 @@ __all__ = [
 # IMPORTS
 
 # STDLIB
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, cast
 
 # THIRD PARTY
 import astropy.coordinates as coord
@@ -27,6 +27,7 @@ import numpy as np
 from astropy.coordinates import SkyCoord
 from galpy import potential
 from galpy.orbit import Orbit
+from astropy.units import Quantity
 
 # LOCAL
 from trackstream._type_hints import FrameLikeType, RepresentationLikeType, UnitType
@@ -37,7 +38,7 @@ from trackstream.utils.misc import make_shuffler
 
 stop = 200
 num = 100
-unit = u.Myr
+unit = u.Unit("Myr")
 
 ##############################################################################
 # CODE
@@ -109,7 +110,7 @@ def make_unordered_orbit_data(
     unit: UnitType = unit,
     frame: FrameLikeType = "galactocentric",
     representation_type: RepresentationLikeType = "cartesian",
-) -> coord.BaseRepresentation:
+) -> SkyCoord:
     """Make Ordered Orbit Data.
 
     Parameters
@@ -132,7 +133,7 @@ def make_unordered_orbit_data(
     )
 
     shuffler, _ = make_shuffler(len(osc))
-    usc = osc[shuffler]
+    usc = cast(SkyCoord, osc[shuffler])
 
     return usc
 
@@ -143,7 +144,7 @@ def make_unordered_orbit_data(
 def make_noisy_orbit_data(
     stop: float = stop,
     num: int = num,
-    sigma: Optional[Dict[str, u.Quantity]] = None,
+    sigma: Optional[Dict[str, Quantity]] = None,
     unit: UnitType = unit,
     frame: FrameLikeType = "galactocentric",
     representation_type: RepresentationLikeType = "cartesian",
@@ -169,7 +170,7 @@ def make_noisy_orbit_data(
     rnd = rnd if isinstance(rnd, np.random.Generator) else np.random.default_rng(seed=rnd)
 
     if sigma is None:
-        sigma = dict(x=100 * u.pc, y=100 * u.pc, z=20 * u.pc)
+        sigma = dict(x=Quantity(100, u.pc), y=Quantity(100, u.pc), z=Quantity(20, u.pc))
 
     usc = make_unordered_orbit_data(
         stop=stop,

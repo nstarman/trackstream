@@ -16,12 +16,12 @@ __all__ = [
 # IMPORTS
 
 # STDLIB
-import warnings
+from typing import cast
 
 # THIRD PARTY
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import SkyCoord, UnitSphericalRepresentation
+from astropy.coordinates import SkyCoord
 from astropy.units import Quantity
 from numpy import ndarray
 from scipy.linalg import block_diag
@@ -60,13 +60,11 @@ def make_timesteps(
     Raises
     """
     # point-to-point distance
+    di = cast(SkyCoord, data[1:])
     if onsky:
-        ds = data[1:].separation(data[:-1])
-    elif issubclass(data.data.__class__, UnitSphericalRepresentation):
-        warnings.warn("This object does not have a distance; cannot compute 3d separation.")
-        ds = data[1:].separation(data[:-1])
+        ds = di.separation(data[:-1])
     else:
-        ds = data[1:].separation_3d(data[:-1])
+        ds = di.separation_3d(data[:-1])
 
     Ds = np.convolve(ds, np.ones((width,)) / width, mode="same")
     Ds[Ds < vmin] = vmin
@@ -191,8 +189,7 @@ def make_R(data: ndarray) -> ndarray:
 
     """
     data = np.atleast_2d(np.array(data, copy=False))
-    n = data.shape[0]
-    dim_x = data.shape[1]
+    n, dim_x = data.shape
 
     R = np.zeros((n, dim_x, dim_x))
     for i in range(dim_x):

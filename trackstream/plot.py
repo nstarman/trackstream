@@ -17,16 +17,16 @@ import astropy.units as u
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy.coordinates import (
-    BaseCoordinateFrame,
     CartesianRepresentation,
     SphericalRepresentation,
 )
 from astropy.visualization import imshow_norm
 from matplotlib.pyplot import Axes
 from numpy import ndarray
+from matplotlib.figure import Figure
 
 # LOCAL
-from .rotated_frame import residual as fit_rotated_frame_residual
+from .stream import Stream
 
 ##############################################################################
 # CODE
@@ -34,18 +34,13 @@ from .rotated_frame import residual as fit_rotated_frame_residual
 
 
 def plot_rotation_frame_residual(
-    data: BaseCoordinateFrame,
-    origin: BaseCoordinateFrame,
-    num_rots: int = 3600,
-    scalar: bool = True,
-    **kwargs: Any,
-) -> Tuple[plt.Figure, Axes]:
+    stream: Stream, num_rots: int = 3600, scalar: bool = True, **kwargs: Any
+) -> Tuple[Figure, Axes]:
     """Plot residual from finding the optimal rotated frame.
 
     Parameters
     ----------
-    data : Coordinate
-    origin : ICRS
+    stream : `trackstream.stream.Stream`
     num_rots : int, optional
         Number of rotation angles in (-180, 180) to plot.
     scalar : bool, optional
@@ -55,9 +50,11 @@ def plot_rotation_frame_residual(
     -------
     `~matplotlib.pyplot.Figure`
     """
+    from .rotated_frame import residual
+
     # Get data
-    frame = data.replicate_without_data()
-    origin = origin.transform_to(frame).represent_as(SphericalRepresentation)
+    frame = stream.frame
+    origin = stream.origin.transform_to(frame).represent_as(SphericalRepresentation)
     lon = origin.lon.to_value(u.deg)
     lat = origin.lat.to_value(u.deg)
 
@@ -65,9 +62,9 @@ def plot_rotation_frame_residual(
     rotation_angles = np.linspace(-180, 180, num=num_rots)
     res = np.array(
         [
-            fit_rotated_frame_residual(
+            residual(
                 (angle, lon, lat),
-                data=data.represent_as(CartesianRepresentation),
+                data=stream.coords.represent_as(CartesianRepresentation),
                 scalar=scalar,
             )
             for angle in rotation_angles
@@ -80,7 +77,7 @@ def plot_rotation_frame_residual(
     if scalar:
         ax.scatter(rotation_angles, res, **kwargs)
         ax.set_xlabel(r"Rotation angle $\theta$")
-        ax.set_ylabel(r"residual")
+        ax.set_ylabel("residual")
 
     else:
         im, norm = imshow_norm(res, ax=ax, aspect="auto", origin="lower", **kwargs)
@@ -102,7 +99,7 @@ def plot_rotation_frame_residual(
 # -------------------------------------------------------------------
 
 
-def plot_SOM(data: ndarray, order: ndarray) -> plt.Figure:
+def plot_SOM(data: ndarray, order: ndarray) -> Figure:
     """Plot SOM.
 
     Parameters
@@ -120,7 +117,7 @@ def plot_SOM(data: ndarray, order: ndarray) -> plt.Figure:
         data[order, 1],
         c=np.arange(0, len(data)),
         vmax=len(data),
-        cmap="plasma",
+        cmap=plt.get_cmap("plasma"),
         label="data",
     )
 
