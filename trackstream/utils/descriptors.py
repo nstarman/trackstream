@@ -16,7 +16,6 @@ from typing import Generic, Optional, Type, TypeVar
 ##############################################################################
 # PARAMETERS
 
-
 ParentType = TypeVar("ParentType")
 IDT = TypeVar("IDT", bound="InstanceDescriptor")
 
@@ -47,10 +46,10 @@ class InstanceDescriptor(Generic[ParentType]):
 
     # ------------------------------------
 
-    def __set_name__(self, objcls: Type[ParentType], name: str) -> None:
+    def __set_name__(self, _: Type[ParentType], name: str) -> None:
         self._parent_attr = name
 
-    def __get__(self: IDT, obj: Optional[ParentType], objcls: Optional[Type[ParentType]]) -> IDT:
+    def __get__(self: IDT, obj: Optional[ParentType], _: Optional[Type[ParentType]]) -> IDT:
         # accessed from a class
         if obj is None:
             return self

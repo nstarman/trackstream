@@ -26,6 +26,5 @@ from ._astropy_init import *  # noqa: F401, F403  # isort:skip
 
 # LOCAL
 from . import example_data as examples
-from .config import conf
 from .core import StreamTrack, TrackStream
 from .stream import Stream

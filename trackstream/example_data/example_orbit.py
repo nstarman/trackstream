@@ -25,9 +25,9 @@ import astropy.coordinates as coord
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import SkyCoord
+from astropy.units import Quantity
 from galpy import potential
 from galpy.orbit import Orbit
-from astropy.units import Quantity
 
 # LOCAL
 from trackstream._type_hints import FrameLikeType, RepresentationLikeType, UnitType

@@ -21,17 +21,11 @@ __all__ = [
 
 # THIRD PARTY
 import astropy.units as u
-from astropy.coordinates import (
-    ICRS,
-    BaseCoordinateFrame,
-    Galactocentric,
-    RepresentationMapping,
-    SphericalCosLatDifferential,
-    SphericalRepresentation,
-    StaticMatrixTransform,
-    frame_transform_graph,
-)
+from astropy.coordinates import ICRS, BaseCoordinateFrame, Galactocentric, RepresentationMapping
+from astropy.coordinates import SphericalCosLatDifferential, SphericalRepresentation
+from astropy.coordinates import StaticMatrixTransform, frame_transform_graph
 from astropy.coordinates.matrix_utilities import matrix_transpose
+from astropy.units import Quantity
 from astropy.utils.decorators import format_doc
 from numpy import ndarray
 
@@ -107,9 +101,9 @@ class RotatedICRS(RotatedFrame):
 
 
 # Generate the rotation matrix
-RA = 20 * u.deg
-DEC = 30 * u.deg
-ICRS_ROTATION = 135.7 * u.deg
+RA = Quantity(20, u.deg)
+DEC = Quantity(30, u.deg)
+ICRS_ROTATION = Quantity(135.7, u.deg)
 ICRS_ROT_MATRIX = reference_to_skyoffset_matrix(RA, DEC, ICRS_ROTATION)
 
 
@@ -145,9 +139,9 @@ class RotatedGalactocentric(RotatedFrame):
 
 
 # Generate the rotation matrix
-LON = 20 * u.deg
-LAT = 30 * u.deg
-GALACTOCENTRIC_ROTATION = 135.7 * u.deg
+LON = Quantity(20, u.deg)
+LAT = Quantity(30, u.deg)
+GALACTOCENTRIC_ROTATION = Quantity(135.7, u.deg)
 GALACTOCENTRIC_ROT_MATRIX = reference_to_skyoffset_matrix(
     LON,
     LAT,

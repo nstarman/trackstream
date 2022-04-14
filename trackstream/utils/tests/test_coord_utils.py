@@ -13,7 +13,6 @@ import numpy as np
 import pytest
 
 # LOCAL
-from trackstream.config import conf
 from trackstream.utils.coord_utils import resolve_framelike
 
 ##############################################################################
@@ -48,10 +47,6 @@ def test_reference_to_skyoffset_matrix(lon, lat, rotation):
 @pytest.mark.parametrize("error_if_not_type", [True, False])
 class Test_resolve_framelike:
     """Test ``resolve_framelike``. Uses :func:`functools.singledispatch`."""
-
-    def test_None(self, error_if_not_type):
-        frame = resolve_framelike(None, error_if_not_type=error_if_not_type)
-        assert frame.__class__.__name__.lower() == conf.default_frame
 
     def test_str(self, error_if_not_type):
         frame = resolve_framelike("galactic", error_if_not_type=error_if_not_type)

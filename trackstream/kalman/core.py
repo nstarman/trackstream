@@ -14,12 +14,8 @@ from typing import Any, Callable, Dict, NamedTuple, Optional, Sequence, Tuple, T
 # THIRD PARTY
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import (
-    BaseCoordinateFrame,
-    BaseRepresentation,
-    CartesianRepresentation,
-    SkyCoord,
-)
+from astropy.coordinates import BaseCoordinateFrame, BaseRepresentation, CartesianRepresentation
+from astropy.coordinates import SkyCoord
 from astropy.units import Quantity
 from numpy import array, dot, linalg, ndarray
 from numpy.lib.recfunctions import structured_to_unstructured
@@ -91,7 +87,6 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         _x0 = x0.represent_as(self.representation_type)
         _x0 = structured_to_unstructured(_x0._values)
 
-        # TODO! x0 as a Representation (or higher) object
         _kfv0: ndarray = array([0] * ndims) if kfv0 is None else kfv0
 
         # Initial state
@@ -342,8 +337,6 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         timesteps: (N+1,) ndarray
             Must be start and end-point inclusive.
 
-        use_filterpy : bool or None, optional keyword-only
-            If none, uses configuration.
         **kwargs
             Passed to fit method.
 
@@ -384,7 +377,7 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         z: ndarray
         dt: float
         for i, (z, dt) in enumerate(zip(Z, dts)):
-            # F, Q  # TODO! precompute this, not each time
+            # F, Q
             F = self.state_transition_model(dt)
             Q = self.process_noise_model(dt, **q_kw)
 
@@ -427,10 +420,12 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         sp2p = ci.separation(c[1:])  # point-2-point sep
         affine = np.concatenate(([min(Quantity(1e-10, sp2p.unit), 1e-10 * sp2p[0])], sp2p.cumsum()))
 
-        print("rep_type", c.representation_type, c.data.__class__, self.frame.representation_type)
-
         self._path = path = Path(
-            c, width=sigma, affine=affine, frame=self.frame, representation_type=representation_type
+            c,
+            width=sigma,
+            affine=affine,
+            frame=self.frame,
+            representation_type=representation_type,
         )
 
         print(
@@ -471,6 +466,10 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         onsky = True if cast(u.UnitBase, dt0.unit).physical_type == "angle" else False
 
         timesteps = helper.make_timesteps(
-            ordered_data, dt0=dt0, width=width, vmin=vmin, onsky=onsky
+            ordered_data,
+            dt0=dt0,
+            width=width,
+            vmin=vmin,
+            onsky=onsky,
         )
         return timesteps  # TODO! Quantity

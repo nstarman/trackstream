@@ -18,8 +18,8 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import BaseCoordinateFrame as BaseFrame
 from astropy.coordinates import SkyCoord
-from astropy.coordinates.sky_coordinate_parsers import _get_frame_class
 from astropy.coordinates.matrix_utilities import matrix_product, rotation_matrix
+from astropy.coordinates.sky_coordinate_parsers import _get_frame_class
 
 ##############################################################################
 # CODE
@@ -120,14 +120,15 @@ def resolve_framelike(frame: BaseFrame, type_error: bool = True) -> BaseFrame:
 
 @overload
 @_resolve_framelike.register
-def resolve_framelike(frame: SkyCoord, type_error: bool = True) -> BaseFrame:  # noqa: E501, F811
+def resolve_framelike(frame: SkyCoord, type_error: bool = True) -> BaseFrame:  # type: ignore  # noqa: E501, F811
     out: BaseFrame = frame.frame.replicate_without_data()
     out.representation_type = frame.representation_type
     return out
 
 
 def resolve_framelike(  # type: ignore
-    frame: Union[str, BaseFrame, SkyCoord], type_error: bool = True
+    frame: Union[str, BaseFrame, SkyCoord],
+    type_error: bool = True,
 ) -> BaseFrame:  # noqa: F811
     """Determine the frame and return a blank instance.
 
@@ -136,7 +137,6 @@ def resolve_framelike(  # type: ignore
     frame : frame-like instance or None (optional)
         If BaseCoordianteFrame, replicates without data.
         If str, uses astropy parsers to determine frame class
-        If None (default), gets default frame name from config, and parses.
 
     type_error : bool
         Whether to raise TypeError if `frame` is not one of the allowed types.

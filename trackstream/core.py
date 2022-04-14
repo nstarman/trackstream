@@ -6,31 +6,41 @@
 # IMPORTS
 
 from __future__ import annotations
-from optparse import Option
 
 # STDLIB
-from typing import Any, Callable, Dict, Optional, Tuple, TypedDict, cast
+import weakref
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, TypedDict, cast
 
 # THIRD PARTY
 import astropy.units as u
+import matplotlib.pyplot as plt
 from astropy.coordinates import BaseCoordinateFrame, CartesianRepresentation, SkyCoord
 from astropy.units import Quantity
 from astropy.utils.metadata import MetaAttribute, MetaData
-from interpolated_coordinates import InterpolatedSkyCoord
-from numpy import array, ndarray
-from scipy.linalg import block_diag
 from astropy.utils.misc import indent
+from interpolated_coordinates import InterpolatedSkyCoord
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
+from numpy import arange, array, linspace, ndarray
+from scipy.linalg import block_diag
 
 # LOCAL
+from .base import CommonBase
 from trackstream.kalman.core import FirstOrderNewtonianKalmanFilter, kalman_output
 from trackstream.kalman.helper import make_R
-from trackstream.rotated_frame import FrameOptimizeResult, RotatedFrameFitter
+from trackstream.rotated_frame import FrameOptimizeResult, RotatedFrameFitter, residual
 from trackstream.som import SelfOrganizingMap1D
 from trackstream.utils.path import Path, concatenate_paths, path_moments
+from trackstream.visualization import CLike, StreamPlotDescriptorBase
 
-from .base import CommonBase
+# This is to solve the circular dependency in type hint forward references # isort: skip
+if TYPE_CHECKING:
+    # LOCAL
+    from trackstream.stream import Stream  # noqa: E402
+
 
 __all__ = ["TrackStream", "StreamTrack"]
+
 
 ##############################################################################
 # CODE
@@ -79,11 +89,11 @@ class TrackStream:
         self._onsky = onsky  # mutable
 
         # SOM
-        if arm1SOM is not None:
+        if arm1SOM is not None and onsky is not None:
             arm1SOM.onsky = onsky
         self._arm1_SOM = arm1SOM
 
-        if arm2SOM is not None:
+        if arm2SOM is not None and onsky is not None:
             arm2SOM.onsky = onsky
         self._arm2_SOM = arm2SOM
 
@@ -198,7 +208,7 @@ class TrackStream:
         *,
         learning_rate: float = 0.1,
         sigma: float = 1.0,
-        iterations: int = 10_000,
+        num_iteration: int = 10_000,
         random_seed: Optional[int] = None,
         progress: bool = False,
         nlattice: Optional[int] = None,
@@ -213,7 +223,7 @@ class TrackStream:
             The self-organizing map. If None, will be constructed.
         learning_rate : float, optional keyword-only
         sigma : float, optional keyword-only
-        iterations : int, optional keyword-only
+        num_iteration : int, optional keyword-only
 
         random_seed : int or None, optional keyword-only
         progress : bool, optional keyword-only
@@ -236,36 +246,39 @@ class TrackStream:
             # determine number of lattice points, with a minimum of 5
             nlattice = max(len(arm) // 10, 5) if nlattice is None else nlattice
 
+            frame = arm.frame.replicate_without_data()
+            frame.representation_type = arm.frame.representation_type
+
             som = SelfOrganizingMap1D(
                 nlattice,
                 onsky,
-                frame=arm.frame.replicate_without_data(),
-                representation_type=arm.representation_type,  # TODO? as arg
+                frame=frame,
+                # representation_type=arm.representation_type,
                 sigma=sigma,
                 learning_rate=learning_rate,
-                neighborhood_function="gaussian",
-                activation_distance="euclidean",
+                # neighborhood_function="gaussian",
+                # activation_distance="euclidean",
                 random_seed=random_seed,
             )
 
             # call method to initialize SOM weights
             som.init_prototypes_binned(arm, onsky=onsky, **kwargs)
 
+        print(num_iteration)
         # get the ordering by "vote" of the Prototypes
         visit_order = som.fit_predict(
             arm,
-            num_iteration=iterations,
+            num_iteration=num_iteration,
             random_order=False,
             progress=progress,
             origin=arm.origin,
         )
 
-        # TODO! optionally transition matrix, i.e. iterative training
-
         return visit_order, som
 
+    # FIXME! r_err
     def _fit_kalman_filter(
-        self, data: SkyCoord, onsky: bool, **options: Any
+        self, data: SkyCoord, onsky: bool, r_err: float = 0.05, q_err: float = 0.01, **options: Any
     ) -> Tuple[kalman_output, FirstOrderNewtonianKalmanFilter, Path]:
         """Fit data with Kalman filter.
 
@@ -306,8 +319,8 @@ class TrackStream:
         p = array([[0.0001, 0], [0, 1]])
         P0 = block_diag(*(p,) * ndims)
 
-        R0 = make_R(array([0.05] * ndims))[0]  # TODO! actual errors
-        options["q_kw"] = dict(var=0.01, n_dims=ndims)  # TODO! overridable
+        R0 = make_R(array([r_err] * ndims))[0]  # TODO! actual errors
+        options["q_kw"] = dict(var=q_err, n_dims=ndims)  # TODO! overridable
 
         kf = FirstOrderNewtonianKalmanFilter(
             x0,
@@ -367,7 +380,7 @@ class TrackStream:
             onsky = not stream.has_distances
         elif not onsky and not stream.has_distances:
             raise ValueError(
-                "This stream does not have distance information; cannot compute 3d track."
+                "This stream does not have distance information; cannot compute 3d track.",
             )
 
         # --------------------------------------
@@ -378,7 +391,6 @@ class TrackStream:
 
         frame: BaseCoordinateFrame
         _frame: Optional[BaseCoordinateFrame]
-        frame_fit: Optional[FrameOptimizeResult] = None
 
         # 1) Already provided or in cache.
         #    Either way, don't need to repeat the process.
@@ -390,6 +402,8 @@ class TrackStream:
             frame = stream.fit_frame(**kw)
         else:
             frame = _frame
+
+        frame_fit: Optional[FrameOptimizeResult] = self._cache.get("frame_fit")
 
         # get arms, in frame
         # done after caching b/c coords can use the cache.
@@ -517,8 +531,8 @@ class TrackStream:
 
         # construct interpolation
         track = StreamTrack(
+            stream,
             path,
-            stream_data=stream.data,
             origin=stream.origin,
             name=stream.full_name,
             # frame=frame,
@@ -555,6 +569,183 @@ class TrackStream:
 ##############################################################################
 
 
+class StreamTrackPlotDescriptor(StreamPlotDescriptorBase["StreamTrack"]):
+    def _setup(self) -> Tuple["StreamTrack", "Stream", str]:
+        track = self._parent
+        stream = track.stream
+
+        if stream is None:
+            raise ValueError
+
+        return track, stream, (track.full_name or "")
+
+    # ===============================================================
+
+    def in_stream_frame(
+        self,
+        c: CLike = "tab:blue",
+        text_offset: float = 0,
+        *,
+        ax: Optional[plt.Axes] = None,
+        **kwargs: Any,
+    ) -> plt.Axes:
+        track, stream, full_name = self._setup()
+        _, _ax = self._plot_setup(ax)
+
+        super().in_stream_frame(c=c, ax=_ax, **kwargs)
+
+        do = stream.origin.transform_to(stream.frame)
+        self.plot_origin_label_lonlat(do.lon, do.lat, ax=_ax, text_offset=text_offset)
+
+        return _ax
+
+    def fit_frame_residual(self, *, ax: Optional[Axes] = None, **kwargs: Any) -> Axes:
+        track, stream, full_name = self._setup()
+        _, _ax = self._plot_setup(ax)
+
+        _fr = track.frame_fit
+        if _fr is None:
+            raise Exception("need to fit the stream first")
+        fr = cast(FrameOptimizeResult, _fr)
+
+        dc = stream.data_coords.icrs  # TODO! report bug in astropy
+        rotation_angles: ndarray = linspace(-180, 180, num=3600, dtype=float)
+        res = array(
+            [
+                residual(
+                    (float(angle), float(fr.origin.data.lon.deg), float(fr.origin.data.lat.deg)),
+                    dc.cartesian,
+                    scalar=True,
+                )
+                for angle in rotation_angles
+            ],
+        )
+        _ax.scatter(rotation_angles, res)
+
+        # Plot the pre
+        _ax.axvline(fr.rotation.value, c="k", ls="--", label="best-fit rotation")
+
+        next_period = 180 if (fr.rotation.value - 180) < rotation_angles.min() else -180
+        _ax.axvline(fr.rotation.value + next_period, c="k", ls="--", alpha=0.5)
+
+        _ax.set_xlabel(r"Rotation angle $\theta$", fontsize=13)
+        _ax.set_ylabel(r"Residual / # data pts", fontsize=13)
+        _ax.legend()
+
+        return _ax
+
+    def fit_frame_multipanel(
+        self, *, icrs_origin_text_offset: float = -7, phi_origin_text_offset: float = 7.5
+    ) -> Tuple[Figure, Tuple[plt.Axes, plt.Axes, plt.Axes]]:
+        track, stream, full_name = self._setup()
+
+        _fr = track.frame_fit
+        if _fr is None:
+            raise Exception("need to fit the stream first")
+        fr = cast(FrameOptimizeResult, _fr)
+
+        # Plot setup
+        fig = plt.figure(figsize=(8, 7))
+        ax1 = fig.add_subplot(3, 1, 1)
+        ax2 = fig.add_subplot(3, 1, 2)
+        ax3 = fig.add_subplot(3, 1, 3)
+
+        # Plot 1 : Stream in its own frame
+        stream.plot.in_icrs_frame(text_offset=icrs_origin_text_offset, ax=ax1)
+
+        # Plot 2 : Residual
+        self.fit_frame_residual(ax=ax2)
+
+        # Plot 3 : Rotated Stream
+        sc = stream.coords
+        c: Quantity = fr.calculate_residual(sc)
+        stream.plot.in_stream_frame(
+            c=c,
+            text_offset=phi_origin_text_offset,
+            ax=ax3,
+            label=full_name + r" ($\theta=$" f"{fr.rotation.value:.4} [deg])",
+        )
+
+        return fig, (ax1, ax2, ax3)
+
+    def som_multipanel(
+        self, *, icrs_origin_text_offset: float = -7, phi_origin_text_offset: float = 7.5
+    ) -> Tuple[Figure, Tuple[plt.Axes, plt.Axes]]:
+        track, stream, full_name = self._setup()
+
+        # Plot setup
+        fig = plt.figure(figsize=(8, 4))
+        ax1 = fig.add_subplot(2, 1, 1)
+        ax2 = fig.add_subplot(2, 1, 2)
+        # ax3 = fig.add_subplot(3, 1, 3)
+
+        # ----
+        # Plot 1 : Stream in its own frame
+
+        c = arange(len(stream.arm1.coords))
+        stream.arm1.plot.in_icrs_frame(c=c, text_offset=icrs_origin_text_offset, ax=ax1)
+
+        c = arange(len(stream.arm2.coords))
+        stream.arm2.plot.in_icrs_frame(
+            c=c, text_offset=icrs_origin_text_offset, ax=ax1, plot_origin=False, format_ax=False
+        )
+
+        # ----
+        # Plot 1 : Rotated Stream
+
+        kw = {**self._default_scatter_style, **dict(s=40)}
+        soms = cast(dict, getattr(track, "som", {}))
+
+        arm1_visit_order = array(stream.arm1.data["SOM"])
+        ax2.scatter(
+            stream.arm1.coords.lon[arm1_visit_order],
+            stream.arm1.coords.lat[arm1_visit_order],
+            c=arange(len(arm1_visit_order)),
+            # cmap=cmap,
+            label=f"{full_name} (arm1)",
+            **kw,
+        )
+        if (arm1SOM := soms.get("arm1")) is not None:
+            plt.scatter(
+                arm1SOM.prototypes.lon,
+                arm1SOM.prototypes.lat + Quantity(0.5, u.deg),
+                marker="P",  # type: ignore
+                edgecolors="black",
+                facecolor="none",
+            )
+
+        if stream.arm2.has_data:
+            arm2_visit_order = array(stream.arm2.data["SOM"])
+            ax2.scatter(
+                stream.arm2.coords.lon[arm2_visit_order],
+                stream.arm2.coords.lat[arm2_visit_order],
+                c=arange(len(arm2_visit_order)),
+                # cmap=cmap,
+                label=f"{full_name} (arm2)",
+                **kw,
+            )
+            if (arm2SOM := soms.get("arm2")) is not None:
+                plt.scatter(
+                    arm2SOM.prototypes.lon,
+                    arm2SOM.prototypes.lat + Quantity(0.5, u.deg),
+                    marker="P",  # type: ignore
+                    edgecolors="black",
+                    facecolor="none",
+                )
+
+        do = stream.origin.transform_to(stream.frame)
+        self.plot_origin_label_lonlat(do.lon, do.lat, ax=ax2, text_offset=phi_origin_text_offset)
+
+        ax2.set_xlabel(f"Lon (Stream) [{ax2.get_xlabel()}]", fontsize=13)
+        ax2.set_ylabel(f"Lat (Stream) [{ax2.get_ylabel()}]", fontsize=13)
+        ax2.grid(True)
+        ax2.legend()
+
+        fig.tight_layout()
+
+        return fig, (ax1, ax2)
+
+
 class StreamTrack(CommonBase):
     """A stream track interpolation as function of arc length.
 
@@ -576,11 +767,20 @@ class StreamTrack(CommonBase):
     som = MetaAttribute()
     kalman = MetaAttribute()
 
+    plot = StreamTrackPlotDescriptor()
+
     def __init__(
-        self, path: Path, origin: SkyCoord, *, name: Optional[str] = None, **meta: Any
+        self,
+        stream: "Stream",
+        path: Path,
+        origin: SkyCoord,
+        *,
+        name: Optional[str] = None,
+        **meta: Any,
     ) -> None:
         super().__init__(frame=path.frame)
         self._name = name
+        self._stream_ref = weakref.ref(stream)
 
         # validation of types
         if not isinstance(path, Path):
@@ -601,16 +801,29 @@ class StreamTrack(CommonBase):
         self._meta.update(meta)
 
     @property
+    def stream(self) -> Optional["Stream"]:
+        return self._stream_ref()
+
+    @property
     def name(self) -> Optional[str]:
         """Return stream-track name."""
+        return self._name
+
+    @property
+    def full_name(self) -> Optional[str]:
         return self._name
 
     @property
     def path(self) -> Path:
         return self._path
 
+    # @property
+    # def track(self) -> InterpolatedSkyCoord:
+    #     """The path's central track."""
+    #     return self._path.data
+
     @property
-    def track(self) -> InterpolatedSkyCoord:
+    def coords(self) -> InterpolatedSkyCoord:
         """The path's central track."""
         return self._path.data
 
@@ -621,6 +834,12 @@ class StreamTrack(CommonBase):
     @property
     def origin(self) -> SkyCoord:
         return self._origin
+
+    @property
+    def frame(self) -> BaseCoordinateFrame:
+        frame = self.coords.frame.replicate_without_data()
+        frame.representation_type = self.coords.representation_type
+        return frame
 
     #######################################################
     # Math on the Track
@@ -682,7 +901,7 @@ class StreamTrack(CommonBase):
         # 0) header (standard repr)
         header: str = object.__repr__(self)
         frame_name = self.frame.__class__.__name__
-        rep_name = self.track.representation_type.__name__
+        rep_name = self.coords.representation_type.__name__
         header = header.replace("StreamTrack", f"StreamTrack ({frame_name}|{rep_name})")
         rs.append(header)
 
@@ -694,9 +913,3 @@ class StreamTrack(CommonBase):
         rs.append(indent(repr(self._path.data), width=2))
 
         return "\n".join(rs)
-
-
-# LOCAL
-# This is to solve the circular dependency in type hint forward references
-# isort: skip
-from trackstream.stream import Stream  # noqa: E402

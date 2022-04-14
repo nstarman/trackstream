@@ -31,11 +31,9 @@ if not _ASTROPY_SETUP_:  # type: ignore  # noqa: F821
     from warnings import warn
 
     # THIRD PARTY
-    from astropy.config.configuration import (
-        ConfigurationDefaultMissingError,
-        ConfigurationDefaultMissingWarning,
-        update_default_config,
-    )
+    from astropy.config.configuration import ConfigurationDefaultMissingError
+    from astropy.config.configuration import ConfigurationDefaultMissingWarning
+    from astropy.config.configuration import update_default_config
 
     # Create the test function for self test
     from astropy.tests.runner import TestRunner

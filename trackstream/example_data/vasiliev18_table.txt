@@ -1,4 +1,4 @@
-Name         	ra	dec	dist	vlos	vloserr	sigma	rmax	pmra	pmdec	pmra_e	pmdec_e	pmcorr	nstar	rscale	pmdisp
+# Name         	ra	dec	dist	vlos	vloserr	sigma	rmax	pmra	pmdec	pmra_e	pmdec_e	pmcorr	nstar	rscale	pmdisp
 # units        	deg	deg	kpc	km/s	km/s	km/s	arcmin	mas/yr	mas/yr	mas/yr	mas/yr	dimless	dimless	arcmin	mas/yr
 NGC_104_47Tuc  	6.02363	-72.081	4.5	-17.2	0.2	12.2	40.0	 5.237	-2.524
 NGC_288        	13.1885	-26.582	8.9	-44.8	0.1	3.3	12.0	 4.252	-5.641

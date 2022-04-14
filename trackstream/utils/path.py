@@ -10,21 +10,20 @@ __all__ = ["Path", "path_moments"]
 
 # STDLIB
 import copy
-from typing import Any, Callable, NamedTuple, Optional, Tuple, Union, cast
-from typing import Type
+from typing import Any, Callable, NamedTuple, Optional, Tuple, Type, Union, cast
 
 # THIRD PARTY
 import astropy.coordinates as coord
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import BaseCoordinateFrame, SkyCoord, BaseRepresentation
+from astropy.coordinates import BaseCoordinateFrame, BaseRepresentation, SkyCoord
 from astropy.coordinates import concatenate as concatenate_coords
 from astropy.units import Quantity
 from astropy.utils.decorators import format_doc
+from astropy.utils.misc import indent
 from interpolated_coordinates import InterpolatedCoordinateFrame, InterpolatedSkyCoord
 from interpolated_coordinates.utils import InterpolatedUnivariateSplinewithUnits as IUSU
 from scipy.optimize import OptimizeResult, minimize_scalar
-from astropy.utils.misc import indent
 
 # LOCAL
 from trackstream._type_hints import CoordinateType, FrameLikeType
@@ -76,7 +75,6 @@ class Path(CommonBase):
 
     frame : frame-like or None (optional, keyword-only)
         The preferred frame of the data (`path`)
-        If None (default), taken from the config (``conf.default_frame``)
         unless `path` has a frame (is not `BaseRepresentation`).
         If `path` is `BaseRepresentation`, then it is assumed in this frame.
 
@@ -140,7 +138,10 @@ class Path(CommonBase):
         #              SkyCoord, InterpolatedSkyCoord
         # need to end up with a InterpolatedSkyCoord
         path_f: Union[
-            InterpolatedCoordinateFrame, InterpolatedSkyCoord, SkyCoord, BaseCoordinateFrame
+            InterpolatedCoordinateFrame,
+            InterpolatedSkyCoord,
+            SkyCoord,
+            BaseCoordinateFrame,
         ]
         if isinstance(path, BaseRepresentation):  # works for interp
             path_f = self.frame.realize_frame(path)

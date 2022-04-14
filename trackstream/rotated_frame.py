@@ -10,29 +10,23 @@ from __future__ import annotations
 # STDLIB
 import copy
 from types import FunctionType, MappingProxyType, MethodType
-from typing import Any, Dict, Optional, Sequence, Tuple, TypedDict, TypeVar, Union, Type
+from typing import Any, Dict, Optional, Sequence, Tuple, Type, TypedDict, TypeVar, Union
 
 # THIRD PARTY
 import astropy.units as u
 import numpy as np
 import scipy.optimize as opt
-from astropy.coordinates import (
-    BaseCoordinateFrame,
-    CartesianRepresentation,
-    SkyCoord,
-    SkyOffsetFrame,
-    SphericalCosLatDifferential,
-    UnitSphericalRepresentation,
-    BaseRepresentation,
-)
+from astropy.coordinates import BaseCoordinateFrame, BaseRepresentation, CartesianRepresentation
+from astropy.coordinates import SkyCoord, SkyOffsetFrame, SphericalCosLatDifferential
+from astropy.coordinates import UnitSphericalRepresentation
 from astropy.units import Quantity
 from erfa import ufunc as erfa_ufunc
 from numpy import ndarray
 
 # LOCAL
 from trackstream._type_hints import EllipsisType, FrameLikeType
-from trackstream.utils import reference_to_skyoffset_matrix
 from trackstream.base import CommonBase
+from trackstream.utils import reference_to_skyoffset_matrix
 
 __all__ = ["RotatedFrameFitter", "residual"]
 
@@ -195,7 +189,8 @@ class RotatedFrameFitter(CommonBase):
         **kwargs: Any,
     ) -> None:
         super().__init__(
-            frame=origin if frame is None else frame, representation_type=representation_type
+            frame=origin if frame is None else frame,
+            representation_type=representation_type,
         )
         self._origin = origin.transform_to(self.frame)
         self._origin.representation_type = self.representation_type
@@ -354,7 +349,7 @@ class RotatedFrameFitter(CommonBase):
         data = data.transform_to(self.frame)
         data_r: CartesianRepresentation
         data_r = data.represent_as(UnitSphericalRepresentation).represent_as(
-            CartesianRepresentation
+            CartesianRepresentation,
         )
 
         # Put origin in right representation type
@@ -483,7 +478,7 @@ class FrameOptimizeResult(opt.OptimizeResult, CommonBase):
                     [
                         (k[1:] if k.startswith("_") else k).rjust(m) + ": " + repr(v)
                         for k, v in sorted(self.items())
-                    ]
+                    ],
                 )
             )
 

@@ -16,24 +16,14 @@ from typing import Any, Dict, Optional, Tuple, TypeVar, Union, cast
 
 # THIRD PARTY
 import astropy.units as u
+import matplotlib.pyplot as plt
 import numpy as np
-from numpy import ndarray
-from astropy.units import Quantity
-from astropy.coordinates import (
-    BaseCoordinateFrame,
-    SkyCoord,
-    UnitSphericalRepresentation,
-    ICRS,
-    Angle,
-    Longitude,
-)
+from astropy.coordinates import BaseCoordinateFrame, SkyCoord, UnitSphericalRepresentation
 from astropy.table import Column, QTable, Table
+from astropy.units import Quantity
 from astropy.utils.decorators import lazyproperty
 from astropy.utils.misc import indent
 from astropy.visualization import quantity_support
-import matplotlib.pyplot as plt
-from matplotlib.patheffects import withStroke
-from matplotlib.figure import Figure
 
 # LOCAL
 from trackstream._type_hints import FrameLikeType
@@ -42,7 +32,7 @@ from trackstream.utils.coord_utils import resolve_framelike
 from trackstream.utils.descriptors import InstanceDescriptor
 from trackstream.utils.path import path_moments
 from trackstream.utils.utils import abstract_attribute
-from trackstream.rotated_frame import residual
+from trackstream.visualization import CLike, StreamPlotDescriptorBase
 
 __all__ = ["Stream"]
 
@@ -63,63 +53,44 @@ S = TypeVar("S", bound="StreamBase")
 ##############################################################################
 
 
-class StreamBasePlotDescriptor(InstanceDescriptor[S]):
-    # TODO! color by SOM
-
-    def __init__(self) -> None:
-        super().__init__()
-
-        self._default_scatter_style = {"marker": "*", "s": 3}
-
-    def _plot_setup(self, ax: Optional[plt.Axes]) -> Tuple[S, plt.Axes]:
-        # Stream
-        stream = self._parent
-        # Plot axes
-        _ax = ax if ax is not None else plt.gca()  # get Axes instance
-
-        return stream, _ax
-
-    def _wrap_stream_lon_order(
+class StreamBasePlotDescriptor(StreamPlotDescriptorBase[S]):
+    def in_icrs_frame(
         self,
-        lon: Angle,
-        cut_at: Angle = Angle(100, u.deg),
-        wrap_by: Angle = Angle(-360, u.deg),
-    ) -> Tuple[Angle, ndarray]:
-
-        lt = np.where(lon < cut_at)[0]
-        gt = np.where(lon > cut_at)[0]
-
-        order = np.concatenate((gt, lt))
-        lon = np.concatenate((lon[gt] + wrap_by, lon[lt]))
-
-        return lon, order
-
-    # ========================================================================
-
-    def plot_radec(self, ax: Optional[plt.Axes] = None, **kwargs: Any) -> plt.Axes:
+        c: CLike = "tab:blue",
+        plot_origin: bool = True,
+        text_offset: float = 0,
+        *,
+        ax: Optional[plt.Axes] = None,
+        format_ax: bool = True,
+        **kwargs: Any,
+    ) -> plt.Axes:
         stream, _ax = self._plot_setup(ax)
-        # Plot settings
-        kwargs.setdefault("label", stream.full_name)
-        kw = {**self._default_scatter_style, **kwargs}
 
-        # Plot
-        c = stream.coords.frame.transform_to(ICRS())
-        _ax.scatter(c.ra, c.dec, **kw)
-        _ax.legend()
+        super().in_icrs_frame(c=c, ax=_ax, format_ax=format_ax, **kwargs)
+
+        if plot_origin:
+            do = stream.origin.icrs
+            self.plot_origin_label_lonlat(do.ra, do.dec, ax=_ax, text_offset=text_offset)
 
         return _ax
 
-    def plot_phi1phi2(self, ax: Optional[plt.Axes] = None, **kwargs: Any) -> plt.Axes:
+    def in_stream_frame(
+        self,
+        c: CLike = "tab:blue",
+        plot_origin: bool = True,
+        text_offset: float = 0,
+        *,
+        ax: Optional[plt.Axes] = None,
+        format_ax: bool = True,
+        **kwargs: Any,
+    ) -> plt.Axes:
         stream, _ax = self._plot_setup(ax)
 
-        # Plot settings
-        kwargs.setdefault("label", stream.full_name)
-        kwargs.setdefault("marker", "*")
+        super().in_stream_frame(c=c, ax=_ax, format_ax=format_ax, **kwargs)
 
-        # Plot
-        c = stream.coords  # TODO! check that it's a rotated frame
-        _ax.scatter(c.lon, c.lat, **kwargs)
-        _ax.legend()
+        if plot_origin:
+            do = stream.origin.transform_to(stream.frame)
+            self.plot_origin_label_lonlat(do.lon, do.lat, ax=_ax, text_offset=text_offset)
 
         return _ax
 
@@ -308,137 +279,7 @@ class StreamArmDescriptor(InstanceDescriptor["Stream"], StreamBase):
 
 
 class StreamPlotDescriptor(StreamBasePlotDescriptor["Stream"]):
-    def plot_origin_label_lonlat(
-        self, lon: Longitude, lat: Quantity, text_offset: float = -7, *, ax: Optional[plt.Axes]
-    ) -> plt.Axes:
-        # TODO! automate
-        _, _ax = self._plot_setup(ax)
-
-        x = cast(Longitude, lon.wrap_at(Angle(180, u.deg)))
-        y: Quantity = lat
-
-        # Plot the central point
-        _ax.scatter(x.to_value(u.deg), y.to_value(u.deg), s=10, color="red")
-        # Add surrounding circle
-        # circle = plt.Circle(
-        #     (lon.wrap_at(180 * u.deg).value, lat.value),
-        #     4,
-        #     clip_on=False,
-        #     zorder=10,
-        #     linewidth=2.0,
-        #     edgecolor="red",
-        #     facecolor="none",
-        #     path_effects=[withStroke(linewidth=7, foreground=(1, 1, 1, 1))],
-        #     # transform=_ax.transAxes,
-        # )
-        # _ax.add_artist(circle)
-        _ax.scatter(x.to_value(u.deg), y.to_value(u.deg), s=1000, facecolor="None", edgecolor="red")
-
-        # Add text
-        _ax.text(
-            x.value,
-            y.value + text_offset,
-            "origin",
-            zorder=100,
-            ha="center",
-            va="center",
-            weight="bold",
-            color="red",
-            style="italic",
-            fontfamily="monospace",
-            path_effects=[withStroke(linewidth=7, foreground=(1, 1, 1, 1))],
-        )
-
-        return _ax
-
-    def plot_fit_frame_multipanel(
-        self, *, icrs_origin_text_offset: float = -7, phi_origin_text_offset: float = 7.5
-    ) -> Tuple[Figure, Tuple[plt.Axes, plt.Axes, plt.Axes]]:
-        stream = self._parent
-        full_name = stream.full_name or ""
-
-        fr = stream._fitter._cache["frame_fit"]
-        if fr is None:
-            raise Exception("need to fit the stream first")
-
-        # Plot setup
-        fig = plt.figure(figsize=(8, 7))
-        ax1 = fig.add_subplot(3, 1, 1)
-        ax2 = fig.add_subplot(3, 1, 2)
-        ax3 = fig.add_subplot(3, 1, 3)
-
-        # ----
-        # Plot 1 : Stream in its own frame
-
-        dc = stream.data_coords.icrs
-        do = stream.origin.icrs
-
-        ax1.scatter(
-            dc.ra.wrap_at(Angle(180, u.deg)),
-            dc.dec,
-            color="tab:blue",
-            label=full_name,
-            **self._default_scatter_style,
-        )
-        self.plot_origin_label_lonlat(do.ra, do.dec, ax=ax1, text_offset=icrs_origin_text_offset)
-
-        ax1.set_xlabel(f"RA (ICRS) [{ax1.get_xlabel()}]", fontsize=13)
-        ax1.set_ylabel(f"Dec (ICRS) [{ax1.get_ylabel()}]", fontsize=13)
-        ax1.legend(loc="lower left")
-
-        # ----
-        # Plot 2 : Residual
-
-        rotation_angles: ndarray = np.linspace(-180, 180, num=3600, dtype=float)
-        res = np.array(
-            [
-                residual(
-                    (float(angle), float(fr.origin.data.lon.deg), float(fr.origin.data.lat.deg)),
-                    dc.cartesian,
-                    scalar=True,
-                )
-                for angle in rotation_angles
-            ]
-        )
-        ax2.scatter(rotation_angles, res)
-
-        # Plot the pre
-        ax2.axvline(fr.rotation.value, c="k", ls="--", label="best-fit rotation")
-
-        next_period = 180 if (fr.rotation.value - 180) < rotation_angles.min() else -180
-        ax2.axvline(fr.rotation.value + next_period, c="k", ls="--", alpha=0.5)
-
-        ax2.set_xlabel(r"Rotation angle $\theta$", fontsize=13)
-        ax2.set_ylabel(r"Residual / # data pts", fontsize=13)
-        ax2.legend()
-
-        # ----
-        # Plot 3 : Rotated Stream
-
-        ax3.axhline(0, c="gray", ls="--", zorder=0)
-
-        rsc = stream.coords
-        lon, sorter = self._wrap_stream_lon_order(rsc.lon, Angle(100, u.deg), Angle(-360, u.deg))
-
-        ax3.scatter(
-            lon,
-            rsc.lat[sorter],
-            # cmap=cmap,  # TODO!
-            c=fr.calculate_residual(rsc)[sorter],  # TODO! instead, color by density
-            label=full_name + r" ($\theta=$" f"{fr.rotation.value:.4} [deg])",
-            **self._default_scatter_style,
-        )
-
-        rotorigin = fr.origin.transform_to(fr.frame)
-        self.plot_origin_label_lonlat(
-            rotorigin.lon, rotorigin.lat, ax=ax3, text_offset=phi_origin_text_offset
-        )
-
-        ax3.set_xlabel(r"$\phi_1$ (stream) " f"[{ax3.get_xlabel()}]", fontsize=13)
-        ax3.set_ylabel(r"$\phi_2$ y (stream) " f"[{ax3.get_ylabel()}]", fontsize=13)
-        ax3.legend(loc="lower left")
-
-        return fig, (ax1, ax2, ax3)
+    pass
 
 
 class Stream(StreamBase):
@@ -518,7 +359,7 @@ class Stream(StreamBase):
         # Check the fitter
         elif not fitter.onsky and not self.has_distances:
             raise ValueError(
-                f"Cannot fit 3D track since Stream {self.full_name} does not have distances"
+                f"Cannot fit 3D track since Stream {self.full_name} does not have distances",
             )
 
         self._fitter = fitter
