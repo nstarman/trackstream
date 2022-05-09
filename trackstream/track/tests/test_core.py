@@ -16,7 +16,7 @@ import pytest
 from astropy.tests.helper import assert_quantity_allclose
 
 # LOCAL
-from trackstream.core import StreamTrack, TrackStream
+from trackstream import StreamTrack, TrackStream
 from trackstream.example_data import get_example_pal5
 from trackstream.som import SelfOrganizingMap1D
 from trackstream.stream import Stream
@@ -29,10 +29,8 @@ from trackstream.stream import Stream
 class Test_TrackStream:
     """Test :class:`~trackstream.core.TrackStream`."""
 
-    @classmethod
     def setup_class(self):
         """Setup fixtures for testing."""
-        self.stream_cls = Stream
         self.data = get_example_pal5()
         self.origin = self.data.meta["origin"]
         self.data_err = None  # TODO?
@@ -48,7 +46,7 @@ class Test_TrackStream:
             # TODO! have a test for a pre-made SOM
             arm2SOM = None
 
-        return TrackStream(arm1SOM=arm1SOM, arm2SOM=arm2SOM)
+        return TrackStream(onsky=False)
 
     @pytest.fixture
     def tracker_cls(self):
@@ -57,7 +55,7 @@ class Test_TrackStream:
     @pytest.fixture
     def stream_cls(self):
         """Stream class."""
-        return self.stream_cls
+        return Stream
 
     @pytest.fixture
     def stream(self, stream_cls):

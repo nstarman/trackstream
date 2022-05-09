@@ -13,8 +13,6 @@ __all__ = [
     "Stream",
     "TrackStream",
     "StreamTrack",
-    # instances
-    "conf",
 ]
 
 
@@ -26,5 +24,5 @@ from ._astropy_init import *  # noqa: F401, F403  # isort:skip
 
 # LOCAL
 from . import example_data as examples
-from .core import StreamTrack, TrackStream
 from .stream import Stream
+from .track import StreamTrack, TrackStream

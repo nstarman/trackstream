@@ -156,7 +156,7 @@ def irep(rep, affine):
 
 @pytest.fixture
 def crd(frame, rep):
-    c = frame.realize_frame(rep)
+    c = frame.realize_frame(rep, representation_type=type(rep))
     return c
 
 

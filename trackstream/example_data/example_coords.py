@@ -97,8 +97,6 @@ class RotatedFrame(BaseCoordinateFrame):
 class RotatedICRS(RotatedFrame):
     """Example Rotated ICRS frame."""
 
-    pass
-
 
 # Generate the rotation matrix
 RA = Quantity(20, u.deg)
@@ -134,8 +132,6 @@ def rotated_to_icrs() -> ndarray:
 @format_doc(RotatedFrame.__doc__)
 class RotatedGalactocentric(RotatedFrame):
     """Example Rotated Galactocentric frame."""
-
-    pass
 
 
 # Generate the rotation matrix

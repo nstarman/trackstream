@@ -2,10 +2,10 @@
 
 # STDLIB
 from abc import ABCMeta
-from typing import Optional, Type
+from typing import Optional, Tuple, Type, cast
 
 # THIRD PARTY
-from astropy.coordinates import BaseCoordinateFrame, BaseRepresentation
+from astropy.coordinates import BaseCoordinateFrame, BaseDifferential, BaseRepresentation
 
 # LOCAL
 from trackstream._type_hints import FrameLikeType
@@ -30,7 +30,8 @@ class CommonBase(metaclass=ABCMeta):
         self,
         *,
         frame: FrameLikeType,
-        representation_type: Optional[Type[BaseRepresentation]] = None
+        representation_type: Optional[Type[BaseRepresentation]] = None,
+        differential_type: Optional[Type[BaseDifferential]] = None
     ) -> None:
         # First resolve frame
         theframe = resolve_framelike(frame)
@@ -38,16 +39,42 @@ class CommonBase(metaclass=ABCMeta):
         representation_type = (
             representation_type if representation_type is not None else theframe.representation_type
         )
+        differential_type = (
+            differential_type
+            if differential_type is not None
+            else cast(Type[BaseDifferential], theframe.differential_type)
+        )
+
         # Set the frame, with the representation type
         self._frame: BaseCoordinateFrame
         self._frame = theframe.replicate_without_data()
         self._frame.representation_type = representation_type
+        self._frame.differential_type = differential_type
 
     @property
     def frame(self) -> BaseCoordinateFrame:
         return self._frame
 
+    # ---------------------------
+
     @property
     def representation_type(self) -> Type[BaseRepresentation]:
         rt: Type[BaseRepresentation] = self._frame.representation_type
         return rt
+
+    @property
+    def differential_type(self) -> Type[BaseDifferential]:
+        dt = cast(Type[BaseDifferential], self._frame.differential_type)
+        return dt
+
+    # ---------------------------
+
+    @property
+    def _rep_attrs(self) -> Tuple[str, ...]:
+        attrs = tuple(getattr(self.representation_type, "attr_classes", {}).keys())
+        return cast(Tuple[str, ...], attrs)
+
+    @property
+    def _dif_attrs(self) -> Tuple[str, ...]:
+        attrs = tuple(getattr(self.differential_type, "attr_classes", {}).keys())
+        return cast(Tuple[str, ...], attrs)

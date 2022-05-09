@@ -39,19 +39,12 @@ def _load_nbody() -> QTable:
     data : `~astropy.table.QTable`
 
         File in "data/00590_peri.dat"
-
     """
-    fname: str = get_pkg_data_filename(
-        os.path.join("data", "00590_peri.dat"),
-        package="trackstream",
-    )
-
+    # Filename
+    fname: str = get_pkg_data_filename("data/00590_peri.dat", package="trackstream")
+    # Read
     data: QTable = QTable.read(fname, format="ascii.ecsv")
-
     return data
-
-
-# -------------------------------------------------------------------
 
 
 def get_nbody(subsample: slice = slice(100, None, 400)) -> BaseCoordinateFrame:
@@ -94,10 +87,10 @@ def get_nbody_array(subsample: slice = slice(100, None, 400)) -> np.ndarray:
     full_data: QTable = _load_nbody()
 
     data: np.ndarray = (
-        full_data[subsample][["x", "y", "z"]]  # 1) subsamples full_data`.
-        .as_array()  # 2) converts to numpy recarray
-        .view("<f8")  # 3)  normal, homogeneous dtype ndarray
-        .reshape(-1, 3)  # 5) reshapes from flattened array
+        full_data[subsample][["x", "y", "z"]]  # subsamples full_data`.
+        .as_array()  # converts to numpy recarray
+        .view("<f8")  # normal, homogeneous dtype ndarray
+        .reshape(-1, 3)  # reshapes from flattened array
     )
 
     return data

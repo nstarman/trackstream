@@ -3,25 +3,37 @@
 """Utilities for :mod:`~trackstream.utils`."""
 
 
-__all__ = ["intermix_arrays", "make_shuffler"]
+__all__ = ["intermix_arrays", "make_shuffler", "abstract_attribute", "is_structured"]
 
 
 ##############################################################################
 # IMPORTS
 
 # STDLIB
-from typing import Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Optional, Sequence, Tuple, TypeVar, Union, cast
 
 # THIRD PARTY
-import numpy as np
-from numpy.random import Generator
+import astropy.units as u
+from astropy.units import Quantity
+from numpy import arange, arctan2, asanyarray, ndarray, sqrt, vectorize
+from numpy.random import Generator, default_rng
+from scipy.linalg import svd
+
+# LOCAL
+from trackstream._type_hints import DummyAttribute
+
+##############################################################################
+# PARAMETERS
+
+R = TypeVar("R")  # return variable
+
 
 ##############################################################################
 # CODE
 ##############################################################################
 
 
-def intermix_arrays(*arrs: Union[Sequence, np.ndarray], axis: int = -1) -> np.ndarray:
+def intermix_arrays(*arrs: Union[Sequence, ndarray], axis: int = -1) -> ndarray:
     """Intermix arrays.
 
     Parameters
@@ -67,16 +79,16 @@ def intermix_arrays(*arrs: Union[Sequence, np.ndarray], axis: int = -1) -> np.nd
         array([[ 0, 10,  1, 11,  2, 12,  3, 13,  4, 14],
                [ 5, 15,  6, 16,  7, 17,  8, 18,  9, 19]])
     """
-    shape = list(np.asanyarray(arrs[0]).shape[::-1])
+    shape = list(asanyarray(arrs[0]).shape[::-1])
     shape[axis] *= len(arrs)
 
-    return np.asanyarray(arrs).T.flatten().reshape(shape)
+    return asanyarray(arrs).T.flatten().reshape(shape)
 
 
 def make_shuffler(
     length: int,
     rng: Optional[Generator] = None,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[ndarray, ndarray]:
     """Shuffle and un-shuffle arrays.
 
     Parameters
@@ -95,11 +107,65 @@ def make_shuffler(
         index array that undoes above, if applied identically.
     """
     if rng is None:
-        rng = np.random.default_rng()
+        rng = default_rng()
 
-    shuffler = np.arange(length)  # start with index array
+    shuffler = arange(length)  # start with index array
     rng.shuffle(shuffler)  # shuffle array in-place
 
     undo = shuffler.argsort()  # and construct the un-shuffler
 
     return shuffler, undo
+
+
+def abstract_attribute(obj: Optional[Callable[[Any], R]] = None) -> R:
+    # https://stackoverflow.com/a/50381071
+    _obj = cast(Any, obj)  # prevent complaint about assigning attributes
+    if obj is None:
+        _obj = DummyAttribute()
+    _obj.__is_abstract_attribute__ = True
+    return cast(R, _obj)
+
+
+def is_structured(x: Any, /) -> bool:
+    """Return whether ``x`` is a structured array."""
+    return getattr(getattr(x, "dtype", None), "names", None) is not None
+
+
+svd_vec: Callable = vectorize(
+    svd,
+    otypes=[float, float, float],
+    excluded={"full_matrices", "compute_uv", "overwrite_a", "check_finite", "lapack_driver"},
+    signature=("(m,n)->(m,m),(m),(n,n)"),
+)
+
+
+def covariance_ellipse(P: ndarray, deviations: Union[int, ndarray] = 1) -> Tuple[Quantity, ndarray]:
+    """
+    FROM FILTERPY
+
+    Returns a tuple defining the ellipse representing the 2 dimensional
+    covariance matrix P.
+
+    Parameters
+    ----------
+    P : (N?, M, M) ndarray
+       covariance matrix(ces).
+
+    deviations : int or (N?,) ndarray, optional
+       Number of standard deviations. Default is 1.
+
+    Returns
+    -------
+    angle_radians : (N?,) Quantity
+    wh : (N?, 2) ndarray
+        width and height radius
+    """
+    U, s, _ = svd_vec(P)  # requires (d1, d2) matrix
+
+    orientation = arctan2(U[..., 1, 0], U[..., 0, 0]) * u.rad
+    wh = deviations * sqrt(s[..., :2])
+
+    if any(wh[..., 1] > wh[..., 0]):
+        raise ValueError("width must be greater than height")
+
+    return orientation, wh

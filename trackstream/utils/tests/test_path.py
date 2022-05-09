@@ -17,7 +17,6 @@ import numpy as np
 import pytest
 
 # LOCAL
-from trackstream.utils.coord_utils import resolve_framelike
 from trackstream.utils.path import Path, path_moments
 
 ##############################################################################

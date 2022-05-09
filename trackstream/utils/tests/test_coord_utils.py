@@ -41,7 +41,6 @@ def test_cartesian_to_spherical(x, y, z):
 @pytest.mark.parametrize("lon, lat, rotation", [(1, 2, 100), (10, -12, 45 * u.deg)])
 def test_reference_to_skyoffset_matrix(lon, lat, rotation):
     """Test `reference_to_skyoffset_matrix`."""
-    pass
 
 
 @pytest.mark.parametrize("error_if_not_type", [True, False])

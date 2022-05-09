@@ -16,7 +16,7 @@ from typing import Generic, Optional, Type, TypeVar
 ##############################################################################
 # PARAMETERS
 
-ParentType = TypeVar("ParentType")
+EnclType = TypeVar("EnclType")
 IDT = TypeVar("IDT", bound="InstanceDescriptor")
 
 
@@ -25,44 +25,43 @@ IDT = TypeVar("IDT", bound="InstanceDescriptor")
 ##############################################################################
 
 
-class InstanceDescriptor(Generic[ParentType]):
+class InstanceDescriptor(Generic[EnclType]):
 
-    _parent_attr: str
-    _parent_cls: Type[ParentType]
-    _parent_ref: weakref.ReferenceType
+    _enclosing_attr: str
+    _enclosing_ref: weakref.ReferenceType[EnclType]
 
     @property
-    def _parent(self) -> ParentType:
-        """Parent instance."""
-        if isinstance(getattr(self, "_parent_ref", None), weakref.ReferenceType):
-            parent: Optional[ParentType] = self._parent_ref()
+    def _enclosing(self) -> EnclType:
+        """Enclosing instance."""
+        if isinstance(getattr(self, "_enclosing_ref", None), weakref.ReferenceType):
+            enclosing: Optional[EnclType] = self._enclosing_ref()
         else:
-            parent = None
+            enclosing = None
 
-        if parent is None:
-            raise ValueError("no reference exists to the original parent object")
+        if enclosing is None:
+            raise ValueError("no reference exists to the original enclosing object")
 
-        return parent
+        return enclosing
 
     # ------------------------------------
 
-    def __set_name__(self, _: Type[ParentType], name: str) -> None:
-        self._parent_attr = name
+    def __set_name__(self, _: Type[EnclType], name: str) -> None:
+        self._enclosing_attr = name
 
-    def __get__(self: IDT, obj: Optional[ParentType], _: Optional[Type[ParentType]]) -> IDT:
+    def __get__(self: IDT, obj: Optional[EnclType], _: Optional[Type[EnclType]]) -> IDT:
         # accessed from a class
         if obj is None:
             return self
 
         # accessed from an obj
-        descriptor: Optional[IDT] = obj.__dict__.get(self._parent_attr)  # get from obj
+        descriptor: Optional[IDT] = obj.__dict__.get(self._enclosing_attr)  # get from obj
         if descriptor is None:  # hasn't been created on the obj
             descriptor = self.__class__()
-            descriptor._parent_attr = self._parent_attr
-            obj.__dict__[self._parent_attr] = descriptor
+            descriptor._enclosing_attr = self._enclosing_attr
+            obj.__dict__[self._enclosing_attr] = descriptor
 
-        # We set `_parent_ref` on every call, since if one makes copies of objs,
+        # We set `_enclosing_ref` on every call, since if one makes copies of objs,
         # 'descriptor' will be copied as well, which will lose the reference.
-        descriptor._parent_ref = weakref.ref(obj)  # type: ignore
+        descriptor._enclosing_ref = weakref.ref(obj)  # type: ignore
 
         return descriptor

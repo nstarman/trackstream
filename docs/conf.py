@@ -34,7 +34,8 @@ from importlib import import_module
 
 try:
     # THIRD PARTY
-    from sphinx_astropy.conf.v1 import *  # noqa: F401, F403
+    from sphinx_astropy.conf.v1 import *  # type: ignore  # noqa: F401, F403
+    from sphinx_astropy.conf.v1 import exclude_patterns, rst_epilog, extensions
 except ImportError:
     print("documentation requires installing the sphinx-astropy package")
     sys.exit(1)
@@ -66,21 +67,6 @@ exclude_patterns.append("_templates")
 rst_epilog += """
 
 ..
-  RST LINKS
-
-.. |AstropyRepresentationPackage| replace:: Astropy representation package
-.. _AstropyRepresentationPackage: https://docs.astropy.org/en/stable/coordinates/representations.html
-
-.. |AstropyDifferentialPackage| replace:: Astropy differential package
-.. _AstropyDifferentialPackage: https://docs.astropy.org/en/stable/coordinates/representations.html#differentials-and-derivatives-of-representations
-
-.. |AstropyCoordinatesPackage| replace:: Astropy coordinates package
-.. _AstropyCoordinatesPackage: https://docs.astropy.org/en/stable/coordinates/index.html
-
-.. |AstropyModelingPackage| replace:: Astropy Modeling Package
-.. _AstropyModelingPackage: <https://docs.astropy.org/en/stable/modeling/
-
-..
   RST REPLACEMENT
 
 .. ASTROPY
@@ -88,10 +74,11 @@ rst_epilog += """
 .. |Quantity| replace:: :class:`~astropy.units.Quantity`
 .. |AngleType| replace:: :class:`~astropy.coordinates.Angle`
 
-.. |SkyCoord| replace:: :class:`~astropy.coordinates.SkyCoord`
-.. |Frame| replace:: `~astropy.coordinates.BaseCoordinateFrame`
 .. |Representation| replace:: :class:`~astropy.coordinates.BaseRepresentation`
 .. |CartesianRep| replace:: :class:`~astropy.coordinates.CartesianRepresentation`
+.. |Frame| replace:: `~astropy.coordinates.BaseCoordinateFrame`
+.. |ICRS| replace:: `~astropy.coordinates.ICRS`
+.. |SkyCoord| replace:: :class:`~astropy.coordinates.SkyCoord`
 
 .. |Table| replace:: :class:`~astropy.table.Table`
 .. |QTable| replace:: :class:`~astropy.table.QTable`
@@ -100,6 +87,8 @@ rst_epilog += """
 .. MATPLOTLIB
 
 .. |Pyplot| replace:: :mod:`~matplotlib.pyplot`
+.. |Axes| replace:: :class:`~matplotlib.pyplot.Axes`
+.. |Figure| replace:: :class:`~matplotlib.figure.Figure`
 
 .. NUMPY
 
@@ -122,10 +111,10 @@ todo_include_todos = True
 
 plot_rcparams = {}
 plot_rcparams["figure.figsize"] = (6, 6)
-plot_rcparams["savefig.facecolor"] = "none"
-plot_rcparams["savefig.bbox"] = "tight"
-plot_rcparams["axes.labelsize"] = "large"
-plot_rcparams["figure.subplot.hspace"] = 0.5
+plot_rcparams["savefig.facecolor"] = "none"  # type: ignore
+plot_rcparams["savefig.bbox"] = "tight"  # type: ignore
+plot_rcparams["axes.labelsize"] = "large"  # type: ignore
+plot_rcparams["figure.subplot.hspace"] = 0.5  # type: ignore
 
 plot_apply_rcparams = True
 plot_include_source = False
@@ -137,6 +126,10 @@ plot_html_show_source_link = True
 # import numpy as np
 # """
 # plot_rcparams  # TODO
+
+
+# Bibtex
+bibtex_bibfiles = "refs.bib"
 
 
 # -- Project information ------------------------------------------------------
@@ -155,11 +148,12 @@ copyright = "{0}, {1}".format(
 
 import_module(setup_cfg["name"])
 package = sys.modules[setup_cfg["name"]]
+_version = getattr(package, "__version__", "")
 
 # The short X.Y version.
-version = package.__version__.split("-", 1)[0]
+version = _version.split("-", 1)[0]
 # The full version, including alpha/beta/rc tags.
-release = package.__version__
+release = _version
 
 # -- Options for the module index ---------------------------------------------
 
@@ -242,7 +236,7 @@ man_pages = [
 
 # -- Options for the edit_on_github extension ---------------------------------
 
-if setup_cfg.get("edit_on_github").lower() == "true":
+if setup_cfg["edit_on_github"].lower() == "true":
 
     extensions += ["sphinx_astropy.ext.edit_on_github"]
 
