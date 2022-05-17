@@ -14,14 +14,13 @@ from typing import Any, List, Optional, TypeVar, cast
 # THIRD PARTY
 from astropy.coordinates import BaseCoordinateFrame, SkyCoord, UnitSphericalRepresentation
 from astropy.table import QTable
-from astropy.utils.decorators import format_doc
 from astropy.utils.misc import indent
 from astropy.visualization import quantity_support
 from matplotlib.pyplot import Axes
 
 # LOCAL
 from trackstream.utils.misc import abstract_attribute
-from trackstream.visualization import _DS, CLike, DKindT, StreamPlotDescriptorBase, _DSf
+from trackstream.visualization import CLike, DKindT, StreamPlotDescriptorBase
 
 __all__: List[str] = []
 
@@ -45,16 +44,14 @@ StreamBaseT = TypeVar("StreamBaseT", bound="StreamBase")
 class StreamBasePlotDescriptor(StreamPlotDescriptorBase[StreamBaseT]):
     """Plot methods for `trackstream.stream.base.StreamBase` objects."""
 
-    @format_doc(None, frame=_DSf["frame"](3), DKindT=_DS["DKindT"], dkind_ds=_DS["dkind_ds"])
     def in_frame(
         self,
         frame: str = "ICRS",
         kind: DKindT = "positions",
         *,
-        plot_origin: bool = True,
+        origin: bool = True,
         ax: Optional[Axes] = None,
         format_ax: bool = True,
-        c: CLike = "tab:blue",
         **kwargs: Any,
     ) -> Axes:
         """Plot stream in an |ICRS| frame.
@@ -62,28 +59,32 @@ class StreamBasePlotDescriptor(StreamPlotDescriptorBase[StreamBaseT]):
         Parameters
         ----------
         frame : |Frame| or str, optional
-            {frame}
-        kind : {DKindT}, optional
-            {dkind_ds}
+            A frame instance or its name (a `str`, the default).
+            Also supported is "stream", which is the stream frame
+            of the enclosing instance.
+        kind : {'positions', 'kinematics'}, optional
+            The kind of plot.
 
-        plot_origin : bool, optional keyword-only
-            Whether to plot the origin, by default True
-        c : str or array-like[float], optional keyword-only
-            The color or sequence thereof, by default "tab:blue"
-        ax : Optional[|Axes|], optional keyword-only
-            Matplotlib |Axes|, by default None
+        origin : bool, optional keyword-only
+            Whether to plot the origin, by default `True`.
+
+        ax : |Axes| or None, optional keyword-only
+            Matplotlib |Axes|. `None` (default) uses the current axes
+            (:func:`matplotlib.pyplot.gca`).
         format_ax : bool, optional keyword-only
             Whether to add the axes labels and info, by default `True`.
+        **kwargs : Any
+            Passed to :func:`matplotlib.pyplot.scatter`.
 
         Returns
         -------
         |Axes|
         """
-        stream, _ax, *_ = self._setup(ax)
+        stream, _ax, *_ = self._setup(ax=ax)
 
-        super().in_frame(frame=frame, kind=kind, c=c, ax=_ax, format_ax=format_ax, **kwargs)
+        super().in_frame(frame=frame, kind=kind, ax=_ax, format_ax=format_ax, **kwargs)
 
-        if plot_origin:
+        if origin:
             self.origin(stream.origin, frame=frame, kind=kind, ax=_ax, format_ax=format_ax)
 
         return _ax

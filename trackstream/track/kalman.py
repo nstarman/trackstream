@@ -593,7 +593,7 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
             pa = arctan2(sin(deltalon), 0)  # position angle
             residual[0] = sign(pa) * arccos(cos(deltalon))
 
-            # TODO! similar for latitude
+            # TODO! similar for |Latitude|
 
         x = x + dot(K, residual)  # predict new x using Kalman gain
 
@@ -602,7 +602,7 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
             # keeps in (-180, 180) deg
             x[0] += 2 * pi if (x[0] < -pi) else 0
             x[0] -= 2 * pi if (x[0] >= pi) else 0
-            # todo! similar unwrapping of the latitude
+            # todo! similar unwrapping of the |Latitude|
 
         KH = dot(K, self._H)
         ImKH = self._I - KH

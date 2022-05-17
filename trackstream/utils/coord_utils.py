@@ -51,17 +51,17 @@ def reference_to_skyoffset_matrix(
 
     Parameters
     ----------
-    lon : float or |AngleType| or |Quantity| instance
+    lon : float or |Angle| or |Quantity| instance
         For ICRS, the right ascension.
         If float, assumed degrees.
-    lat : |AngleType| or |Quantity| instance
+    lat : |Angle| or |Quantity| instance
         For ICRS, the declination.
         If float, assumed degrees.
-    rotation : |AngleType| or |Quantity| instance
+    rotation : |Angle| or |Quantity| instance
         The final rotation of the frame about the ``origin``. The sign of
         the rotation is the left-hand rule.  That is, an object at a
         particular position angle in the un-rotated system will be sent to
-        the positive latitude (z) direction in the final frame.
+        the positive |Latitude| (z) direction in the final frame.
         If float, assumed degrees.
 
     Returns
@@ -251,8 +251,7 @@ def position_angle(lon1: ndarray, lat1: ndarray, lon2: float, lat2: float) -> nd
     Parameters
     ----------
     lon1, lat1, lon2, lat2 : float['radian']
-        Longitude and latitude of the two points. Quantities should be in
-        angular units; floats in radians.
+        |Longitude| and |Latitude| value of the two points in radians.
 
     Returns
     -------
@@ -279,9 +278,9 @@ def offset_by(
     Parameters
     ----------
     lon, lat, posang, distance : float['rad']
-        Longitude and latitude of the starting point,
+        |Longitude| and |Latitude| of the starting point,
         position angle and distance to the final point.
-        Polar points at lat= +/-90 are treated as limit of +/-(90-epsilon) and same lon.
+        Polar points at lat= ±90 are treated as limit of ±(90-epsilon) and same lon.
 
     Returns
     -------

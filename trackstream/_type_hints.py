@@ -69,5 +69,7 @@ UnitLikeType = Union[UnitType, str]
 """|Unit| or :class:`~astropy.units.FunctionUnitBase` or str"""
 
 
-class DummyAttribute:
+class AbstractAttribute:
+    """"Abstract attribute"""
+
     __is_abstract_attribute__: bool

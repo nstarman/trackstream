@@ -71,14 +71,13 @@ def cartesian_model(
     data : |CartesianRep|
         Cartesian representation of the data.
     lon, lat : float or |Angle| or |Quantity| instance
-        The longitude and latitude origin for the reference frame.
-        If float, assumed degrees.
+        The |Longitude| and |Latitude| origin for the reference frame. If float,
+        assumed degrees.
     rotation : float or |Angle| or |Quantity| instance
-        The final rotation of the frame about the ``origin``. The sign of
-        the rotation is the left-hand rule.  That is, an object at a
-        particular position angle in the un-rotated system will be sent to
-        the positive latitude (z) direction in the final frame.
-        If float, assumed degrees.
+        The final rotation of the frame about the ``origin``. The sign of the
+        rotation is the left-hand rule.  That is, an object at a particular
+        position angle in the un-rotated system will be sent to the positive
+        |Latitude| (z) direction in the final frame. If float, assumed degrees.
 
     Returns
     -------
@@ -101,7 +100,7 @@ def cartesian_model(
 def residual(
     variables: Tuple[float, float, float], data: CartRep, scalar: bool = False
 ) -> Union[float, ndarray]:
-    r"""How close phi2, the rotated latitude (dec), is to flat.
+    r"""How close phi2, the rotated |Latitude| (e.g. dec), is to flat.
 
     Parameters
     ----------
@@ -112,12 +111,12 @@ def residual(
             The final rotation of the frame about the ``origin``. The sign of
             the rotation is the left-hand rule.  That is, an object at a
             particular position angle in the un-rotated system will be sent to
-            the positive latitude (z) direction in the final frame.
+            the positive |Latitude| (z) direction in the final frame.
             In degrees.
         - lon, lat : float
-            In degrees. If ICRS, equivalent to ra & dec.
+            In degrees. If |ICRS|, equivalent to ra & dec.
     data : |CartesianRep|
-        eg. ``ICRS.cartesian``
+        E.g. :attr:`astropy.coordinates.ICRS.cartesian`.
 
     Returns
     -------
@@ -464,16 +463,19 @@ class FrameFitterPlotDescriptor(PlotDescriptorBase["FrameOptimizeResult"]):
         Parameters
         ----------
         stream : `trackstream.stream.base.StreamBase`
-        ax : Optional[Axes], optional
-            Matplotlib |Axes|, by default None
-        format_ax : bool, optional
-            Whether to add the axes labels and info, by default True
+            The stream for which to plot the residual.
+
+        ax : |Axes| or None, optional keyword-only
+            Matplotlib |Axes|. `None` (default) uses the current axes
+            (:func:`matplotlib.pyplot.gca`).
+        format_ax : bool, optional keyword-only
+            Whether to add the axes labels and info, by default `True`.
 
         Returns
         -------
         |Axes|
         """
-        fr, _ax, *_ = self._setup(ax)
+        fr, _ax, *_ = self._setup(ax=ax)
 
         # Residual plot
         rotation_angles: ndarray = linspace(-180, 180, num=1_000, dtype=float)

@@ -20,7 +20,7 @@ from numpy.random import Generator, default_rng
 from scipy.linalg import svd
 
 # LOCAL
-from trackstream._type_hints import DummyAttribute
+from trackstream._type_hints import AbstractAttribute
 
 ##############################################################################
 # PARAMETERS
@@ -121,7 +121,7 @@ def abstract_attribute(obj: Optional[Callable[[Any], R]] = None) -> R:
     # https://stackoverflow.com/a/50381071
     _obj = cast(Any, obj)  # prevent complaint about assigning attributes
     if obj is None:
-        _obj = DummyAttribute()
+        _obj = AbstractAttribute()
     _obj.__is_abstract_attribute__ = True
     return cast(R, _obj)
 
@@ -141,8 +141,6 @@ svd_vec: Callable = vectorize(
 
 def covariance_ellipse(P: ndarray, deviations: Union[int, ndarray] = 1) -> Tuple[Quantity, ndarray]:
     """
-    FROM FILTERPY
-
     Returns a tuple defining the ellipse representing the 2 dimensional
     covariance matrix P.
 
@@ -159,6 +157,10 @@ def covariance_ellipse(P: ndarray, deviations: Union[int, ndarray] = 1) -> Tuple
     angle_radians : (N?,) Quantity
     wh : (N?, 2) ndarray
         width and height radius
+
+    Notes
+    -----
+    Modified from :mod:`filterpy`
     """
     U, s, _ = svd_vec(P)  # requires (d1, d2) matrix
 

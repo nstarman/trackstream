@@ -48,9 +48,9 @@ class RotatedFrame(BaseCoordinateFrame):
         A representation object or None to have no data
         (or use the other keywords)
     phi1 : `~astropy.coordinates.Angle`, optional, must be keyword
-        The longitude-like angle corresponding to Sagittarius' orbit.
+        The |longitude|-like angle corresponding to Sagittarius' orbit.
     phi2 : `~astropy.coordinates.Angle`, optional, must be keyword
-        The latitude-like angle corresponding to Sagittarius' orbit.
+        The |Latitude|-like angle corresponding to Sagittarius' orbit.
     distance : `Quantity`, optional, must be keyword
         The Distance for this object along the line-of-sight.
     pm_phi1_cosphi2 : :class:`~astropy.units.Quantity`, optional, keyword

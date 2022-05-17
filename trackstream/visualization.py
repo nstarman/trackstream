@@ -36,6 +36,8 @@ quantity_support()
 # Types
 CLike = Union[str, Sequence[float], Quantity]
 DKindT = Union[Literal["positions"], Literal["kinematics"]]
+StreamLikeType = TypeVar("StreamLikeType", bound="NamedWithCoords")
+
 
 # Axes labels
 AX_LABELS = {
@@ -61,18 +63,8 @@ def _docstring_indent(s: str) -> Callable[[int], str]:
 
 
 # docstrings
-_DS: Dict[str, str] = dict(
-    DKindT=r"{'positions', 'kinematics'}",
-    dkind_ds="The kind of plot.",
-)
-_DSf: Dict[str, Callable[[int], str]] = dict(
-    frame=_docstring_indent(
-        """\
-A frame instance or its name (a `str`, the default).
-Also supported is "stream", which is the stream frame
-of the enclosing instance."""
-    )
-)
+_DS: Dict[str, str] = dict()
+_DSf: Dict[str, Callable[[int], str]] = dict()
 
 
 ##############################################################################
@@ -85,19 +77,20 @@ class PlotDescriptorBase(InstanceDescriptor[EnclType]):
 
     Parameters
     ----------
-    default_scatter_style: dict[str, Any] or None, optional
+    default_scatter_kwargs: dict[str, Any] or None, optional keyword-only
+        Default keyword arguments for :func:`matplotlib.pyplot.scatter`.
     """
 
-    _default_scatter_style: Dict[str, Any]
+    _default_scatter_kwargs: Dict[str, Any]
 
-    def __init__(self, *, default_scatter_style: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, *, default_scatter_kwargs: Optional[Dict[str, Any]] = None) -> None:
         super().__init__()
 
         # Default scatter style
-        scatter_style = default_scatter_style or {}
+        scatter_style = default_scatter_kwargs or {}
         scatter_style.setdefault("marker", "*")
         scatter_style.setdefault("s", 3)
-        self._default_scatter_style = scatter_style
+        self._default_scatter_kwargs = scatter_style
 
     def _get_kw(self, kwargs: Optional[Dict[str, Any]] = None, **defaults: Any) -> Dict[str, Any]:
         """Get plot options.
@@ -112,18 +105,20 @@ class PlotDescriptorBase(InstanceDescriptor[EnclType]):
         Returns
         -------
         dict[str, Any]
-            Mix of ``kwargs``, ``defaults``, and ``_default_scatter_style``,
+            Mix of ``kwargs``, ``defaults``, and ``_default_scatter_kwargs``,
             preferring them in that order.
         """
-        kw: Dict[str, Any] = {**self._default_scatter_style, **defaults, **(kwargs or {})}
+        kw: Dict[str, Any] = {**self._default_scatter_kwargs, **defaults, **(kwargs or {})}
         return kw
 
-    def _setup(self, ax: Optional[Axes]) -> Tuple[Any, ...]:
+    def _setup(self, *, ax: Optional[Axes] = None) -> Tuple[Any, ...]:
         """Setup the plot.
 
         Parameters
         ----------
-        ax : |Axes|
+        ax : |Axes| or None, optional keyword-only
+            Matplotlib |Axes|. `None` (default) uses the current axes
+            (:func:`matplotlib.pyplot.gca`).
 
         Returns
         -------
@@ -156,32 +151,31 @@ class NamedWithCoords(Protocol):
         ...
 
 
-StreamLikeType = TypeVar("StreamLikeType", bound=NamedWithCoords)
-
-
 class StreamPlotDescriptorBase(PlotDescriptorBase[StreamLikeType]):
     """Plot descriptor base class.
 
     Parameters
     ----------
-    default_scatter_style: dict[str, Any] or None, optional
+    default_scatter_kwargs: dict[str, Any] or None, optional keyword-only
+        Default keyword arguments for :func:`matplotlib.pyplot.scatter`.
     """
 
-    @format_doc(None, frame=_DSf["frame"](3))
     def _parse_frame(self, frame: FrameLikeType, /) -> Tuple[BaseCoordinateFrame, str]:
         """Return the frame and its name.
 
         Parameters
         ----------
         frame : |Frame| or str, positional-only
-            {frame}
+            A frame instance or its name (a `str`, the default).
+            Also supported is "stream", which is the stream frame
+            of the enclosing instance.
 
         Returns
         -------
         frame : |Frame|
             The parsed frame.
         frame_name : str
-            The name of the frame.
+            The name of the parsed frame.
         """
         if not isinstance(frame, (BaseCoordinateFrame, str)):
             raise ValueError(f"{frame} is not a BaseCoordinateFrame or str")
@@ -214,7 +208,7 @@ class StreamPlotDescriptorBase(PlotDescriptorBase[StreamLikeType]):
         Returns
         -------
         |Frame| or |SkyCoord|
-            The transformed coordinates.
+            The transformed coordinates. Output type matches input type.
         str
             The name of the frame to which 'crds' have been transformed.
         """
@@ -235,7 +229,6 @@ class StreamPlotDescriptorBase(PlotDescriptorBase[StreamLikeType]):
 
         return c, name
 
-    @format_doc(None, DKindT=_DS["DKindT"], dkind_ds=_DS["dkind_ds"])
     def _get_xy_names(self, frame: CoordinateType, kind: DKindT) -> Tuple[str, str]:
         """Get names of 2D plotting coordinates.
 
@@ -243,8 +236,8 @@ class StreamPlotDescriptorBase(PlotDescriptorBase[StreamLikeType]):
         ----------
         frame : |Frame| or |SkyCoord|
             The frame from which to get the coordinates.
-        kind : {DKindT}
-            {dkind_ds}
+        kind : {'positions', 'kinematics'}
+            The kind of plot.
 
         Returns
         -------
@@ -263,7 +256,6 @@ class StreamPlotDescriptorBase(PlotDescriptorBase[StreamLikeType]):
 
         return xn, yn
 
-    @format_doc(None, DKindT=_DS["DKindT"], dkindt_ds=_DS["dkind_ds"])
     def _get_xy(
         self, crds: CoordinateType, /, kind: DKindT
     ) -> Tuple[Tuple[Quantity, str], Tuple[Quantity, str]]:
@@ -273,14 +265,14 @@ class StreamPlotDescriptorBase(PlotDescriptorBase[StreamLikeType]):
         ----------
         crds : CoordinateType
             The coordinates from which to get the 2 dimensions and names.
-        kind : {DKindT}
-            {dkind_ds}
+        kind : {'positions', 'kinematics'}
+            The kind of plot.
 
         Returns
         -------
-        Quantity, str
+        |Quantity|, str
             First set of coordinate and name.
-        Quantity, str
+        |Quantity|, str
             Second set of coordinate and name.
         """
         xn, yn = self._get_xy_names(crds, kind=kind)
@@ -298,7 +290,9 @@ class StreamPlotDescriptorBase(PlotDescriptorBase[StreamLikeType]):
 
         Parameters
         ----------
-        ax : Axes
+        ax : |Axes| or None, positional-only
+            Matplotlib |Axes|. `None` (default) uses the current axes
+            (:func:`matplotlib.pyplot.gca`).
         frame : str
             The name of the |Frame|.
         x, y : str
@@ -348,7 +342,6 @@ class StreamPlotDescriptorBase(PlotDescriptorBase[StreamLikeType]):
         frame: str = "ICRS",
         kind: DKindT = "positions",
         *,
-        c: CLike = "tab:blue",
         ax: Optional[Axes] = None,
         format_ax: bool = True,
         **kwargs: Any,
@@ -357,31 +350,36 @@ class StreamPlotDescriptorBase(PlotDescriptorBase[StreamLikeType]):
 
         Parameters
         ----------
-        c : str or array-like[float], optional
-            The color or sequence thereof, by default "tab:blue"
-        ax : Optional[|Axes|], optional
-            Matplotlib |Axes|, by default None
-        format_ax : bool, optional
-            Whether to add the axes labels and info, by default True
+        frame : |Frame| or |SkyCoord|, optional
+            The frame from which to get the coordinates.
+        kind : {'positions', 'kinematics'}, optional
+            The kind of plot.
+
+        ax : |Axes| or None, optional keyword-only
+            Matplotlib |Axes|. `None` (default) uses the current axes
+            (:func:`matplotlib.pyplot.gca`).
+        format_ax : bool, optional keyword-only
+            Whether to add the axes labels and info, by default `True`.
+        **kwargs : Any
+            Passed to :func:`matplotlib.pyplot.scatter`.
 
         Returns
         -------
         |Axes|
         """
-        stream, _ax, *_ = self._setup(ax)
+        stream, _ax, *_ = self._setup(ax=ax)
         kw = self._get_kw(kwargs, label=stream.full_name)
 
         sc, frame_name = self._to_frame(stream.coords_ord, frame=frame)
         (x, xn), (y, yn) = self._get_xy(sc, kind)
 
-        _ax.scatter(x, y, c=c, **kw)
+        _ax.scatter(x, y, **kw)
 
         if format_ax:  # Axes settings
             self._format_ax(_ax, frame=frame_name, x=xn, y=yn)
 
         return _ax
 
-    @format_doc(None, frame=_DSf["frame"](3), DKindT=_DS["DKindT"], dkind_ds=_DS["dkind_ds"])
     def origin(
         self,
         origin: CoordinateType,
@@ -396,20 +394,27 @@ class StreamPlotDescriptorBase(PlotDescriptorBase[StreamLikeType]):
 
         Parameters
         ----------
-        origin : |Frame| or |SkyCoord|
+        origin : |Frame| or |SkyCoord|, positional-only
             The data to plot.
+
         frame : |Frame| or str or None, optional
-            {frame}
-        kind : {DKindT}, optional
-            {dkind_ds}
-        ax : Optional[Axes]
-            Matplotlib |Axes|, by default None
+            A frame instance or its name (a `str`, the default).
+            Also supported is "stream", which is the stream frame
+            of the enclosing instance.
+        kind : {'positions', 'kinematics'}, optional
+            The kind of plot.
+
+        ax : |Axes| or None, optional keyword-only
+            Matplotlib |Axes|. `None` (default) uses the current axes
+            (:func:`matplotlib.pyplot.gca`).
+        format_ax : bool, optional keyword-only
+            Whether to add the axes labels and info, by default `True`.
 
         Returns
         -------
         |Axes|
         """
-        _, _ax, *_ = self._setup(ax)
+        _, _ax, *_ = self._setup(ax=ax)
 
         c, _ = self._to_frame(origin, frame=frame)
         (x, _), (y, _) = self._get_xy(c, kind=kind)

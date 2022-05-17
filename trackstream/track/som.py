@@ -646,7 +646,7 @@ class CartesianSelfOrganizingMap1D(SelfOrganizingMap1DBase):
         ----------
         data : SkyCoord
         byphi : bool, optional
-            Whether to bin by the longitude, or by :math:`\phi=atan(lat/lon)`
+            Whether to bin by the |Longitude|, or by :math:`\phi=atan(lat/lon)`
         maxsep : Quantity or None, optional keyword-only
             Maximum separation (in data space) between prototypes.
         """
@@ -876,7 +876,7 @@ class UnitSphereSelfOrganizingMap1D(SelfOrganizingMap1DBase):
         ----------
         data : SkyCoord
         byphi : bool, optional
-            Whether to bin by the longitude, or by :math:`\phi=atan(lat/lon)`
+            Whether to bin by the |Longitude|, or by :math:`\phi=atan(lat/lon)`
         maxsep : Quantity or None, optional keyword-only
             Maximum separation (in data space) between prototypes.
         """

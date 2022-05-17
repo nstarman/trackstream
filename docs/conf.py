@@ -69,10 +69,16 @@ rst_epilog += """
 ..
   RST REPLACEMENT
 
+.. TRACKSTREAM
+
+.. |SOM| replace:: :class:`trackstream.track.som.SelfOrganizingMap1DBase`
+
 .. ASTROPY
 
 .. |Quantity| replace:: :class:`~astropy.units.Quantity`
-.. |AngleType| replace:: :class:`~astropy.coordinates.Angle`
+.. |Angle| replace:: :class:`~astropy.coordinates.Angle`
+.. |Latitude| replace:: :class:`~astropy.coordinates.Latitude`
+.. |Longitude| replace:: :class:`~astropy.coordinates.Longitude`
 
 .. |Representation| replace:: :class:`~astropy.coordinates.BaseRepresentation`
 .. |CartesianRep| replace:: :class:`~astropy.coordinates.CartesianRepresentation`
@@ -89,6 +95,7 @@ rst_epilog += """
 .. |Pyplot| replace:: :mod:`~matplotlib.pyplot`
 .. |Axes| replace:: :class:`~matplotlib.pyplot.Axes`
 .. |Figure| replace:: :class:`~matplotlib.figure.Figure`
+.. |Ellipse| replace:: :class:`matplotlib.patches.Ellipse`
 
 .. NUMPY
 

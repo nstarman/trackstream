@@ -13,7 +13,7 @@ The StreamTrack is analogous to an interpolated CoordinateFrame where the data i
 Reference/API
 =============
 
-.. automodapi:: trackstream.core
+.. automodapi:: trackstream.fitter
    :no-heading:
    :no-main-docstr:
    :include-all-objects:
