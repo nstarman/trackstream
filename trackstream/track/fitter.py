@@ -15,13 +15,13 @@ import astropy.units as u
 from astropy.coordinates import BaseCoordinateFrame, CartesianDifferential, CartesianRepresentation
 from astropy.coordinates import SkyCoord, UnitSphericalDifferential, UnitSphericalRepresentation
 from astropy.units import Quantity
-from numpy import apply_along_axis, array, mean, ndarray
+from numpy import apply_along_axis, array, broadcast_to, mean, ndarray, ones
 from scipy.linalg import block_diag
 
 # LOCAL
 from .fitresult import StreamTrack
 from .kalman import FirstOrderNewtonianKalmanFilter as KalmanFilter
-from .kalman import kalman_output, make_R, make_timesteps
+from .kalman import kalman_output, make_Q, make_R, make_timesteps
 from .path import Path, concatenate_paths
 from .rotated_frame import FrameOptimizeResult, RotatedFrameFitter
 from .som import CartesianSelfOrganizingMap1D  # UnitSphereSelfOrganizingMap1D,
@@ -363,6 +363,7 @@ class TrackStream:
         kinematics: bool,
         r_err: float = 0.05,
         q_err: float = 0.01,
+        q_diag: float = 1,
         **options: Any,
     ) -> Union[Tuple[KalmanFilter, Path, kalman_output], Tuple[None, None, None]]:
         """Fit data with Kalman filter.
@@ -431,17 +432,26 @@ class TrackStream:
             r = data.represent_as(representation_type, s=differential_type)
             x0 = r[:3].without_differentials().mean()
 
-            if "s" in r.differentials:  # can't take mean if there are differentials
+            if "s" in r.differentials:  # can't take mean if there aren't differentials
                 # use a hack to get the mean of the
                 drmean = apply_along_axis(mean, 0, r.differentials["s"][:3]).item()
                 x0.differentials["s"] = drmean
+            # else: make 0 diff if there aren't errors
 
         # TODO! as options
         p = array([[0.0001, 0], [0, 1]])
         P0 = block_diag(*(p,) * ndims)
 
-        R0 = make_R(array([r_err] * ndims))[0]  # TODO! actual errors
-        options["q_kw"] = dict(var=q_err)  # TODO! overridable
+        # TODO! actual errors
+        err = broadcast_to(r_err, ndims)
+        errs = ones((len(data), ndims)) * err[None]
+        R = make_R(errs)  # TODO! actual errors
+        print(R[0])
+
+        options["q_kw"] = dict(var=q_err, diag=q_diag)  # TODO! overridable
+        Q = lambda dt, var=1, diag=1, ndims=3: make_Q(dt, var, ndims=ndims) + block_diag(
+            *[array([[diag, 0], [0, 0]])] * ndims
+        )
 
         # -------------------
         # Time steps
@@ -457,8 +467,8 @@ class TrackStream:
         # -------------------
         # Fit
 
-        kf = KalmanFilter(x0, P0, onsky=onsky, kinematics=kinematics, R0=R0, frame=frame, **options)
-        path, center = kf.fit(data, timesteps=timesteps, name=stream.name)
+        kf = KalmanFilter(x0, P0, onsky=onsky, kinematics=kinematics, frame=frame, Q0=Q, **options)
+        path, center = kf.fit(data, R, timesteps=timesteps, name=stream.name)
 
         # Cache info
         self._cache[f"{arm}_mean_path"] = center  # type: ignore
@@ -553,8 +563,12 @@ class TrackStream:
         frame_fit: Optional[FrameOptimizeResult] = self._cache.get("frame_fit")
 
         # Get unordered arms, in frame
-        data1 = deep_transform_to(stream.arm1.coords, frame, representation_type)
-        data2 = deep_transform_to(stream.arm2.coords, frame, representation_type)
+        data1 = deep_transform_to(
+            stream.arm1.coords, frame, representation_type, differential_type=None
+        )
+        data2 = deep_transform_to(
+            stream.arm2.coords, frame, representation_type, differential_type=None
+        )
 
         # --------------------------------------
         # Self-Organizing Map

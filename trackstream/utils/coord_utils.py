@@ -11,7 +11,7 @@ __all__ = ["reference_to_skyoffset_matrix", "resolve_framelike"]
 
 # STDLIB
 import functools
-from typing import Any, Optional, Tuple, Type, TypeVar, Union, cast, overload
+from typing import Any, Literal, Optional, Tuple, Type, TypeVar, Union, cast, overload
 
 # THIRD PARTY
 from astropy.coordinates import BaseCoordinateFrame as BaseFrame
@@ -33,6 +33,7 @@ _PI_2 = pi / 2
 
 _FT = TypeVar("_FT", bound=BaseFrame)
 _RT = TypeVar("_RT", bound=BaseRep)
+_DT = TypeVar("_DT", bound=BaseDif)
 
 ##############################################################################
 # CODE
@@ -173,16 +174,6 @@ def resolve_framelike(  # type: ignore
 
 @overload
 def deep_transform_to(
-    crd: SkyCoord,
-    frame: _FT,
-    representation_type: Type[BaseRep],
-    differential_type: Optional[type[BaseDif]] = None,
-) -> SkyCoord:
-    ...
-
-
-@overload
-def deep_transform_to(
     crd: BaseFrame,
     frame: _FT,
     representation_type: Type[BaseRep],
@@ -191,11 +182,21 @@ def deep_transform_to(
     ...
 
 
+@overload
+def deep_transform_to(
+    crd: SkyCoord,
+    frame: BaseFrame,
+    representation_type: Type[BaseRep],
+    differential_type: Optional[type[BaseDif]] = None,
+) -> SkyCoord:
+    ...
+
+
 def deep_transform_to(
     crd: Union[SkyCoord, BaseFrame],
     frame: _FT,
     representation_type: Type[_RT],
-    differential_type: Optional[type[BaseDif]] = None,
+    differential_type: Union[Type[_DT], None, Literal["base"]] = "base",
 ) -> Union[SkyCoord, _FT]:
     """Transform a coordinate to a frame and representation type.
 
@@ -207,7 +208,13 @@ def deep_transform_to(
     ----------
     crd : SkyCoord or BaseCoordinateFrame
     frame : BaseCoordinateFrame
+        The frame to which to tranform `crd`.
     representation_type : BaseRepresentation class
+        The type of representation.
+    differential_type : BaseDifferential class or None or 'base', optional
+        Class in which any velocities should be represented. If equal to ‘base’
+        (default), inferred from the base class.If `None`, all velocity
+        information is dropped.
 
     Returns
     -------
@@ -215,8 +222,7 @@ def deep_transform_to(
         Transformed to ``frame`` and ``representation_type``.
     """
     c: CoordinateType = crd.transform_to(frame)
-    r: _RT = c.represent_as(representation_type)
-    # TODO! differential_type
+    r: _RT = c.represent_as(representation_type, s=differential_type)  # type: ignore
 
     data = cast(
         _FT,
@@ -261,14 +267,14 @@ def position_angle(lon1: ndarray, lat1: ndarray, lon2: float, lat2: float) -> nd
     x = sin(lat2) * cos(lat1) - colat * sin(lat1) * cos(deltalon)
     y = sin(deltalon) * colat
 
-    return arctan2(y, x)
+    pa: ndarray = arctan2(y, x)
+    return pa
 
 
 def offset_by(
     lon: ndarray, lat: ndarray, posang: ndarray, distance: ndarray
 ) -> Tuple[ndarray, ndarray]:
-    """
-    Point with the given offset from the given point.
+    """Point with the given offset from the given point.
 
     Parameters
     ----------
@@ -283,14 +289,11 @@ def offset_by(
         The position of the final point.  If any of the angles are arrays,
         these will contain arrays following the appropriate `numpy` broadcasting rules.
         0 <= lon < 2pi.
-    """
-    # Calculations are done using the spherical trigonometry sine and cosine rules
-    # of the triangle A at North Pole,   B at starting point,   C at final point
-    # with angles  A (change in lon), B (posang),     C (not used, but negative reciprocal posang)
-    # with sides      a (distance),      b (final co-latitude), c (starting colatitude)
-    # B, a, c are knowns; A and b are unknowns
-    # https://en.wikipedia.org/wiki/Spherical_trigonometry
 
+    Notes
+    -----
+    See :mod:`astropy` implementation.
+    """
     cos_a = cos(distance)
     sin_a = sin(distance)
     cos_c = sin(lat)

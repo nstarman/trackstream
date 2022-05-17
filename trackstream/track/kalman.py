@@ -19,8 +19,9 @@ from astropy.coordinates import CartesianRepresentation, SkyCoord, UnitSpherical
 from astropy.coordinates import UnitSphericalRepresentation
 from astropy.units import Quantity, StructuredUnit
 from astropy.utils.misc import indent
-from numpy import array, atleast_2d, concatenate, convolve, cumsum, diagonal, diff, dot, dtype
-from numpy import empty, eye, insert, linalg, ndarray, ones, shape, sqrt, zeros
+from numpy import arccos, arctan2, array, atleast_2d, concatenate, convolve, cos, cumsum, diagonal
+from numpy import diff, dot, dtype, empty, eye, insert, linalg, ndarray, ones, pi, shape, sign, sin
+from numpy import sqrt, zeros
 from numpy.lib.recfunctions import merge_arrays, structured_to_unstructured
 from scipy.linalg import block_diag
 
@@ -138,17 +139,17 @@ def make_H(ndims: int) -> ndarray:
     return H
 
 
-def make_R(data: ndarray) -> ndarray:
-    """Make R Matrix.
+def make_R(data: ndarray, /) -> ndarray:
+    """Make measurement noise covariance matrix from errors.
 
     Parameters
     ----------
-    data : ndarray
-        (len(data), dim_x)
+    data : (N, D) ndarray, positional-only
+        Rows are the 1-sigma uncorrelated gaussian errors.
 
     Returns
     -------
-    R : `~numpy.ndarray`
+    R : (N, D, D) ndarray
         Diagonal array (data.shape[0], data.shape[1], data.shape[1])
         With each diagonal along axis 0 being a row from `data`.
 
@@ -158,7 +159,7 @@ def make_R(data: ndarray) -> ndarray:
 
     R = zeros((n, dim_x, dim_x))
     for i in range(dim_x):
-        R[:, i, i] = data[:, i]
+        R[:, i, i] = data[:, i] ** 2
 
     return R
 
@@ -171,7 +172,7 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
 
     Parameters
     ----------
-    x0 : (D,) CartesianRepresentation
+    x0 : (D,) BaseRepresentation
         Initial position.
     P0 : (2D, 2D) ndarray
         Initial covariance. Must be in the same coordinate representation
@@ -195,7 +196,6 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
     _P0: ndarray
     _H: ndarray
     _Q0: Optional[ndarray]
-    _R0: ndarray
 
     _process_noise_model: Callable[..., ndarray]
 
@@ -206,7 +206,7 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
 
     def __init__(
         self,
-        x0: CartesianRepresentation,  # TODO! as SkyCoord
+        x0: BaseRepresentation,
         P0: ndarray,
         *,
         onsky: bool,
@@ -214,7 +214,6 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         frame: BaseCoordinateFrame,
         kfv0: Optional[ndarray] = None,
         Q0: Union[None, ndarray, Callable[..., ndarray]] = None,
-        R0: ndarray,
         **options: Any,
     ) -> None:
         representation_type = UnitSphericalRepresentation if onsky else CartesianRepresentation
@@ -253,7 +252,6 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         self._P0 = P0
         self._H = make_H(ndims=ndims)
         self._Q0 = Q0 if not callable(Q0) else None
-        self._R0 = R0  # TODO! make function
 
         # functions
         setattr(self, "_process_noise_model", Q0 if callable(Q0) else make_Q)
@@ -270,10 +268,12 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
 
     @property
     def onsky(self) -> bool:
+        """Whether to fit on-sky or 3d."""
         return self._onsky
 
     @property
     def kinematics(self) -> bool:
+        """Whether to fit the kinematics also."""
         return self._kinematics
 
     @property
@@ -297,10 +297,6 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
     @property
     def Q0(self) -> Optional[ndarray]:
         return self._Q0
-
-    @property
-    def R0(self) -> ndarray:
-        return self._R0
 
     @property
     def H(self) -> ndarray:
@@ -327,7 +323,7 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         # make single block of F matrix
         # [[position to position, position from velocity]
         #  [velocity from position, velocity to velocity]]
-        f = array([[1, dt], [0, 1.0]])
+        f = array([[1.0, dt], [0, 1.0]])
         # F block-diagonal array
         F: ndarray = block_diag(*([f] * ndims))
         return F
@@ -364,7 +360,7 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
 
     @property
     def units(self) -> StructuredUnit:
-        """"""
+        """Units of the coordinates."""
         return self._units
 
     def _crd_to_q(self, data: Union[CoordinateType, BaseRepresentation], /) -> Quantity:
@@ -386,9 +382,13 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
             )
         else:
             crd = data.transform_to(self.frame)
-            rep = crd.represent_as(self.representation_type, s=self.differential_type)  # type: ignore
+            rep = crd.represent_as(
+                self.representation_type,
+                s=self.differential_type,  # type: ignore
+            )
         rv = rep._values
         units = {n: getattr(rep, n).unit for n in rv.dtype.names}
+        # TODO! enforce rad if onsky
 
         # Differentials (optional)
         if self.kinematics:
@@ -527,9 +527,6 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         # 5) Q0
         r += "\n  Q0: " + indent(str(self.Q0), width=6).lstrip()
 
-        # 5) R0
-        r += "\n  R0: " + indent(str(self.R0), width=6).lstrip()
-
         # 6) H
         r += "\n  H : " + indent(str(self.H), width=6).lstrip()
 
@@ -538,10 +535,12 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
     #######################################################
     # Math (2 phase + smoothing)
 
-    def _math_predict(
-        self, x: ndarray, P: ndarray, F: ndarray, Q: ndarray, **kw: Any
+    def _math_predict_and_update(
+        self, x: ndarray, P: ndarray, F: ndarray, Q: ndarray, z: ndarray, R: ndarray, oz: ndarray
     ) -> Tuple[ndarray, ndarray]:
-        """Predict prior using Kalman filter transition functions.
+        """
+        Predict prior using Kalman filter transition functions.
+        Then add a new measurement to the Kalman filter.
 
         Parameters
         ----------
@@ -553,6 +552,12 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
             Transition matrix.
         Q : ndarray, optional
             Process noise matrix. Gets added to covariance matrix.
+        z : (D, 1) ndarray
+            Measurement.
+        R : (D, D) ndarray
+            Measurement noise matrix.
+        oz: (D, 1) ndarray
+            Previous measurement.
 
         Returns
         -------
@@ -561,81 +566,57 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         P : ndarray
             Prior covariance matrix. The 'predicted' covariance.
         """
-        # predict position (not including control matrix)
+        # -------------------
+        # Prior Prediction
+
+        # if i >= 1006:
+        #     import pdb; pdb.set_trace()
+
+        # predict position (not including a control matrix)
         x = dot(F, x)
+
         # & covariance matrix
         P = dot(dot(F, P), F.T) + Q
 
-        return x, P
+        # -------------------
+        # Posterior
 
-    def _math_update(
-        self, z: ndarray, x: ndarray, P: ndarray, R: ndarray, H: ndarray, **kw: Any
-    ) -> Tuple[ndarray, ndarray]:
-        """Add a new measurement to the Kalman filter.
+        S = dot(dot(self._H, P), self._H.T) + R  # system uncertainty in measurement space
+        K = dot(dot(P, self._H.T), linalg.inv(S))  # Kalman gain
 
-        Implemented to be compatible with :mod:`filterpy`.
-
-        Parameters
-        ----------
-        z : (D, 1) ndarray
-            Measurement.
-        x : (2D, 1) ndarray
-            State estimate vector.
-        P : (2D, 2D) ndarray
-            Covariance matrix.
-        R : (D, D) ndarray
-            Measurement noise matrix
-        H : (2D, 2D) ndarray
-            Measurement function.
-
-        **kw : Any
-            Absorbs extra arguments for ``filterpy`` compatibility.
-
-        Returns
-        -------
-        x : (2D, 1) ndarray
-            Posterior state estimate.
-        P : (2D, 2D) ndarray
-            Posterior covariance matrix.
-        residual : (2D, 1) ndarray
-            Residual between measurement and prediction
-        K : (D, D) ndarray
-            Kalman gain
-        S : (D, D) ndarray
-            System uncertainty in measurement space.
-        log_lik : (D, D) ndarray
-            Log-likelihood. A multivariate normal.
-        """
-        S = dot(dot(H, P), H.T) + R  # system uncertainty in measurement space
-        K = dot(dot(P, H.T), linalg.inv(S))  # Kalman gain
-
-        predict = dot(H, x)  # prediction in measurement space
+        predict = dot(self._H, x)  # prediction in measurement space
         residual = z - predict  # measurement and prediction residual
+
+        if self.onsky:  # unwrap to keep x close to z
+            # first coordinate is always the longitude
+            deltalon = z[0] - x[0]
+            pa = arctan2(sin(deltalon), 0)  # position angle
+            residual[0] = sign(pa) * arccos(cos(deltalon))
+
+            # TODO! similar for latitude
 
         x = x + dot(K, residual)  # predict new x using Kalman gain
 
-        KH = dot(K, H)
+        if self.onsky:  # need to correct for phase-wrap
+            # first coordinate is always the longitude
+            # keeps in (-180, 180) deg
+            x[0] += 2 * pi if (x[0] < -pi) else 0
+            x[0] -= 2 * pi if (x[0] >= pi) else 0
+            # todo! similar unwrapping of the latitude
+
+        KH = dot(K, self._H)
         ImKH = self._I - KH
-        # stable representation from Filterpy
+        # stable representation using Joseph equation (from Filterpy)
         # P = (1 - KH)P(1 - KH)' + KRK'
         P = dot(dot(ImKH, P), ImKH.T) + dot(dot(K, R), K.T)
 
-        # # log-likelihood
-        # from scipy.stats import multivariate_normal
-        # log_lik = multivariate_normal.logpdf(
-        #     z.flatten(),
-        #     mean=dot(H, x).flatten(),
-        #     cov=S,
-        #     allow_singular=True,
-        # )
-
-        return x, P  # , residual, K, S, log_lik
+        return x, P
 
     def _rts_smoother(
         self,
+        dts: ndarray,
         Xs: ndarray,
         Ps: ndarray,
-        Fs: Union[Sequence[ndarray], ndarray],
         Qs: Union[Sequence[ndarray], ndarray],
     ) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
         """Run Rauch-Tung-Striebel Kalman smoother on Kalman filter series.
@@ -669,24 +650,33 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         x = deepcopy(Xs)
         P = deepcopy(Ps)
         P_pred = deepcopy(Ps)
-        Fs = deepcopy(Fs)
         Qs = deepcopy(Qs)
 
         # Initialize parameters
-        n, dim_x = Xs.shape
-        K = zeros((n, dim_x, dim_x))
+        n, dims_x = Xs.shape
+        ndims = dims_x // 2
+        K = zeros((n, dims_x, dims_x))
 
         # Iterate through, running Kalman system again.
         for i in reversed(range(n - 1)):  # [n-2, ..., 0]
+            F = self.state_transition_model(dts[i], ndims=ndims)
+            # TODO? have F as a pre-computed array
+
             # prediction
-            P_pred[i] = dot(dot(Fs[i], P[i]), Fs[i].T) + Qs[i]
+            P_pred[i] = dot(dot(F, P[i]), F.T) + Qs[i]
             # Kalman gain
-            K[i] = dot(dot(P[i], Fs[i].T), linalg.inv(P_pred[i]))
+            K[i] = dot(dot(P[i], F.T), linalg.inv(P_pred[i]))
 
             # update position and covariance
-            x_prior = dot(Fs[i], x[i])
+            x_prior = dot(F, x[i])
             x[i] = x[i] + dot(K[i], (x[i + 1] - x_prior))
             P[i] = P[i] + dot(dot(K[i], P[i + 1] - P_pred[i]), K[i].T)
+
+            if self.onsky:  # need to correct for phase-wrap
+                # first coordinate is always the longitude
+                # keeps in (-180, 180) deg
+                x[i][0] += 2 * pi if (x[i][0] < -pi) else 0
+                x[i][0] -= 2 * pi if (x[i][0] >= pi) else 0
 
         return x, P, K, P_pred
 
@@ -694,7 +684,7 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
     # Fit
 
     def fit(
-        self, data: SkyCoord, /, timesteps: ndarray, **kwargs: Any
+        self, data: SkyCoord, errors: Union[ndarray, Quantity], /, timesteps: ndarray, **kwargs: Any
     ) -> Tuple[Path, kalman_output]:
         """Run Kalman Filter with updates on each step.
 
@@ -721,25 +711,33 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         dts = diff(timesteps)
         if len(dts) != len(data):
             raise ValueError(f"len(timesteps)={len(timesteps)} is not {len(data)+1}")
+        elif any(dts < 0):
+            raise ValueError("timesteps must be >= 0")
 
         path_name = kwargs.pop("name", None)
 
         # Get Z, in correct units.
         Zs = self._crd_to_v(data)
+        num_z = len(Zs)
 
-        # starting points
+        # TODO! it would be great to be able to transform errors
+        # as well
+        Rs = errors
+
+        # ------ IC (i-1) ------
+
+        # KF
         x, P = self.x0, self.P0
-        R = self.R0  # TODO! make function of data point!
-
         ndims = len(x) // 2
-        F = self.state_transition_model(dts[0], ndims=ndims)
-        Q = self.process_noise_model(dts[0], ndims=ndims) if self.Q0 is None else self.Q0
+        Q = self.process_noise_model(dts[0], ndims=ndims) if self.Q0 is None else self.Q0  # FIXME!
 
-        n = len(Zs)
+        # Data
+        oz = self.x0  # i-1 'data' is KF starting point
+
         # initialize arrays
-        Xs = empty((n, *shape(x)))
-        Ps = empty((n, *shape(P)))
-        Qs = empty((n, *shape(Q)))
+        Xs = empty((num_z, *shape(x)))
+        Ps = empty((num_z, *shape(P)))
+        Qs = empty((num_z, *shape(Q)))
 
         q_kw = {**self.options.get("q_kw", {}), **kwargs}  # copy
 
@@ -747,14 +745,13 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         # iterate predict & update steps
         z: ndarray
         dt: float
-        for i, (z, dt) in enumerate(zip(Zs, dts)):
-            # F, Q
+        for i, (z, R, dt) in enumerate(zip(Zs, Rs, dts)):
+            # F_(i-1, i)
             F = self.state_transition_model(dt, ndims=ndims)
             Q = self.process_noise_model(dt, ndims=ndims, **q_kw)
 
             # predict & update
-            x, P = self._math_predict(x=x, P=P, F=F, Q=Q)
-            x, P = self._math_update(x=x, P=P, z=z, R=R, H=self._H)
+            x, P = self._math_predict_and_update(x=x, P=P, F=F, Q=Q, z=z, R=R, oz=oz)
 
             # append results
             Xs[i], Ps[i] = x, P
@@ -763,13 +760,12 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         # save
         self.__result = kalman_output(timesteps, Xs, Ps, Qs)
 
-        # FIXME!
         # smoothed
         try:
-            xs, Ps, _, Qs = self._rts_smoother(Xs, Ps, Fs, Qs)
+            xs, Ps, _, Qs = self._rts_smoother(dts, Xs, Ps, Qs)
         except Exception as e:
-            print("FIXME!", str(e))
-            smooth = self.__result
+            print("can't smooth", str(e))
+            self.__smooth_result = smooth = self.__result
         else:
             smooth = kalman_output(timesteps, xs, Ps, Qs)
             self.__smooth_result = smooth
@@ -827,7 +823,13 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         return self._path(affine)
 
     def fit_predict(
-        self, affine: Quantity, data: SkyCoord, /, timesteps: ndarray, **kwargs: Any
+        self,
+        affine: Quantity,
+        data: SkyCoord,
+        errors: Union[ndarray, Quantity],
+        /,
+        timesteps: ndarray,
+        **kwargs: Any,
     ) -> path_moments:
-        self.fit(data, timesteps=timesteps, **kwargs)
+        self.fit(data, errors, timesteps=timesteps, **kwargs)
         return self.predict(affine)

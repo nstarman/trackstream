@@ -23,17 +23,15 @@ from astropy.utils.metadata import MetaData, merge
 from astropy.utils.misc import indent
 from interpolated_coordinates import InterpolatedCoordinateFrame, InterpolatedSkyCoord
 from interpolated_coordinates.utils import InterpolatedUnivariateSplinewithUnits as IUSU
-from matplotlib.pyplot import Axes
 from numpy import abs, arctan2, atleast_1d, concatenate, dtype, zeros
 from numpy.lib.recfunctions import recursive_fill_fields
 from scipy.optimize import OptimizeResult, minimize_scalar
 
 # LOCAL
-from .plot import plot_cov
-from trackstream._type_hints import CoordinateType, FrameLikeType
+from trackstream._type_hints import CoordinateLikeType, CoordinateType
 from trackstream.base import CommonBase
 from trackstream.utils.misc import is_structured
-from trackstream.visualization import CLike, PlotDescriptorBase
+from trackstream.visualization import PlotDescriptorBase
 
 ##############################################################################
 # PARAMETERS
@@ -51,35 +49,6 @@ class path_moments(NamedTuple):
 
 class PathPlotter(PlotDescriptorBase["Path"]):
     """Plot descriptor for a Path."""
-
-    def in_path_frame(
-        self,
-        affine: Optional[Quantity] = None,
-        *,
-        c: CLike = "tab:blue",
-        ax: Optional[Axes] = None,
-        format_ax: bool = False,
-        **kwargs: Any,
-    ) -> Axes:
-        path, _ax, *_ = self._setup(ax)
-        kw = self._get_kw(kwargs, label=path.name)
-
-        data = path.position(affine=affine)
-        width = path.width(affine=affine)  # TODO! width_angular
-
-        for i, w in enumerate(width):
-            plot_cov((data.lon[i], data.lat[i]), std=w, facecolor="gray", alpha=0.5)
-
-        _ax.fill_between(data.lon, data.lat - width["lat"], data.lat + width["lat"])
-        _ax.plot(data.lon, data.lat, **kw)
-
-        if format_ax:  # Axes settings
-            _ax.set_xlabel(f"Lon (Stream) [{_ax.get_xlabel()}]", fontsize=13)
-            _ax.set_ylabel(f"Lat (Stream) [{_ax.get_ylabel()}]", fontsize=13)
-            _ax.grid(True)
-            _ax.legend()
-
-        return _ax
 
 
 class Path(CommonBase):
@@ -158,7 +127,7 @@ class Path(CommonBase):
         *,
         name: Optional[str] = None,
         affine: Optional[Quantity] = None,
-        frame: Optional[FrameLikeType] = None,
+        frame: Optional[CoordinateLikeType] = None,
         representation_type: Optional[Type[BaseRepresentation]] = None,
         meta: Optional[dict] = None,
     ) -> None:
@@ -327,6 +296,9 @@ class Path(CommonBase):
         r += "\n" + indent(repr(self.data), width=2)
 
         return r
+
+    def __len__(self) -> int:
+        return len(self.data)
 
     #################################################################
     # Math on the Track!

@@ -8,7 +8,7 @@ from typing import Optional, Tuple, Type, cast
 from astropy.coordinates import BaseCoordinateFrame, BaseDifferential, BaseRepresentation
 
 # LOCAL
-from trackstream._type_hints import FrameLikeType
+from trackstream._type_hints import CoordinateLikeType
 from trackstream.utils import resolve_framelike
 
 
@@ -29,7 +29,7 @@ class CommonBase(metaclass=ABCMeta):
     def __init__(
         self,
         *,
-        frame: FrameLikeType,
+        frame: CoordinateLikeType,
         representation_type: Optional[Type[BaseRepresentation]] = None,
         differential_type: Optional[Type[BaseDifferential]] = None
     ) -> None:

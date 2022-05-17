@@ -18,13 +18,13 @@ from astropy.coordinates import BaseCoordinateFrame, SkyCoord, UnitSphericalRepr
 from astropy.table import QTable, Table
 from astropy.units import Quantity
 from astropy.utils.misc import indent
-from numpy import arange, concatenate, empty, nonzero, zeros
+from numpy import concatenate, empty, nonzero
 
 # LOCAL
 from .arm import StreamArmDescriptor
 from .base import StreamBase, StreamBasePlotDescriptor
 from .utils import StreamDataNormalizer
-from trackstream._type_hints import FrameLikeType
+from trackstream._type_hints import CoordinateLikeType
 from trackstream.track import StreamTrack, TrackStream
 from trackstream.utils.coord_utils import resolve_framelike
 
@@ -103,7 +103,7 @@ class Stream(StreamBase):
         origin: SkyCoord,
         data_err: Optional[Table] = None,
         *,
-        frame: Optional[FrameLikeType] = None,
+        frame: Optional[CoordinateLikeType] = None,
         name: Optional[str] = None,
         fitter: Optional[TrackStream] = None,
     ) -> None:
@@ -166,7 +166,7 @@ class Stream(StreamBase):
         onsky: bool = data_onsky and origin_onsky
         return not onsky
 
-    @property
+    @cached_property
     def has_kinematics(self) -> bool:
         return "s" in self.data_coords.data.differentials
 

@@ -30,7 +30,7 @@ from galpy import potential
 from galpy.orbit import Orbit
 
 # LOCAL
-from trackstream._type_hints import FrameLikeType, RepresentationLikeType, UnitType
+from trackstream._type_hints import CoordinateLikeType, RepresentationLikeType, UnitType
 from trackstream.utils.misc import make_shuffler
 
 ##############################################################################
@@ -76,7 +76,7 @@ def make_ordered_orbit_data(
     stop: float = stop,
     num: int = num,
     unit: UnitType = unit,
-    frame: FrameLikeType = "galactocentric",
+    frame: CoordinateLikeType = "galactocentric",
     representation_type: RepresentationLikeType = "cartesian",
 ) -> SkyCoord:
     """Make Ordered Orbit Data.
@@ -108,7 +108,7 @@ def make_unordered_orbit_data(
     stop: float = stop,
     num: int = num,
     unit: UnitType = unit,
-    frame: FrameLikeType = "galactocentric",
+    frame: CoordinateLikeType = "galactocentric",
     representation_type: RepresentationLikeType = "cartesian",
 ) -> SkyCoord:
     """Make Ordered Orbit Data.
@@ -146,7 +146,7 @@ def make_noisy_orbit_data(
     num: int = num,
     sigma: Optional[Dict[str, Quantity]] = None,
     unit: UnitType = unit,
-    frame: FrameLikeType = "galactocentric",
+    frame: CoordinateLikeType = "galactocentric",
     representation_type: RepresentationLikeType = "cartesian",
     rnd: Union[int, np.random.Generator, None] = None,
 ) -> SkyCoord:

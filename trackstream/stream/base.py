@@ -14,13 +14,14 @@ from typing import Any, List, Optional, TypeVar, cast
 # THIRD PARTY
 from astropy.coordinates import BaseCoordinateFrame, SkyCoord, UnitSphericalRepresentation
 from astropy.table import QTable
+from astropy.utils.decorators import format_doc
 from astropy.utils.misc import indent
 from astropy.visualization import quantity_support
 from matplotlib.pyplot import Axes
 
 # LOCAL
 from trackstream.utils.misc import abstract_attribute
-from trackstream.visualization import CLike, StreamPlotDescriptorBase
+from trackstream.visualization import _DS, CLike, DKindT, StreamPlotDescriptorBase, _DSf
 
 __all__: List[str] = []
 
@@ -44,27 +45,35 @@ StreamBaseT = TypeVar("StreamBaseT", bound="StreamBase")
 class StreamBasePlotDescriptor(StreamPlotDescriptorBase[StreamBaseT]):
     """Plot methods for `trackstream.stream.base.StreamBase` objects."""
 
-    def in_icrs_frame(
+    @format_doc(None, frame=_DSf["frame"](3), DKindT=_DS["DKindT"], dkind_ds=_DS["dkind_ds"])
+    def in_frame(
         self,
+        frame: str = "ICRS",
+        kind: DKindT = "positions",
         *,
-        c: CLike = "tab:blue",
         plot_origin: bool = True,
         ax: Optional[Axes] = None,
         format_ax: bool = True,
+        c: CLike = "tab:blue",
         **kwargs: Any,
     ) -> Axes:
         """Plot stream in an |ICRS| frame.
 
         Parameters
         ----------
-        c : str or array-like[float], optional
-            The color or sequence thereof, by default "tab:blue"
-        plot_origin : bool, optional
+        frame : |Frame| or str, optional
+            {frame}
+        kind : {DKindT}, optional
+            {dkind_ds}
+
+        plot_origin : bool, optional keyword-only
             Whether to plot the origin, by default True
-        ax : Optional[|Axes|], optional
+        c : str or array-like[float], optional keyword-only
+            The color or sequence thereof, by default "tab:blue"
+        ax : Optional[|Axes|], optional keyword-only
             Matplotlib |Axes|, by default None
-        format_ax : bool, optional
-            Whether to add the axes labels and info, by default True
+        format_ax : bool, optional keyword-only
+            Whether to add the axes labels and info, by default `True`.
 
         Returns
         -------
@@ -72,45 +81,10 @@ class StreamBasePlotDescriptor(StreamPlotDescriptorBase[StreamBaseT]):
         """
         stream, _ax, *_ = self._setup(ax)
 
-        super().in_icrs_frame(c=c, ax=_ax, format_ax=format_ax, **kwargs)
+        super().in_frame(frame=frame, kind=kind, c=c, ax=_ax, format_ax=format_ax, **kwargs)
 
         if plot_origin:
-            self.origin_label_lonlat(stream.origin.icrs, ax=_ax)
-
-        return _ax
-
-    def in_stream_frame(
-        self,
-        *,
-        plot_origin: bool = False,
-        c: CLike = "tab:blue",
-        ax: Optional[Axes] = None,
-        format_ax: bool = False,
-        **kwargs: Any,
-    ) -> Axes:
-        """Plot stream in a stream frame.
-
-        Parameters
-        ----------
-        c : str or array-like[float], optional
-            The color or sequence thereof, by default "tab:blue"
-        plot_origin : bool, optional
-            Whether to plot the origin, by default True
-        ax : Optional[|Axes|], optional
-            Matplotlib |Axes|, by default None
-        format_ax : bool, optional
-            Whether to add the axes labels and info, by default True
-
-        Returns
-        -------
-        |Axes|
-        """
-        stream, _ax = self._setup(ax)
-
-        super().in_stream_frame(c=c, ax=_ax, format_ax=format_ax, **kwargs)
-
-        if plot_origin:
-            self.origin_label_lonlat(stream.origin.transform_to(stream.frame), ax=_ax)
+            self.origin(stream.origin, frame=frame, kind=kind, ax=_ax, format_ax=format_ax)
 
         return _ax
 

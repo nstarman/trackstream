@@ -27,19 +27,16 @@ __credits__ = ["emcee"]
 ##############################################################################
 
 
-class _NoOpPBar(object):
+class _NoOpPBar:
     """This class implements the progress bar interface but does nothing."""
 
-    def __init__(self) -> None:
-        pass
-
-    def __enter__(self, *args: Any, **kwargs: Any) -> _NoOpPBar:
+    def __enter__(self, *_: Any, **__: Any) -> _NoOpPBar:
         return self
 
-    def __exit__(self, *args: Any, **kwargs: Any) -> None:
+    def __exit__(self, *_: Any, **__: Any) -> None:
         pass
 
-    def update(self, count: int) -> None:
+    def update(self, _: int) -> None:
         pass
 
 

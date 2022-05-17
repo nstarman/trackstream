@@ -119,13 +119,6 @@ plot_rcparams["figure.subplot.hspace"] = 0.5  # type: ignore
 plot_apply_rcparams = True
 plot_include_source = False
 plot_html_show_source_link = True
-# plot_pre_code = """# Executed before each plot.  # TODO
-# import astropy.units as u
-# import astropy.coordinates as coord
-# import matplotlib.pyplot as plt
-# import numpy as np
-# """
-# plot_rcparams  # TODO
 
 
 # Bibtex

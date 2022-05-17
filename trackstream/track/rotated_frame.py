@@ -28,7 +28,7 @@ from numpy import abs, array, average, column_stack, dot, linspace, median, ndar
 from numpy import sum
 
 # LOCAL
-from trackstream._type_hints import EllipsisType, FrameLikeType
+from trackstream._type_hints import CoordinateLikeType, EllipsisType
 from trackstream.base import CommonBase
 from trackstream.utils.coord_utils import reference_to_skyoffset_matrix
 from trackstream.visualization import PlotDescriptorBase
@@ -191,7 +191,7 @@ class RotatedFrameFitter(CommonBase):
         self,
         origin: SkyCoord,
         *,
-        frame: Optional[FrameLikeType] = None,
+        frame: Optional[CoordinateLikeType] = None,
         representation_type: Optional[Type[BaseRepresentation]] = None,
         **kwargs: Any,
     ) -> None:
@@ -491,7 +491,9 @@ class FrameFitterPlotDescriptor(PlotDescriptorBase["FrameOptimizeResult"]):
         _ax.scatter(rotation_angles, res)
 
         # Plot the best-fit rotation
-        _ax.axvline(fr.rotation.value, c="k", ls="--", label="best-fit rotation")
+        _ax.axvline(
+            fr.rotation.value, c="k", ls="--", label=f"best-fit rotation = {fr.rotation:.2}"
+        )
         # and the next period
         next_period = 180 if (fr.rotation.value - 180) < rotation_angles.min() else -180
         _ax.axvline(fr.rotation.value + next_period, c="k", ls="--", alpha=0.5)

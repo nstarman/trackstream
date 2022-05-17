@@ -11,7 +11,7 @@ __all__ = [
     "FullPathLike",
     "ArrayLike",
     "CoordinateType",
-    "FrameLikeType",
+    "CoordinateLikeType",
     # units
     "UnitType",
     "UnitLikeType",
@@ -28,9 +28,10 @@ import os
 from typing import Union
 
 # THIRD PARTY
-import astropy.coordinates as coord
+# THIRD PARTY\
 import astropy.units as u
 import numpy as np
+from astropy.coordinates import BaseCoordinateFrame, BaseRepresentation, SkyCoord
 
 ##############################################################################
 # TYPES
@@ -50,13 +51,16 @@ ArrayLike = Union[float, np.ndarray]  # np.generic isn't compatible
 # -------------------------------------
 # Astropy types
 
-RepresentationLikeType = Union[coord.BaseRepresentation, str]
+RepresentationLikeType = Union[BaseRepresentation, str]
 
-CoordinateType = Union[coord.BaseCoordinateFrame, coord.SkyCoord]
+CoordinateType = Union[BaseCoordinateFrame, SkyCoord]
 """|Frame| or |SkyCoord|"""
 
-FrameLikeType = Union[CoordinateType, str]
+CoordinateLikeType = Union[CoordinateType, str]
 """|Frame| or |SkyCoord| or `str`"""
+
+FrameLikeType = Union[BaseCoordinateFrame, str]
+"""|Frame| or str"""
 
 UnitType = Union[u.Unit, u.IrreducibleUnit, u.UnitBase, u.FunctionUnitBase]
 """|Unit| or :class:`~astropy.units.FunctionUnitBase`"""

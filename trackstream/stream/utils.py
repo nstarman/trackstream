@@ -18,6 +18,7 @@ from astropy.table import QTable, Table
 from numpy import arange, ones
 
 # LOCAL
+from trackstream.utils.coord_utils import deep_transform_to
 from trackstream.utils.descriptors import InstanceDescriptor
 
 if TYPE_CHECKING:
@@ -45,7 +46,7 @@ class StreamDataNormalizer(InstanceDescriptor[StreamT]):
         Run the normalizer.
     """
 
-    def __get__(self, obj: StreamT, _: Optional[Type[StreamT]]) -> StreamDataNormalizer:
+    def __get__(self, obj: Optional[StreamT], _: Optional[Type[StreamT]]) -> StreamDataNormalizer:
         if obj is None:
             raise AttributeError(f"{type(self).__name__} can only be called from an instance")
 
@@ -59,7 +60,9 @@ class StreamDataNormalizer(InstanceDescriptor[StreamT]):
         Parameters
         ----------
         original : |Table|
+            The table of data.
         original_err : |Table| or None
+            A table of the errors.
 
         Returns
         -------
@@ -187,20 +190,18 @@ class StreamDataNormalizer(InstanceDescriptor[StreamT]):
         # add coordinates to stream
         stream._original_coord = osc
 
-        # get the backup frame & representation type
-        osc_frame = osc.frame.replicate_without_data()
-        osc_frame.representation_type = osc.representation_type
-
-        # Convert frame and representation type
-        frame = stream.system_frame if stream.system_frame is not None else osc_frame
-        sc = osc.transform_to(frame)
-        sc.representation_type = frame.representation_type
+        if stream.system_frame is None:  # no new frame
+            sc = osc
+        else:
+            sc = deep_transform_to(
+                osc,
+                stream.system_frame,
+                stream.system_frame.representation_type,
+                stream.system_frame.differential_type,
+            )
 
         # it's now clean and can be added
         out["coord"] = sc
-
-        # Also store the components
-        component_names = list(sc.get_representation_component_names("base").keys())
 
         # ----------
         # 2) the error
@@ -210,14 +211,22 @@ class StreamDataNormalizer(InstanceDescriptor[StreamT]):
         # gc.transform_pm_cov(sc.icrs, repeat(cov[None, :], len(sc), axis=0),
         #                     coord.Galactic())
 
+        # Also store the components
+        component_names = list(sc.get_representation_component_names("base").keys())
+        if "s" in sc.data.differentials:  # detect kinematics
+            component_names += list(sc.get_representation_component_names("s").keys())
+
         # the error is stored on either the original data table, or in a separate table.
         orig_err = original if original_err is None else original_err
         # Iterate over the components, getting the error
         n: str
         for n in component_names:
             dn: str = n + "_err"  # error component name
-            # either get the error, or set it to zero.
-            out[dn] = orig_err[dn] if dn in orig_err.colnames else 0 * getattr(sc, n)
+            # either transfer the error, or set to zero.
+            if dn in orig_err.colnames:
+                out[dn] = orig_err[dn]
+            else:
+                out[dn] = 0 * getattr(sc, n)  # (get correct units)
 
     def _data_arm_index(self, original: Table, *, out: QTable) -> None:
         """Data probability. Units of percent. Default is 100%.
