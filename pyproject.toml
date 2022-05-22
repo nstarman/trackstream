@@ -121,6 +121,14 @@ warn_unused_configs = true
 warn_unreachable = true
 exclude = '''(^|/)tests/'''
 
+  [[tool.mypy.overrides]]
+    module = "*/tests/*"
+    ignore_errors = true
+
+  [[tool.mypy.overrides]]
+    module = "docs/*"
+    ignore_errors = true
+
 [tool.pytest.ini_options]
 testpaths = [
     "src/trackstream",
