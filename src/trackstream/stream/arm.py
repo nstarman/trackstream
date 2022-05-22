@@ -61,7 +61,7 @@ class StreamArmDescriptor(InstanceDescriptor["Stream"], StreamBase):
         # e.g. arm1 -> ["arm", "1"]
         return " ".join(attr_name)
 
-    @cached_property
+    @property
     def full_name(self) -> str:
         """Full name of the stream arm, including the parent name."""
         parent_name: str = pn if isinstance(pn := self._enclosing.name, str) else "Stream"

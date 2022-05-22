@@ -61,6 +61,7 @@ docs = [
   "IPython",
   "jupyter_client",
   "nbsphinx",
+  "palettable",
   "sphinx",
   "sphinx-astropy",
   "sphinxcontrib.bibtex < 2.0.0",
