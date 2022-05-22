@@ -42,8 +42,8 @@ def test_get_progress_bar_():
     pbar = get_progress_bar(display=True, total=100)
     assert isinstance(pbar, tqdm.tqdm)
 
-    pbar = get_progress_bar(display="gui", total=100)
-    assert isinstance(pbar, tqdm.tqdm_gui)
+    # pbar = get_progress_bar(display="gui", total=100)
+    # assert isinstance(pbar, tqdm.tqdm_gui)
 
 
 class Test_NoOpPBar:
