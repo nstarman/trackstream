@@ -21,6 +21,7 @@ from .test_base import StreamBaseTest
 from trackstream.stream.arm import StreamArmDescriptor
 from trackstream.stream.base import StreamBase
 from trackstream.stream.core import Stream
+from trackstream.stream.tests.test_arm import StreamArmTestMixin
 from trackstream.tests.helper import IbataEtAl2017  # noqa: F401
 from trackstream.track.fitter import TrackStream
 from trackstream.utils import resolve_framelike
@@ -32,122 +33,7 @@ S = TypeVar("S", bound=StreamBase)
 ##############################################################################
 
 
-class Arm1TestMixin:
-    @pytest.fixture(scope="class")
-    def arm1(self, stream: Stream) -> StreamArmDescriptor:
-        return stream.arm1
-
-    # ===============================================================
-
-    def test_arm1_full_stream(self, arm1, stream: S) -> None:
-        assert arm1.full_stream is stream
-
-    def test_arm1_name(self, arm1) -> None:
-        assert arm1.name == "arm 1"
-
-    def test_arm1_full_name(self, arm1, stream, name) -> None:
-        if name is None:
-            expected = "Stream, arm 1"
-        else:
-            expected = name + ", arm 1"
-
-        assert arm1.full_name == expected
-
-    def test_arm1_index(self, arm1, stream: S) -> None:
-        expected = stream.data["tail"] == "arm1"
-        assert all(arm1.index == expected)
-
-    def test_arm1_has_data(self, arm1, stream: S) -> None:
-        expected = any(stream.data["tail"] == "arm1")
-        assert arm1.has_data == expected
-
-    def test_arm1_data(self, arm1, stream: S) -> None:
-        if not stream.arm1.has_data:
-            with pytest.raises(Exception, match="no arm 1"):
-                arm1.data
-        else:
-            index = stream.data["tail"] == "arm1"
-            expected = stream.data[index]
-            assert all(arm1.data == expected)
-
-    def test_arm1_data_frame(self, arm1, stream: S) -> None:
-        assert arm1.data_frame is stream.data_frame
-
-    def test_arm1_frame(self, arm1, stream: S) -> None:
-        assert arm1.frame is stream.frame
-
-    def test_arm1_origin(self, arm1, stream: S) -> None:
-        assert arm1.origin == stream.origin
-
-    def test_arm1_coords(self, arm1, stream: S) -> None:
-        index = stream.data["tail"] == "arm1"
-        expected = stream.coords[index]
-        assert all(arm1.coords == expected)
-
-    def test_arm1_data_max_lines(self, arm1, stream: S) -> None:
-        assert arm1._data_max_lines is stream._data_max_lines
-
-
-class Arm2TestMixin:
-    @pytest.fixture(scope="class")
-    def arm2(self, stream) -> StreamArmDescriptor:
-        return stream.arm2
-
-    # ===============================================================
-
-    def test_arm2_full_stream(self, arm2, stream: S) -> None:
-        assert arm2.full_stream is stream
-
-    def test_arm2_name(self, arm2, name) -> None:
-        assert arm2.name == "arm 2"
-
-    def test_arm2_full_name(self, arm2, stream, name) -> None:
-        if name is None:
-            expected = "Stream, arm 2"
-        else:
-            expected = name + ", arm 2"
-
-        assert arm2.full_name == expected
-
-    def test_arm2_index(self, arm2, stream: S) -> None:
-        expected = stream.data["tail"] == "arm2"
-        assert all(arm2.index == expected)
-
-    def test_arm2_has_data(self, arm2, stream: S) -> None:
-        expected = any(stream.data["tail"] == "arm2")
-        assert arm2.has_data == expected
-
-    def test_arm2_data(self, arm2, stream: S) -> None:
-        if not stream.arm2.has_data:
-            with pytest.raises(Exception, match="no arm 1"):
-                arm2.data
-        else:
-            index = stream.data["tail"] == "arm2"
-            expected = stream.data[index]
-            assert all(arm2.data == expected)
-
-    def test_arm2_data_frame(self, arm2, stream: S) -> None:
-        assert arm2.data_frame is stream.data_frame
-
-    def test_arm2_frame(self, arm2, stream: S) -> None:
-        assert arm2.frame is stream.frame
-
-    def test_arm2_origin(self, arm2, stream: S) -> None:
-        assert arm2.origin == stream.origin
-
-    def test_arm2_coords(self, arm2, stream: S) -> None:
-        index = stream.data["tail"] == "arm2"
-        expected = stream.coords[index]
-        assert all(arm2.coords == expected)
-
-    def test_arm2_data_max_lines(self, arm2, stream: S) -> None:
-        assert arm2._data_max_lines is stream._data_max_lines
-
-
-##############################################################################
-
-
-class Test_Stream(StreamBaseTest, Arm1TestMixin, Arm2TestMixin):
+class Test_Stream(StreamBaseTest, StreamArmTestMixin):
     @pytest.fixture(scope="class")
     def stream_cls(self) -> Type[S]:
         """Stream class."""
@@ -228,6 +114,12 @@ class Test_Stream(StreamBaseTest, Arm1TestMixin, Arm2TestMixin):
     @pytest.fixture(scope="function")
     def tempstream_t(self, stream_t: S):
         return copy.deepcopy(stream_t)
+
+    # -----------------------------------------------------
+
+    @pytest.fixture(params=["arm1", "arm2"])
+    def arm(self, stream: Stream, request) -> StreamArmDescriptor:
+        return getattr(stream, request.param)
 
     # ===============================================================
     # StreamBase

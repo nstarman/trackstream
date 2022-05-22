@@ -10,6 +10,7 @@ __all__ = ["InstanceDescriptor", "TypedMetaAttribute"]
 # IMPORTS
 
 # STDLIB
+import sys
 import weakref
 from typing import Any, Generic, Optional, Type, TypeVar, Union, overload
 
@@ -50,8 +51,12 @@ class InstanceDescriptor(Generic[EnclType]):
     descriptor and ``__set_name__`` is not called.
     """
 
-    _enclosing_ref: Optional[weakref.ReferenceType[EnclType]]
-    """Reference to the enclosing instance."""
+    if sys.version_info >= (3, 9):
+        _enclosing_ref: Optional[weakref.ReferenceType[EnclType]]
+        """Reference to the enclosing instance."""
+    else:
+        _enclosing_ref: Optional[weakref.ReferenceType]
+        """Reference to the enclosing instance."""
 
     def __init__(self) -> None:
         # Setting these attributes here so they always exist, even if the class

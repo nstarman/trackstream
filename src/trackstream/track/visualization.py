@@ -782,10 +782,11 @@ class StreamTrackPlotDescriptor(StreamPlotDescriptorBase["StreamTrack"]):
         (5, 2) ndarray[|Axes|]
             The matplotlib figure axes.
         """
-        track, _, stream, *_ = self._setup(ax=None)
+        track, _, stream, *_ = self._setup(ax=False)
 
+        ncols = 2 if track.has_kinematics else 1
         figwidth = 16 if track.has_kinematics else 8
-        fig, axs = plt.subplots(5, 2, figsize=(figwidth, 12))
+        fig, axs = plt.subplots(5, ncols, figsize=(figwidth, 12))
         axs = cast(ndarray, axs)
 
         # Plot frame fit
