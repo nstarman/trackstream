@@ -15,12 +15,23 @@ from typing import Any, Dict, Type, cast
 # THIRD PARTY
 import astropy.units as u
 import pytest
-from astropy.coordinates import ICRS, Angle, BaseCoordinateFrame, BaseDifferential
-from astropy.coordinates import BaseRepresentation, CartesianDifferential, CartesianRepresentation
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import (
+    ICRS,
+    Angle,
+    BaseCoordinateFrame,
+    BaseDifferential,
+    BaseRepresentation,
+    CartesianDifferential,
+    CartesianRepresentation,
+    SkyCoord,
+)
 from astropy.units import Quantity
-from interpolated_coordinates import InterpolatedCoordinateFrame, InterpolatedDifferential
-from interpolated_coordinates import InterpolatedRepresentation, InterpolatedSkyCoord
+from interpolated_coordinates import (
+    InterpolatedCoordinateFrame,
+    InterpolatedDifferential,
+    InterpolatedRepresentation,
+    InterpolatedSkyCoord,
+)
 from numpy import linspace
 
 # LOCAL
@@ -28,7 +39,10 @@ from trackstream.track.path import Path
 
 try:
     # THIRD PARTY
-    from pytest_astropy_header.display import PYTEST_HEADER_MODULES, TESTED_VERSIONS  # type: ignore
+    from pytest_astropy_header.display import (  # type: ignore
+        PYTEST_HEADER_MODULES,
+        TESTED_VERSIONS,
+    )
 
     ASTROPY_HEADER = True
 except ImportError:
@@ -152,7 +166,9 @@ def rep_type() -> Type[CartesianRepresentation]:
 
 @pytest.fixture(scope="session")
 def rep(
-    rep_type: Type[CartesianRepresentation], dif: BaseDifferential, num: int
+    rep_type: Type[CartesianRepresentation],
+    dif: BaseDifferential,
+    num: int,
 ) -> CartesianRepresentation:
     """Fixture returning the representation, with attached differentials."""
     r = rep_type(
@@ -172,7 +188,8 @@ def irep(rep: BaseRepresentation, affine: Angle) -> InterpolatedRepresentation:
 
 @pytest.fixture(scope="session")
 def frame(
-    rep_type: Type[BaseRepresentation], dif_type: Type[BaseDifferential]
+    rep_type: Type[BaseRepresentation],
+    dif_type: Type[BaseDifferential],
 ) -> BaseCoordinateFrame:
     """Fixture returning the frame, |ICRS|."""
     frame = ICRS(representation_type=rep_type, differential_type=dif_type)

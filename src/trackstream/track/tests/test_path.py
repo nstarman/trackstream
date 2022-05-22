@@ -1,4 +1,4 @@
-# # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 # """Testing :mod:`trackstream.utils.path`."""
 
@@ -67,7 +67,8 @@
 
 #         assert path.name == "test_init"
 #         assert path.frame == frame
-#         assert np.allclose(path.data.separation_3d(iscrd.transform_to(frame), interpolate=False), 0)
+#         assert np.allclose(path.data.separation_3d(iscrd.transform_to(frame),
+#                            interpolate=False), 0)
 #         assert np.array_equal(path.affine, affine)
 
 #     def test_init_frame_and_data(self, path_cls, iscrd, width, affine, frame):

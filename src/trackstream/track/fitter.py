@@ -12,8 +12,14 @@ from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, TypedDict, Union, 
 
 # THIRD PARTY
 import astropy.units as u
-from astropy.coordinates import BaseCoordinateFrame, CartesianDifferential, CartesianRepresentation
-from astropy.coordinates import SkyCoord, UnitSphericalDifferential, UnitSphericalRepresentation
+from astropy.coordinates import (
+    BaseCoordinateFrame,
+    CartesianDifferential,
+    CartesianRepresentation,
+    SkyCoord,
+    UnitSphericalDifferential,
+    UnitSphericalRepresentation,
+)
 from astropy.units import Quantity
 from numpy import apply_along_axis, array, broadcast_to, mean, ndarray, ones
 from scipy.linalg import block_diag
@@ -23,8 +29,11 @@ from .fitresult import StreamTrack
 from .kalman import FirstOrderNewtonianKalmanFilter as KalmanFilter
 from .kalman import kalman_output, make_Q, make_R, make_timesteps
 from .path import Path, concatenate_paths
-from .som import CartesianSelfOrganizingMap1D, SelfOrganizingMap1DBase
-from .som import UnitSphereSelfOrganizingMap1D
+from .som import (
+    CartesianSelfOrganizingMap1D,
+    SelfOrganizingMap1DBase,
+    UnitSphereSelfOrganizingMap1D,
+)
 from trackstream.utils.coord_utils import deep_transform_to
 
 # This is to solve the circular dependency in type hint forward references # isort: skip
@@ -283,7 +292,11 @@ class TrackStream:
 
         # get the ordering by "vote" of the Prototypes
         visit_order = som.fit_predict(
-            data, num_iteration=num_iteration, random_order=False, progress=progress, origin=origin
+            data,
+            num_iteration=num_iteration,
+            random_order=False,
+            progress=progress,
+            origin=origin,
         )
 
         return visit_order, som
@@ -340,19 +353,25 @@ class TrackStream:
 
         # frame, with rep-type set
         frame = data.frame.replicate_without_data(
-            representation_type=representation_type, differential_type=differential_type
+            representation_type=representation_type,
+            differential_type=differential_type,
         )
 
         ndifdims: int
         if kinematics:
             data = deep_transform_to(
-                data, frame, representation_type, differential_type
+                data,
+                frame,
+                representation_type,
+                differential_type,
             )  # TODO necessary?
             ndifdims = len(frame.get_representation_component_names("s"))
         else:  # strip kinematics
             rep = data.data.without_differentials()
             data = SkyCoord(
-                data.realize_frame(rep), representation_type=representation_type, copy=False
+                data.realize_frame(rep),
+                representation_type=representation_type,
+                copy=False,
             )
             ndifdims = 0
 
@@ -387,9 +406,9 @@ class TrackStream:
         print(R[0])
 
         options["q_kw"] = dict(var=q_err, diag=q_diag)  # TODO! overridable
-        Q = lambda dt, var=1, diag=1, ndims=3: make_Q(dt, var, ndims=ndims) + block_diag(
-            *[array([[diag, 0], [0, 0]])] * ndims
-        )
+
+        def Q(dt, var=1, diag=1, ndims=3):
+            return make_Q(dt, var, ndims=ndims) + block_diag(*[array([[diag, 0], [0, 0]])] * ndims)
 
         # -------------------
         # Time steps
@@ -482,8 +501,9 @@ class TrackStream:
         frame = stream.system_frame
         # NOT ._init_system_frame, to pick up on fit frames
         if frame is None:
-            raise ValueError("cannot fit a track without a system frame. "
-            "see ``Stream.fit_frame``.")
+            raise ValueError(
+                "cannot fit a track without a system frame. " "see ``Stream.fit_frame``.",
+            )
 
         # --------------------------------------
         # Setup
@@ -492,10 +512,16 @@ class TrackStream:
 
         # Get unordered arms, in frame
         data1 = deep_transform_to(
-            stream.arm1.coords, frame, representation_type, differential_type=None
+            stream.arm1.coords,
+            frame,
+            representation_type,
+            differential_type=None,
         )
         data2 = deep_transform_to(
-            stream.arm2.coords, frame, representation_type, differential_type=None
+            stream.arm2.coords,
+            frame,
+            representation_type,
+            differential_type=None,
         )
 
         # --------------------------------------
@@ -513,12 +539,22 @@ class TrackStream:
 
         # Arm 1
         data1 = self._fit_SOM(
-            arm1SOM, stream.arm1, data1, onsky=onsky, tune_SOM=tune_SOM, kwargs=som_kw
+            arm1SOM,
+            stream.arm1,
+            data1,
+            onsky=onsky,
+            tune_SOM=tune_SOM,
+            kwargs=som_kw,
         )
 
         # Arm 2 (if not None)
         data2 = self._fit_SOM(
-            arm2SOM, stream.arm2, data2, onsky=onsky, tune_SOM=tune_SOM, kwargs=som_kw
+            arm2SOM,
+            stream.arm2,
+            data2,
+            onsky=onsky,
+            tune_SOM=tune_SOM,
+            kwargs=som_kw,
         )
 
         # -------------------

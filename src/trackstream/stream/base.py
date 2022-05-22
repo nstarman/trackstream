@@ -12,7 +12,11 @@ from abc import abstractmethod
 from typing import Any, List, Optional, TypeVar, cast
 
 # THIRD PARTY
-from astropy.coordinates import BaseCoordinateFrame, SkyCoord, UnitSphericalRepresentation
+from astropy.coordinates import (
+    BaseCoordinateFrame,
+    SkyCoord,
+    UnitSphericalRepresentation,
+)
 from astropy.table import QTable
 from astropy.utils.misc import indent
 from astropy.visualization import quantity_support

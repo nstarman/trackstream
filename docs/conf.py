@@ -27,24 +27,27 @@
 
 # STDLIB
 import datetime
-import os
+import pathlib
 import sys
-from configparser import ConfigParser
 from importlib import import_module
 
-try:
-    # THIRD PARTY
-    from sphinx_astropy.conf.v1 import *  # type: ignore  # noqa: F401, F403
-    from sphinx_astropy.conf.v1 import exclude_patterns, rst_epilog, extensions
-except ImportError:
-    print("documentation requires installing the sphinx-astropy package")
-    sys.exit(1)
+# THIRD PARTY
+import tomlkit
+from sphinx_astropy.conf.v1 import *  # type: ignore # noqa: F401, F403
+from sphinx_astropy.conf.v1 import (
+    exclude_patterns,
+    extensions,
+    numpydoc_xref_aliases,
+    numpydoc_xref_astropy_aliases,
+    numpydoc_xref_ignore,
+    rst_epilog,
+)
 
-
-conf = ConfigParser()
-
-conf.read([os.path.join(os.path.dirname(__file__), "..", "setup.cfg")])
-setup_cfg = dict(conf.items("metadata"))
+# Get configuration information from pyproject.toml
+path = pathlib.Path(__file__).parent.parent / "pyproject.toml"
+with path.open() as f:
+    toml = tomlkit.load(f)
+setup_cfg = dict(toml["project"])  # type: ignore
 
 # -- General configuration ----------------------------------------------------
 
@@ -103,6 +106,43 @@ rst_epilog += """
 
 """
 
+# Whether to create cross-references for the parameter types in the
+# Parameters, Other Parameters, Returns and Yields sections of the docstring.
+numpydoc_xref_param_type = True
+
+# Words not to cross-reference. Most likely, these are common words used in
+# parameter type descriptions that may be confused for classes of the same
+# name. The base set comes from sphinx-astropy. We add more here.
+numpydoc_xref_ignore.update(
+    {
+        "mixin",
+        "Any",  # aka something that would be annotated with `typing.Any`
+    },
+)
+
+# Mappings to fully qualified paths (or correct ReST references) for the
+# aliases/shortcuts used when specifying the types of parameters.
+# Numpy provides some defaults
+# https://github.com/numpy/numpydoc/blob/b352cd7635f2ea7748722f410a31f937d92545cc/numpydoc/xref.py#L62-L94
+# and a base set comes from sphinx-astropy.
+# so here we mostly need to define Astropy-specific x-refs
+numpydoc_xref_aliases.update(
+    {
+        # python & adjacent
+        "Any": "`~typing.Any`",
+        "number": ":term:`number`",
+        # for astropy
+        "Unit": ":class:`~astropy.units.Unit`",
+        "Quantity": ":class:`~astropy.units.Quantity`",
+        "Representation": ":class:`~astropy.coordinates.BaseRepresentation`",
+        "Differential": ":class:`~astropy.coordinates.BaseDifferential`",
+        "CoordinateFrame": ":class:`~astropy.coordinates.BaseCoordinateFrame`",
+    },
+)
+# Add from sphinx-astropy 1) glossary aliases 2) physical types.
+numpydoc_xref_aliases.update(numpydoc_xref_astropy_aliases)
+
+
 # extensions
 extensions += [
     "nbsphinx",
@@ -135,31 +175,27 @@ bibtex_bibfiles = "refs.bib"
 # -- Project information ------------------------------------------------------
 
 # This does not *have* to match the package name, but typically does
-project = setup_cfg["name"]
-author = setup_cfg["author"]
-copyright = "{0}, {1}".format(
-    datetime.datetime.now().year,
-    setup_cfg["author"],
-)
+project = str(setup_cfg["name"])
+author = ", ".join(d["name"] for d in setup_cfg["authors"])  # type: ignore
+copyright = "{0}, {1}".format(datetime.datetime.now().year, author)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 
-import_module(setup_cfg["name"])
-package = sys.modules[setup_cfg["name"]]
-_version = getattr(package, "__version__", "")
+import_module(project)
+package = sys.modules[project]
 
 # The short X.Y version.
-version = _version.split("-", 1)[0]
+version = package.__version__.split("-", 1)[0]
 # The full version, including alpha/beta/rc tags.
-release = _version
+release = package.__version__
 
 # -- Options for the module index ---------------------------------------------
 
 # Prefixes that are ignored for sorting the Python module index
 # Currently only works on the html output
-modindex_common_prefix = [setup_cfg["name"] + "."]
+modindex_common_prefix = [f"{project}."]
 
 # -- Options for HTML output --------------------------------------------------
 
@@ -221,7 +257,7 @@ htmlhelp_basename = project + "doc"
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual])
 latex_documents = [
-    ("index", project + ".tex", project + u" Documentation", author, "manual"),
+    ("index", project + ".tex", project + " Documentation", author, "manual"),
 ]
 
 
@@ -230,27 +266,13 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ("index", project.lower(), project + u" Documentation", [author], 1),
+    ("index", project.lower(), project + " Documentation", [author], 1),
 ]
 
 
-# -- Options for the edit_on_github extension ---------------------------------
-
-if setup_cfg["edit_on_github"].lower() == "true":
-
-    extensions += ["sphinx_astropy.ext.edit_on_github"]
-
-    edit_on_github_project = setup_cfg["github_project"]
-    edit_on_github_branch = "master"
-
-    edit_on_github_source_root = ""
-    edit_on_github_doc_root = "docs"
-
 # -- Resolving issue number to links in changelog -----------------------------
 
-github_issues_url = "https://github.com/{0}/issues/".format(
-    setup_cfg["github_project"],
-)
+github_issues_url = setup_cfg["urls"]["repository"] + "/issues/"  # type: ignore
 
 # -- Turn on nitpicky mode for sphinx (to warn about references not found) ----
 #

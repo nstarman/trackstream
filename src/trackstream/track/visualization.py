@@ -8,7 +8,18 @@
 from __future__ import annotations
 
 # STDLIB
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Tuple, Union, cast, overload
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+    overload,
+)
 
 # THIRD PARTY
 import astropy.units as u
@@ -717,7 +728,12 @@ class StreamTrackPlotDescriptor(StreamPlotDescriptorBase["StreamTrack"]):
         if stream.arm2.has_data:
             c2 = arange(len(stream.arm2))
             stream.arm2.plot.in_frame(
-                frame="ICRS", kind="positions", c=c2, ax=ax1, origin=False, format_ax=False
+                frame="ICRS",
+                kind="positions",
+                c=c2,
+                ax=ax1,
+                origin=False,
+                format_ax=False,
             )
 
         self.plot(

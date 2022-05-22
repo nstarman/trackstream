@@ -10,8 +10,18 @@ from __future__ import annotations
 # STDLIB
 from copy import deepcopy
 from types import FunctionType, MappingProxyType, MethodType
-from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence, Tuple, Type, TypedDict, TypeVar
-from typing import Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    TypedDict,
+    TypeVar,
+    Union,
+)
 
 # THIRD PARTY
 import astropy.units as u
@@ -24,8 +34,19 @@ from astropy.units import Quantity
 from astropy.utils.misc import indent
 from erfa import ufunc as erfa_ufunc
 from matplotlib.pyplot import Axes
-from numpy import abs, array, average, column_stack, dot, linspace, median, ndarray, sqrt, square
-from numpy import sum
+from numpy import (
+    abs,
+    array,
+    average,
+    column_stack,
+    dot,
+    linspace,
+    median,
+    ndarray,
+    sqrt,
+    square,
+    sum,
+)
 
 # LOCAL
 from trackstream._type_hints import CoordinateLikeType, EllipsisType
@@ -98,7 +119,9 @@ def cartesian_model(
 
 
 def residual(
-    variables: Tuple[float, float, float], data: CartRep, scalar: bool = False
+    variables: Tuple[float, float, float],
+    data: CartRep,
+    scalar: bool = False,
 ) -> Union[float, ndarray]:
     r"""How close phi2, the rotated |Latitude| (e.g. dec), is to flat.
 
@@ -488,13 +511,16 @@ class FrameOptimizeResultPlotDescriptor(PlotDescriptorBase["FrameOptimizeResult"
                     scalar=True,
                 )
                 for angle in rotation_angles
-            ]
+            ],
         )
         _ax.scatter(rotation_angles, res)
 
         # Plot the best-fit rotation
         _ax.axvline(
-            fr.rotation.value, c="k", ls="--", label=f"best-fit rotation = {fr.rotation:.2}"
+            fr.rotation.value,
+            c="k",
+            ls="--",
+            label=f"best-fit rotation = {fr.rotation:.2}",
         )
         # and the next period
         next_period = 180 if (fr.rotation.value - 180) < rotation_angles.min() else -180
@@ -526,7 +552,10 @@ class FrameOptimizeResult(opt.OptimizeResult, CommonBase):
     def __init__(self, frame: SkyOffsetFrame, **kwargs: Any) -> None:
         super().__init__(**kwargs)  # setting from OptimizeResult
         CommonBase.__init__(
-            self, frame=frame, representation_type=frame.representation_type, differential_type=None
+            self,
+            frame=frame,
+            representation_type=frame.representation_type,
+            differential_type=None,
         )
 
     @property

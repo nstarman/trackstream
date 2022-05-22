@@ -13,8 +13,12 @@ from typing import TYPE_CHECKING, Any, Optional, TypedDict, cast
 
 # THIRD PARTY
 import astropy.units as u
-from astropy.coordinates import BaseCoordinateFrame, RadialDifferential, SkyCoord
-from astropy.coordinates import UnitSphericalRepresentation
+from astropy.coordinates import (
+    BaseCoordinateFrame,
+    RadialDifferential,
+    SkyCoord,
+    UnitSphericalRepresentation,
+)
 from astropy.table import QTable, Table
 from astropy.units import Quantity
 from astropy.utils.misc import indent
@@ -177,7 +181,7 @@ class Stream(StreamBase):
 
         # Get the frame from the data
         frame: BaseCoordinateFrame = self.data_coords.frame.replicate_without_data(
-            representation_type=reptype
+            representation_type=reptype,
         )
 
         return frame

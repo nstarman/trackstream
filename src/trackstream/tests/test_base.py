@@ -4,9 +4,13 @@
 
 # THIRD PARTY
 import pytest
-from astropy.coordinates import CartesianDifferential, CartesianRepresentation
-from astropy.coordinates import SphericalDifferential, SphericalRepresentation
-from astropy.coordinates import UnitSphericalDifferential
+from astropy.coordinates import (
+    CartesianDifferential,
+    CartesianRepresentation,
+    SphericalDifferential,
+    SphericalRepresentation,
+    UnitSphericalDifferential,
+)
 
 # LOCAL
 from trackstream.base import CommonBase

@@ -6,14 +6,23 @@
 import astropy.units as u
 import matplotlib.pyplot as plt
 import pytest
-from astropy.coordinates import ICRS, Galactocentric, SkyCoord, SphericalDifferential
-from astropy.coordinates import SphericalRepresentation
+from astropy.coordinates import (
+    ICRS,
+    Galactocentric,
+    SkyCoord,
+    SphericalDifferential,
+    SphericalRepresentation,
+)
 from astropy.units import Quantity
 from numpy import array_equal
 
 # LOCAL
 from trackstream.utils.tests.test_descriptors import Test_InstanceDescriptor
-from trackstream.visualization import PlotDescriptorBase, StreamLike, StreamPlotDescriptorBase
+from trackstream.visualization import (
+    PlotDescriptorBase,
+    StreamLike,
+    StreamPlotDescriptorBase,
+)
 
 ##############################################################################
 # PARAMETERS

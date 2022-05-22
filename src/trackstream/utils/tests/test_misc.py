@@ -13,8 +13,14 @@ import pytest
 from astropy.coordinates import Angle
 
 # LOCAL
-from trackstream.utils.misc import ABCwAMeta, abstract_attribute, covariance_ellipse
-from trackstream.utils.misc import intermix_arrays, is_structured, make_shuffler
+from trackstream.utils.misc import (
+    ABCwAMeta,
+    abstract_attribute,
+    covariance_ellipse,
+    intermix_arrays,
+    is_structured,
+    make_shuffler,
+)
 
 ##############################################################################
 # TESTS

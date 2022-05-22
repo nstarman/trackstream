@@ -134,7 +134,8 @@ def resolve_framelike(frame: str, type_error: bool = True) -> BaseFrame:  # noqa
 @_resolve_framelike.register
 def resolve_framelike(frame: BaseFrame, type_error: bool = True) -> BaseFrame:
     out: BaseFrame = frame.replicate_without_data(
-        representation_type=frame.representation_type, differential_type=frame.differential_type
+        representation_type=frame.representation_type,
+        differential_type=frame.differential_type,
     )
     return out
 
@@ -281,7 +282,10 @@ def position_angle(lon1: ndarray, lat1: ndarray, lon2: float, lat2: float) -> nd
 
 
 def offset_by(
-    lon: ndarray, lat: ndarray, posang: ndarray, distance: ndarray
+    lon: ndarray,
+    lat: ndarray,
+    posang: ndarray,
+    distance: ndarray,
 ) -> Tuple[ndarray, ndarray]:
     """Point with the given offset from the given point.
 

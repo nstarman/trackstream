@@ -6,17 +6,11 @@ __author__ = "Nathaniel Starkman"
 __credits__ = ["Jeremy Webb for N-Body Data"]
 
 
-__all__ = [
-    "get_nbody",
-    "get_nbody_array",
-]
+__all__ = ["get_nbody", "get_nbody_array"]
 
 
 ##############################################################################
 # IMPORTS
-
-# STDLIB
-import os.path
 
 # THIRD PARTY
 import numpy as np

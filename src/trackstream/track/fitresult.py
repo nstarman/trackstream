@@ -14,7 +14,11 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
 
 # THIRD PARTY
 import astropy.units as u
-from astropy.coordinates import BaseCoordinateFrame, SkyCoord, UnitSphericalRepresentation
+from astropy.coordinates import (
+    BaseCoordinateFrame,
+    SkyCoord,
+    UnitSphericalRepresentation,
+)
 from astropy.units import Quantity
 from astropy.utils.metadata import MetaAttribute, MetaData
 from astropy.utils.misc import indent

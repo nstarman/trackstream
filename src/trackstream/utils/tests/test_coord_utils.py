@@ -13,14 +13,24 @@ from math import pi
 import astropy.coordinates as coord
 import astropy.units as u
 import pytest
-from astropy.coordinates import FK5, LSR, CartesianDifferential, CartesianRepresentation
-from astropy.coordinates import SphericalDifferential, SphericalRepresentation
+from astropy.coordinates import (
+    FK5,
+    LSR,
+    CartesianDifferential,
+    CartesianRepresentation,
+    SphericalDifferential,
+    SphericalRepresentation,
+)
 from astropy.units import Quantity
 from numpy import allclose, array, array_equal
 
 # LOCAL
-from trackstream.utils.coord_utils import deep_transform_to, offset_by, position_angle
-from trackstream.utils.coord_utils import resolve_framelike
+from trackstream.utils.coord_utils import (
+    deep_transform_to,
+    offset_by,
+    position_angle,
+    resolve_framelike,
+)
 
 ##############################################################################
 # TESTS

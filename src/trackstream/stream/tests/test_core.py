@@ -154,7 +154,7 @@ class Test_Stream(StreamBaseTest, Arm1TestMixin, Arm2TestMixin):
         return Stream
 
     @pytest.fixture(scope="class")
-    def DATA(self, IbataEtAl2017) -> Iterator[Dict[str, Any]]:
+    def DATA(self, IbataEtAl2017) -> Iterator[Dict[str, Any]]:  # noqa: F811
         """Fixture yielding all stream data sets."""
         yield from (IbataEtAl2017,)
 
@@ -307,7 +307,8 @@ class Test_Stream(StreamBaseTest, Arm1TestMixin, Arm2TestMixin):
         expected = "s" in stream.data_coords.data.differentials
         if expected is True:
             expected &= not isinstance(
-                stream.data_coords.data.differentials["s"], RadialDifferential
+                stream.data_coords.data.differentials["s"],
+                RadialDifferential,
             )
         assert stream.has_kinematics is expected
 

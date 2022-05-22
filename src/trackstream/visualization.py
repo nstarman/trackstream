@@ -8,14 +8,31 @@
 from __future__ import annotations
 
 # STDLIB
-from typing import Any, Dict, Literal, Optional, Protocol, Sequence, Tuple, TypeVar, Union
-from typing import get_args, overload, runtime_checkable
+from typing import (
+    Any,
+    Dict,
+    Literal,
+    Optional,
+    Protocol,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+    get_args,
+    overload,
+    runtime_checkable,
+)
 
 # THIRD PARTY
 import astropy.units as u
 import matplotlib.pyplot as plt
-from astropy.coordinates import Angle, BaseCoordinateFrame, SkyCoord, SphericalDifferential
-from astropy.coordinates import SphericalRepresentation
+from astropy.coordinates import (
+    Angle,
+    BaseCoordinateFrame,
+    SkyCoord,
+    SphericalDifferential,
+    SphericalRepresentation,
+)
 from astropy.units import Quantity
 from astropy.visualization import quantity_support
 from matplotlib.pyplot import Axes

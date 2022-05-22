@@ -156,7 +156,7 @@ class ABCwAMeta(ABCMeta):
         if abstract_attributes:
             raise NotImplementedError(
                 f"cannot instantiate abstract class {cls.__name__} "
-                f"with abstract attributes: {', '.join(abstract_attributes)}"
+                f"with abstract attributes: {', '.join(abstract_attributes)}",
             )
         return cast(R, instance)
 

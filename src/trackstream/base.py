@@ -5,7 +5,11 @@ from abc import ABCMeta
 from typing import Optional, Tuple, Type, cast
 
 # THIRD PARTY
-from astropy.coordinates import BaseCoordinateFrame, BaseDifferential, BaseRepresentation
+from astropy.coordinates import (
+    BaseCoordinateFrame,
+    BaseDifferential,
+    BaseRepresentation,
+)
 
 # LOCAL
 from trackstream._type_hints import CoordinateLikeType
@@ -47,7 +51,8 @@ class CommonBase(metaclass=ABCMeta):
 
         # Set the frame, with the representation type
         self._frame = theframe.replicate_without_data(
-            representation_type=representation_type, differential_type=differential_type
+            representation_type=representation_type,
+            differential_type=differential_type,
         )
 
     @property

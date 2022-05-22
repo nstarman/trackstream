@@ -72,7 +72,7 @@ def make_stream_from_Vasiliev18(
 
     # progenitor properties
     o = Orbit(sgc)
-    mass = 2 * 10.0 ** 4.0 * u.Msun
+    mass = 2 * 10.0**4.0 * u.Msun
     # tdisrupt = 5 * u.Gyr
 
     ro, vo = 8 * u.kpc, 220 * u.km / u.s

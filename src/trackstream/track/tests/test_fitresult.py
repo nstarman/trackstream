@@ -1,4 +1,4 @@
-# # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 # """Testing :class:`trackstream.core.TrackStream`."""
 

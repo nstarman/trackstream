@@ -70,6 +70,6 @@ UnitLikeType = Union[UnitType, str]
 
 
 class AbstractAttribute:
-    """"Abstract attribute"""
+    """ "Abstract attribute"""
 
     __is_abstract_attribute__: bool

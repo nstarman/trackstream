@@ -21,9 +21,16 @@ __all__ = [
 
 # THIRD PARTY
 import astropy.units as u
-from astropy.coordinates import ICRS, BaseCoordinateFrame, Galactocentric, RepresentationMapping
-from astropy.coordinates import SphericalCosLatDifferential, SphericalRepresentation
-from astropy.coordinates import StaticMatrixTransform, frame_transform_graph
+from astropy.coordinates import (
+    ICRS,
+    BaseCoordinateFrame,
+    Galactocentric,
+    RepresentationMapping,
+    SphericalCosLatDifferential,
+    SphericalRepresentation,
+    StaticMatrixTransform,
+    frame_transform_graph,
+)
 from astropy.coordinates.matrix_utilities import matrix_transpose
 from astropy.units import Quantity
 from astropy.utils.decorators import format_doc

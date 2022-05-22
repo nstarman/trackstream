@@ -5,7 +5,7 @@ description = "Stellar Stream Tracker"
 readme = "README.rst"
 requires-python = ">=3.8"
 license = {file = "licenses/LICENSE.rst"}
-keywords = ["interpolate", "interpolation", "coordinates", "astronomy"]
+keywords = ["stellar streams", "astronomy"]
 authors = [
     {name = "Nathaniel Starkman"}
 ]
@@ -51,20 +51,21 @@ all = [
   "tqdm",
 ]
 test = [
-  "tqdm",
   "coverage[toml]",
   "pytest",
   "pytest-astropy",
+  "tqdm",
 ]
 docs = [
-  "tqdm",
   "graphviz",
-  "sphinx-astropy",
-  "sphinx",
-  "sphinxcontrib.bibtex < 2.0.0",
   "IPython",
-  "nbsphinx",
   "jupyter_client",
+  "nbsphinx",
+  "sphinx",
+  "sphinx-astropy",
+  "sphinxcontrib.bibtex < 2.0.0",
+  "tomlkit",
+  "tqdm",
 ]
 
 [project.urls]
@@ -102,7 +103,7 @@ include_trailing_comma = "True"
 force_grid_wrap = 0
 use_parentheses = "True"
 ensure_newline_before_comments = "True"
-sections = ["FUTURE", "STDLIB", "THIRDPARTY", "LOCALFOLDER"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
 known_localfolder = "trackstream"
 known_third_party = ["astropy", "matplotlib", "numpy", "pytest", "scipy", "setuptools"]
 import_heading_stdlib = "STDLIB"
@@ -129,6 +130,11 @@ astropy_header = "True"
 doctest_plus = "enabled"
 text_file_format = "rst"
 addopts = "--doctest-rst"
+filterwarnings = [
+  # tomlkit
+  "ignore:The config value `project' has type `String', defaults to `str'.",
+  "ignore:The config value `htmlhelp_basename' has type `String', defaults to `str'.",
+]
 
 [tool.coverage.run]
 omit = [
@@ -138,7 +144,7 @@ omit = [
   "*/trackstream/tests/*",
   "*/trackstream/*/tests/*",
   "*/trackstream/extern/*",
-  "*/trackstream/version*",
+  "*/trackstream/_version*",
 ]
 
 [tool.coverage.report]

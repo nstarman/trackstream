@@ -10,7 +10,18 @@ __all__ = ["Path", "path_moments"]
 
 # STDLIB
 import copy
-from typing import Any, Callable, Dict, NamedTuple, Optional, OrderedDict, Tuple, Type, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    NamedTuple,
+    Optional,
+    OrderedDict,
+    Tuple,
+    Type,
+    Union,
+    cast,
+)
 
 # THIRD PARTY
 import astropy.coordinates as coord
@@ -149,7 +160,9 @@ class Path(CommonBase):
             _frame = frame
 
         super().__init__(
-            frame=_frame, representation_type=representation_type, differential_type=None
+            frame=_frame,
+            representation_type=representation_type,
+            differential_type=None,
         )
         # TODO differential_type
 
@@ -180,7 +193,9 @@ class Path(CommonBase):
             path_if = path_f
 
         path_isc = InterpolatedSkyCoord(
-            path_if, affine=affine, representation_type=representation_type
+            path_if,
+            affine=affine,
+            representation_type=representation_type,
         )
         self._iscrd = path_isc.transform_to(self.frame)
         self._iscrd.representation_type = self.representation_type
@@ -226,7 +241,9 @@ class Path(CommonBase):
     # -----------------------------------------------------
 
     def _initialize_callable_width(
-        self, path: InterpolatedSkyCoord, width: Callable[..., Quantity]
+        self,
+        path: InterpolatedSkyCoord,
+        width: Callable[..., Quantity],
     ) -> None:
         raise NotImplementedError("TODO!")
 

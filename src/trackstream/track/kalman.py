@@ -10,18 +10,57 @@ __all__ = ["FirstOrderNewtonianKalmanFilter"]
 
 # STDLIB
 from copy import deepcopy
-from typing import Any, Callable, Dict, NamedTuple, Optional, Sequence, Tuple, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    NamedTuple,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
 
 # THIRD PARTY
 import astropy.units as u
-from astropy.coordinates import BaseCoordinateFrame, BaseRepresentation, CartesianDifferential
-from astropy.coordinates import CartesianRepresentation, SkyCoord, UnitSphericalDifferential
-from astropy.coordinates import UnitSphericalRepresentation
+from astropy.coordinates import (
+    BaseCoordinateFrame,
+    BaseRepresentation,
+    CartesianDifferential,
+    CartesianRepresentation,
+    SkyCoord,
+    UnitSphericalDifferential,
+    UnitSphericalRepresentation,
+)
 from astropy.units import Quantity, StructuredUnit
 from astropy.utils.misc import indent
-from numpy import arccos, arctan2, array, atleast_2d, concatenate, convolve, cos, cumsum, diagonal
-from numpy import diff, dot, dtype, empty, eye, insert, linalg, ndarray, ones, pi, shape, sign, sin
-from numpy import sqrt, zeros
+from numpy import (
+    arccos,
+    arctan2,
+    array,
+    atleast_2d,
+    concatenate,
+    convolve,
+    cos,
+    cumsum,
+    diagonal,
+    diff,
+    dot,
+    dtype,
+    empty,
+    eye,
+    insert,
+    linalg,
+    ndarray,
+    ones,
+    pi,
+    shape,
+    sign,
+    sin,
+    sqrt,
+    zeros,
+)
 from numpy.lib.recfunctions import merge_arrays, structured_to_unstructured
 from scipy.linalg import block_diag
 
@@ -105,8 +144,8 @@ def make_Q(dt: float, var: float = 1.0, ndims: int = 3, order: int = 2) -> ndarr
         # make single-component of q matrix
         q = array(
             [  # single Q matrix
-                [0.25 * dt ** 4, 0.5 * dt ** 3],  # 1,1 is position
-                [0.5 * dt ** 3, dt ** 2],  # 2,2 is velocity
+                [0.25 * dt**4, 0.5 * dt**3],  # 1,1 is position
+                [0.5 * dt**3, dt**2],  # 2,2 is velocity
             ],
         )
     else:
@@ -537,7 +576,14 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
     # Math (2 phase + smoothing)
 
     def _math_predict_and_update(
-        self, x: ndarray, P: ndarray, F: ndarray, Q: ndarray, z: ndarray, R: ndarray, oz: ndarray
+        self,
+        x: ndarray,
+        P: ndarray,
+        F: ndarray,
+        Q: ndarray,
+        z: ndarray,
+        R: ndarray,
+        oz: ndarray,
     ) -> Tuple[ndarray, ndarray]:
         """
         Predict prior using Kalman filter transition functions.

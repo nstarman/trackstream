@@ -24,14 +24,47 @@ from typing import Any, Dict, Optional, Type, Union, cast
 # THIRD PARTY
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import Angle, BaseCoordinateFrame, BaseRepresentation
-from astropy.coordinates import CartesianRepresentation, SkyCoord, UnitSphericalRepresentation
+from astropy.coordinates import (
+    Angle,
+    BaseCoordinateFrame,
+    BaseRepresentation,
+    CartesianRepresentation,
+    SkyCoord,
+    UnitSphericalRepresentation,
+)
 from astropy.coordinates.angle_utilities import angular_separation
 from astropy.units import Quantity, StructuredUnit
-from numpy import arange, arccos, arctan2, array, cos, diff, dtype, exp, flatnonzero, interp, isnan
-from numpy import linalg, linspace, mean, nan, nanmean, ndarray, nonzero, pi, power, random, sort
-from numpy import square, subtract, sum
-from numpy.lib.recfunctions import structured_to_unstructured, unstructured_to_structured
+from numpy import (
+    arange,
+    arccos,
+    arctan2,
+    array,
+    cos,
+    diff,
+    dtype,
+    exp,
+    flatnonzero,
+    interp,
+    isnan,
+    linalg,
+    linspace,
+    mean,
+    nan,
+    nanmean,
+    ndarray,
+    nonzero,
+    pi,
+    power,
+    random,
+    sort,
+    square,
+    subtract,
+    sum,
+)
+from numpy.lib.recfunctions import (
+    structured_to_unstructured,
+    unstructured_to_structured,
+)
 from scipy.cluster.hierarchy import fclusterdata
 from scipy.spatial import distance_matrix
 from scipy.stats import binned_statistic
@@ -415,7 +448,7 @@ class SelfOrganizingMap1DBase(CommonBase):
         This is in the lattice space, so Cartesian vs UnitSpherical does not
         matter.
         """
-        d = 2 * pi * sigma ** 2
+        d = 2 * pi * sigma**2
         ay: ndarray = exp(-power(self._yy - self._yy.T[c], 2) / d).T
         return ay  # the external product gives a matrix
 
@@ -667,7 +700,9 @@ class CartesianSelfOrganizingMap1D(SelfOrganizingMap1DBase):
 
         # Create equi-frequency bins
         bins: Quantity = interp(
-            x=linspace(0, len(xq), self.nlattice + 1), xp=arange(len(xq)), fp=sort(xq)
+            x=linspace(0, len(xq), self.nlattice + 1),
+            xp=arange(len(xq)),
+            fp=sort(xq),
         )
 
         # Optionally respace the bins to have a maximum separation
