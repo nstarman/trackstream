@@ -187,7 +187,7 @@ def deep_transform_to(
     crd: BaseFrame,
     frame: _FT,
     representation_type: Type[BaseRep],
-    differential_type: Optional[type[BaseDif]] = None,
+    differential_type: Optional[Type[BaseDif]] = None,
 ) -> _FT:
     ...
 
@@ -197,7 +197,7 @@ def deep_transform_to(
     crd: SkyCoord,
     frame: BaseFrame,
     representation_type: Type[BaseRep],
-    differential_type: Optional[type[BaseDif]] = None,
+    differential_type: Optional[Type[BaseDif]] = None,
 ) -> SkyCoord:
     ...
 
