@@ -70,6 +70,7 @@ docs = [
 ]
 
 [project.urls]
+homepage = "https://trackstream.readthedocs.io"
 repository = "https://github.com/nstarman/trackstream"
 documentation = "https://trackstream.readthedocs.io"
 
