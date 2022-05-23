@@ -34,7 +34,7 @@ __pycache__
 *.c
 
 # Other generated files
-*/version.py
+*/_version.py
 */cython_version.py
 htmlcov
 .coverage
@@ -110,3 +110,4 @@ pip-wheel-metadata/
 /.Rproj.user
 /.Rhistory
 /.RData
+_old

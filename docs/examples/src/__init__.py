@@ -17,9 +17,7 @@ __license__ = "BSD3"
 __maintainer__ = "Nathaniel Starkman"
 
 
-__all__ = [
-    "get_transform_matrix",
-]
+__all__ = ["get_transform_matrix"]
 
 
 ##############################################################################
@@ -27,6 +25,3 @@ __all__ = [
 
 # LOCAL
 from .coordinates import get_transform_matrix
-
-##############################################################################
-# END
