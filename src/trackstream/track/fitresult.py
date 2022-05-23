@@ -49,15 +49,18 @@ __all__ = ["StreamTrack"]
 class StreamTrack(CommonBase):
     """A stream track interpolation as function of arc length.
 
-    The track is Callable, returning a Frame.
+    The track is `callable`, returning a |Frame|.
 
     Parameters
     ----------
-    stream : `~trackstream.stream.Stream` path : `~trackstream.utils.path.Path`
+    stream : `~trackstream.stream.Stream`
+    path : `~trackstream.utils.path.Path`
     origin : SkyCoord
-        of the coordinate system (often the progenitor)
+        The origin of the coordinate system (often the stream's progenitor)
 
-    name : str or None, optional keyword-only **meta : Any
+    name : str or None, optional keyword-only
+        The name of the track.
+    **meta : Any
         Metadata. Can include the meta-attributes
         ``visit_order``, ``som``, and ``kalman``.
     """

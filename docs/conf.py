@@ -64,6 +64,7 @@ highlight_language = "python3"
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 exclude_patterns.append("_templates")
+exclude_patterns.append("papers_and_presentations/paper/.snakemake")
 
 # This is added to the end of RST files - a good place to put substitutions to
 # be used globally.
@@ -77,6 +78,8 @@ rst_epilog += """
 .. |SOM| replace:: :class:`trackstream.track.som.SelfOrganizingMap1DBase`
 
 .. ASTROPY
+
+.. |Unit| replace:: :class:`~astropy.units.Unit`
 
 .. |Quantity| replace:: :class:`~astropy.units.Quantity`
 .. |Angle| replace:: :class:`~astropy.coordinates.Angle`

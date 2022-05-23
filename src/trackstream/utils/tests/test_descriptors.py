@@ -7,6 +7,7 @@
 # IMPORTS
 
 # STDLIB
+import sys
 import weakref
 
 # THIRD PARTY
@@ -67,6 +68,7 @@ class Test_InstanceDescriptor:
     # ===============================================================
     # Method Tests
 
+    @pytest.mark.skipif(sys.version_info < (3, 9), reason="requires py3.9+")
     def test_expected_attributes(self, descriptor):
         """Test the desciptor expects the right attributes."""
         annot = descriptor.__annotations__

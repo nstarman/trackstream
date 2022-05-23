@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 # STDLIB
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, TypedDict, Union, cast
+from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, Union, cast
 
 # THIRD PARTY
 import astropy.units as u
@@ -23,6 +23,7 @@ from astropy.coordinates import (
 from astropy.units import Quantity
 from numpy import apply_along_axis, array, broadcast_to, mean, ndarray, ones
 from scipy.linalg import block_diag
+from typing_extensions import TypedDict
 
 # LOCAL
 from .fitresult import StreamTrack
@@ -90,7 +91,7 @@ class TrackStream:
         self._kinematics = kinematics
 
         # cache starts with all `None`
-        self._cache = _TSCacheDict.fromkeys(_TSCacheDict.__required_keys__)  # type: ignore
+        self._cache = _TSCacheDict.fromkeys(_TSCacheDict.__annotations__.keys())  # type: ignore
 
     @property
     def onsky(self) -> bool:
@@ -407,7 +408,7 @@ class TrackStream:
 
         options["q_kw"] = dict(var=q_err, diag=q_diag)  # TODO! overridable
 
-        def Q(dt, var=1, diag=1, ndims=3):
+        def Q(dt: float, var: float = 1, diag: float = 1, ndims: int = 3) -> ndarray:
             return make_Q(dt, var, ndims=ndims) + block_diag(*[array([[diag, 0], [0, 0]])] * ndims)
 
         # -------------------

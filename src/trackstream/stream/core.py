@@ -9,7 +9,7 @@ from __future__ import annotations
 
 # STDLIB
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Optional, TypedDict, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 # THIRD PARTY
 import astropy.units as u
@@ -23,6 +23,7 @@ from astropy.table import QTable, Table
 from astropy.units import Quantity
 from astropy.utils.misc import indent
 from numpy import concatenate, empty, nonzero
+from typing_extensions import TypedDict
 
 # LOCAL
 from .arm import StreamArmDescriptor
@@ -89,7 +90,16 @@ class Stream(StreamBase):
     _Normalizer = StreamDataNormalizer["Stream"]()
 
     arm1 = StreamArmDescriptor()
+    """Descriptor on a Stream to have substreams describing a stream arm.
+
+    This is an instance-level descriptor, so most attributes / methods point to
+    corresponding methods on the parent instance."""
+
     arm2 = StreamArmDescriptor()
+    """Descriptor on a Stream to have substreams describing a stream arm.
+
+    This is an instance-level descriptor, so most attributes / methods point to
+    corresponding methods on the parent instance."""
 
     plot = StreamBasePlotDescriptor["Stream"]()
 
@@ -120,7 +130,7 @@ class Stream(StreamBase):
         self._init_system_frame = resolve_framelike(frame) if frame is not None else None
         # If system_frame is None it will have to be fit later
 
-        self._cache = _StreamCache.fromkeys(_StreamCache.__required_keys__)  # type: ignore
+        self._cache = _StreamCache.fromkeys(_StreamCache.__annotations__.keys())  # type: ignore
 
         # ---- Process the data ----
         # processed data
@@ -290,10 +300,6 @@ class Stream(StreamBase):
         bounds : array-like or None, optional
             Parameter bounds. If `None`, these are automatically constructed.
             If provided these are used over any other bounds-related arguments.
-            ::
-                [[rot_low, rot_up],
-                 [lon_low, lon_up],
-                 [lat_low, lat_up]]
 
         rot_lower, rot_upper : Quantity, optional keyword-only
             The lower and upper bounds in degrees.

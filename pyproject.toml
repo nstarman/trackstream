@@ -1,127 +1,129 @@
+[build-system]
+  requires = [
+    "extension-helpers",
+    "setuptools>=45",
+    "setuptools_scm>=6.2",
+    "oldest-supported-numpy",
+    "wheel"
+  ]
+
+  build-backend = 'setuptools.build_meta'
+
+[tool.setuptools]
+  package-dir = {"" = "src"}
+
+[tool.setuptools_scm]
+
 [project]
-name = "trackstream"
-version = "0.1.0"
-description = "Stellar Stream Tracker"
-readme = "README.rst"
-requires-python = ">=3.8"
-license = {file = "licenses/LICENSE.rst"}
-keywords = ["stellar streams", "astronomy"]
-authors = [
-    {name = "Nathaniel Starkman"}
-]
-maintainers = [
+  name = "trackstream"
+  version = "0.1.0"
+  description = "Stellar Stream Tracker"
+  readme = "README.rst"
+  requires-python = ">=3.8"
+  license = {file = "licenses/LICENSE.rst"}
+  keywords = ["stellar streams", "astronomy"]
+  authors = [
     {name = "Nathaniel Starkman", email = "n.starkman@mail.utoronto.ca"}
-]
-classifiers = [
-  "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: BSD License",
-  "Operating System :: OS Independent",
-  "Programming Language :: Python :: 3",
-  "Topic :: Scientific/Engineering :: Astronomy",
-  "Topic :: Scientific/Engineering :: Physics",
-]
-dependencies = [
+  ]
+  maintainers = [
+    {name = "Nathaniel Starkman", email = "n.starkman@mail.utoronto.ca"}
+  ]
+  classifiers = [
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "Topic :: Scientific/Engineering :: Physics",
+  ]
+  dependencies = [
     "astropy>=5.0",
     "galpy",
     "interpolated_coordinates  @ git+https://github.com/GalOrrery/interpolated-coordinates.git",
     "matplotlib",
-    "numpy>=1.17",
-    "scipy",
+    "numpy>=1.18",
+    "scipy>1.3",
     "streamtools @ git+https://github.com/jobovy/streamtools.git",
     "typing_extensions>=4.2",
-]
-
-[build-system]
-requires = [
-  "setuptools>=45",
-  "setuptools_scm>=6.2",
-  "extension_helpers",
-  "wheel"
-]
-
-build-backend = 'setuptools.build_meta'
-
-[tool.setuptools]
-package-dir = {"" = "src"}
-
-[tool.setuptools_scm]
+  ]
 
 [project.optional-dependencies]
-all = [
-  "tqdm",
-]
-test = [
-  "coverage[toml]",
-  "pytest",
-  "pytest-astropy",
-  "tqdm",
-]
-docs = [
-  "graphviz",
-  "IPython",
-  "jupyter_client",
-  "nbsphinx",
-  "palettable",
-  "sphinx",
-  "sphinx-astropy",
-  "sphinxcontrib.bibtex < 2.0.0",
-  "tomlkit",
-  "tqdm",
-]
+  all = [
+    "tqdm",
+  ]
+  test = [
+    "coverage[toml]",
+    "pytest",
+    "pytest-astropy",
+    "tqdm",
+  ]
+  docs = [
+    "graphviz",
+    "IPython",
+    "jupyter_client",
+    "nbsphinx",
+    "palettable",
+    "sphinx",
+    "sphinx-astropy",
+    "sphinxcontrib.bibtex < 2.0.0",
+    "tomlkit",
+    "tqdm",
+  ]
 
 [project.urls]
-homepage = "https://trackstream.readthedocs.io"
-repository = "https://github.com/nstarman/trackstream"
-documentation = "https://trackstream.readthedocs.io"
+  homepage = "https://trackstream.readthedocs.io"
+  repository = "https://github.com/nstarman/trackstream"
+  documentation = "https://trackstream.readthedocs.io"
 
 
 [tool.autopep8]
-max_line_length = 100
-in-place = true
-recursive = true
+  max_line_length = 100
+  in-place = true
+  recursive = true
 
 
 [tool.black]
-line-length = 100
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-)/
-'''
+  line-length = 100
+  include = '\.pyi?$'
+  exclude = '''
+  /(
+      \.git
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+  )/
+  '''
+
 
 [tool.isort]
-profile = "black"
-multi_line_output = 3
-include_trailing_comma = "True"
-force_grid_wrap = 0
-use_parentheses = "True"
-ensure_newline_before_comments = "True"
-sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
-known_localfolder = "trackstream"
-known_third_party = ["astropy", "matplotlib", "numpy", "pytest", "scipy", "setuptools"]
-import_heading_stdlib = "STDLIB"
-import_heading_thirdparty = "THIRD PARTY"
-import_heading_localfolder = "LOCAL"
+  profile = "black"
+  multi_line_output = 3
+  include_trailing_comma = "True"
+  force_grid_wrap = 0
+  use_parentheses = "True"
+  ensure_newline_before_comments = "True"
+  sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+  known_localfolder = "trackstream"
+  known_third_party = ["astropy", "matplotlib", "numpy", "pytest", "scipy", "setuptools"]
+  import_heading_stdlib = "STDLIB"
+  import_heading_thirdparty = "THIRD PARTY"
+  import_heading_localfolder = "LOCAL"
 
 
 [tool.mypy]
-disallow_untyped_defs = true
-ignore_missing_imports = true
-no_implicit_optional = true
-warn_return_any = true
-warn_redundant_casts = true
-warn_unused_configs = true
-warn_unreachable = true
-exclude = '''(^|/)tests/'''
+  disallow_untyped_defs = true
+  ignore_missing_imports = true
+  no_implicit_optional = true
+  warn_return_any = true
+  warn_redundant_casts = true
+  warn_unused_configs = true
+  warn_unreachable = true
+  exclude = '''(^|/)tests/'''
 
   [[tool.mypy.overrides]]
     module = "*/tests/*"
@@ -132,44 +134,43 @@ exclude = '''(^|/)tests/'''
     ignore_errors = true
 
 [tool.pytest.ini_options]
-testpaths = [
-    "src/trackstream",
-    "docs",
-]
-astropy_header = "True"
-doctest_plus = "enabled"
-text_file_format = "rst"
-addopts = "--doctest-rst"
-filterwarnings = [
-  # tomlkit
-  "ignore:The config value `project' has type `String', defaults to `str'.",
-  "ignore:The config value `htmlhelp_basename' has type `String', defaults to `str'.",
-]
+  testpaths = ["src/trackstream", "docs"]
+  astropy_header = "True"
+  doctest_plus = "enabled"
+  text_file_format = "rst"
+  addopts = "--doctest-rst --ignore-glob=docs/papers_and_presentations/*"
+  filterwarnings = [
+    # tomlkit
+    "ignore:The config value `project' has type `String', defaults to `str'.",
+    "ignore:The config value `htmlhelp_basename' has type `String', defaults to `str'.",
+  ]
 
-[tool.coverage.run]
-omit = [
-  "*/trackstream/_astropy_init*",
-  "*/trackstream/conftest.py",
-  "*/trackstream/*setup_package*",
-  "*/trackstream/tests/*",
-  "*/trackstream/*/tests/*",
-  "*/trackstream/extern/*",
-  "*/trackstream/_version*",
-]
+[tool.coverage]
 
-[tool.coverage.report]
-exclude_lines = [
-  # Have to re-enable the standard pragma
-  "pragma: no cover",
-  # Don't complain about packages we have installed
-  "except ImportError",
-  # Don't complain if tests don't hit assertions
-  "raise AssertionError",
-  "raise NotImplementedError",
-  # Don't complain about script hooks
-  "'def main(.*):'",
-  # Ignore branches that don't pertain to this version of Python
-  "pragma: py{ignore_python_version}",
-  # Don't complain about IPython completion helper
-  "def _ipython_key_completions_",
-]
+  [[tool.coverage.run]]
+    omit = [
+      "*/trackstream/_astropy_init*",
+      "*/trackstream/conftest.py",
+      "*/trackstream/*setup_package*",
+      "*/trackstream/tests/*",
+      "*/trackstream/*/tests/*",
+      "*/trackstream/extern/*",
+      "*/trackstream/_version*",
+    ]
+
+  [[tool.coverage.report]]
+    exclude_lines = [
+      # Have to re-enable the standard pragma
+      "pragma: no cover",
+      # Don't complain about packages we have installed
+      "except ImportError",
+      # Don't complain if tests don't hit assertions
+      "raise AssertionError",
+      "raise NotImplementedError",
+      # Don't complain about script hooks
+      "'def main(.*):'",
+      # Ignore branches that don't pertain to this version of Python
+      "pragma: py{ignore_python_version}",
+      # Don't complain about IPython completion helper
+      "def _ipython_key_completions_",
+    ]
