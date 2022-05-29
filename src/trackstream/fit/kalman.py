@@ -786,11 +786,11 @@ class FirstOrderNewtonianKalmanFilter(FramedBase):
         # ------ run ------
         # iterate predict & update steps
         z: ndarray
-        dt: float
+        dt: Quantity
         for i, (z, R, dt) in enumerate(zip(Zs, Rs, dts)):
             # F_(i-1, i)
-            F = self.state_transition_model(dt, ndims=ndims)
-            Q = self.process_noise_model(dt, ndims=ndims, **q_kw)
+            F = self.state_transition_model(dt.value, ndims=ndims)
+            Q = self.process_noise_model(dt.value, ndims=ndims, **q_kw)
 
             # predict & update
             x, P = self._math_predict_and_update(x=x, P=P, F=F, Q=Q, z=z, R=R)
