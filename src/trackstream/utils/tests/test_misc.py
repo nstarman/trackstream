@@ -14,8 +14,6 @@ from astropy.coordinates import Angle
 
 # LOCAL
 from trackstream.utils.misc import (
-    ABCwAMeta,
-    abstract_attribute,
     covariance_ellipse,
     intermix_arrays,
     is_structured,
@@ -77,32 +75,6 @@ def test_make_shuffler():
     shuffler, undo = make_shuffler(10, rng=np.random.RandomState())
     assert isinstance(shuffler, np.ndarray) & isinstance(undo, np.ndarray)
     assert np.all(shuffler[undo] == np.arange(10))
-
-
-def test_abstract_attribute():
-    """
-    Test :func:`trackstream.utils.misc.abstract_attribute` and
-    :class:`trackstream.utils.misc.ABCwMeta`.
-    """
-    # It doesn't work if wrong metaclass
-    class ABClass1:
-        attr: int = abstract_attribute()
-
-    assert ABClass1()  # instantiate
-
-    # It will work if the metaclass is ABCwAMeta
-    class ABClass2(metaclass=ABCwAMeta):
-        attr: int = abstract_attribute()
-
-    with pytest.raises(NotImplementedError, match="cannot instantiate"):
-        ABClass2()
-
-    class Class(ABClass2):
-        def __init__(self) -> None:
-            self.attr = 2  # not abstract
-
-    inst = Class()
-    assert inst.attr == 2
 
 
 def test_is_structured():

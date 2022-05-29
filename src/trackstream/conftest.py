@@ -35,7 +35,7 @@ from interpolated_coordinates import (
 from numpy import linspace
 
 # LOCAL
-from trackstream.track.path import Path
+from trackstream.fit.path import Path
 
 try:
     # THIRD PARTY

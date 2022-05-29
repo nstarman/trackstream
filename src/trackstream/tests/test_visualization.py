@@ -45,7 +45,7 @@ class StreamLikeExample:
         )
 
     @property
-    def frame(self):
+    def system_frame(self):
         return self.coords_ord.frame
 
 
@@ -115,7 +115,8 @@ class Test_PlotDescriptorBase(Test_InstanceDescriptor):
     def test_setup(self, descriptor, axs):
         """Test method ``_setup``."""
         # Process and check axes
-        parent, _ax = descriptor._setup(ax=axs)
+        parent, _ax, *_ = descriptor._setup(ax=axs)
+        assert parent is descriptor._enclosing
         assert axs is _ax
 
 
@@ -176,7 +177,7 @@ class Test_StreamPlotDescriptorBase(Test_PlotDescriptorBase):
 
         # 'stream'
         frame, name = descriptor._parse_frame("stream")
-        assert frame == enclosing.frame
+        assert frame == enclosing.system_frame
         assert name == "Stream"
 
         # str
@@ -273,9 +274,7 @@ class Test_StreamPlotDescriptorBase(Test_PlotDescriptorBase):
     @pytest.mark.skip("TODO!")
     def test_in_frame(self, descriptor, axs):
         """Test ``in_frame``."""
-        pass
 
     @pytest.mark.skip("TODO!")
     def test_origin(self, descriptor, axs):
         """Test ``origin``."""
-        pass

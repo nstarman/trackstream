@@ -12,6 +12,7 @@ __all__ = [
     "ArrayLike",
     "CoordinateType",
     "CoordinateLikeType",
+    "FrameLikeType",
     # units
     "UnitType",
     "UnitLikeType",
@@ -67,9 +68,3 @@ UnitType = Union[u.Unit, u.IrreducibleUnit, u.UnitBase, u.FunctionUnitBase]
 
 UnitLikeType = Union[UnitType, str]
 """|Unit| or :class:`~astropy.units.FunctionUnitBase` or str"""
-
-
-class AbstractAttribute:
-    """ "Abstract attribute"""
-
-    __is_abstract_attribute__: bool

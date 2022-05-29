@@ -37,6 +37,7 @@
     "Topic :: Scientific/Engineering :: Physics",
   ]
   dependencies = [
+    "attrs",
     "astropy>=5.0",
     "galpy",
     "interpolated_coordinates  @ git+https://github.com/GalOrrery/interpolated-coordinates.git",
@@ -124,6 +125,7 @@
   warn_unused_configs = true
   warn_unreachable = true
   exclude = '''(^|/)tests/'''
+  plugins = ["attrs"]
 
   [[tool.mypy.overrides]]
     module = "*/tests/*"

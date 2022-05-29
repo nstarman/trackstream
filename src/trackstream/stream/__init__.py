@@ -4,6 +4,7 @@
 """Stream."""
 
 # LOCAL
-from .core import Stream
+from .core import StreamArm
+from .plural import Stream, StreamArms
 
-__all__ = ["Stream"]
+__all__ = ["Stream", "StreamArms", "StreamArm"]

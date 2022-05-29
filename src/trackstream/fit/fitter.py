@@ -8,7 +8,8 @@
 from __future__ import annotations
 
 # STDLIB
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, Union, cast
+from types import MappingProxyType
+from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, cast
 
 # THIRD PARTY
 import astropy.units as u
@@ -21,30 +22,35 @@ from astropy.coordinates import (
     UnitSphericalRepresentation,
 )
 from astropy.units import Quantity
+from attrs import NOTHING, define, field
 from numpy import apply_along_axis, array, broadcast_to, mean, ndarray, ones
 from scipy.linalg import block_diag
 from typing_extensions import TypedDict
 
 # LOCAL
-from .fitresult import StreamTrack
 from .kalman import FirstOrderNewtonianKalmanFilter as KalmanFilter
 from .kalman import kalman_output, make_Q, make_R, make_timesteps
-from .path import Path, concatenate_paths
+from .path import Path
 from .som import (
     CartesianSelfOrganizingMap1D,
     SelfOrganizingMap1DBase,
     UnitSphereSelfOrganizingMap1D,
+)
+from .track import StreamArmTrack
+from trackstream.utils._attrs import (
+    _cache_factory,
+    _cache_proxy_factory,
+    convert_if_none,
 )
 from trackstream.utils.coord_utils import deep_transform_to
 
 # This is to solve the circular dependency in type hint forward references # isort: skip
 if TYPE_CHECKING:
     # LOCAL
-    from trackstream.stream import Stream  # noqa: F401
-    from trackstream.stream.arm import StreamArmDescriptor  # noqa: F401
+    from trackstream.stream.core import StreamArm  # noqa: F401
 
 
-__all__ = ["TrackStream"]
+__all__ = ["TrackStreamArm"]
 
 
 ##############################################################################
@@ -53,23 +59,20 @@ __all__ = ["TrackStream"]
 
 
 class _TSCacheDict(TypedDict):
-    """Cache for TrackStream."""
+    """Cache for TrackStreamArm."""
 
     frame: Optional[BaseCoordinateFrame]
-    arm1_visit_order: Optional[ndarray]
-    arm1_SOM: Optional[SelfOrganizingMap1DBase]
-    arm1_mean_path: Optional[kalman_output]
-    arm1_kalman: Optional[KalmanFilter]
-    arm2_visit_order: Optional[ndarray]
-    arm2_SOM: Optional[SelfOrganizingMap1DBase]
-    arm2_mean_path: Optional[kalman_output]
-    arm2_kalman: Optional[KalmanFilter]
+    som: Optional[SelfOrganizingMap1DBase]
+    visit_order: Optional[ndarray]
+    kalman: Optional[KalmanFilter]
+    mean_path: Optional[kalman_output]
 
 
-class TrackStream:
+@define(frozen=True, kw_only=True)
+class TrackStreamArm:
     """Track a Stream.
 
-    When run, produces a `~trackstream.fitresult.StreamTrack`.
+    When run, produces a `~trackstream.fitresult.StreamArmTrack`.
 
     Parameters
     ----------
@@ -80,44 +83,18 @@ class TrackStream:
         Should the track be fit with or without kinematic information.
     """
 
-    # TODO! allow for resetting
+    onsky: bool
+    """Whether to fit on-sky or 3d."""
 
-    _cache: _TSCacheDict
-    _onsky: bool
-    _kinematics: bool
+    kinematics: bool
+    """Whether to fit the kinematics."""
 
-    def __init__(self, *, onsky: bool, kinematics: bool) -> None:
-        self._onsky = onsky  # mutable
-        self._kinematics = kinematics
-
-        # cache starts with all `None`
-        self._cache = _TSCacheDict.fromkeys(_TSCacheDict.__annotations__.keys())  # type: ignore
-
-    @property
-    def onsky(self) -> bool:
-        """Whether to fit on-sky or 3d."""
-        return self._onsky
-
-    @property
-    def kinematics(self) -> bool:
-        """Whether to fit the kinematics."""
-        return self._kinematics
-
-    def __repr__(self) -> str:
-        """String representation."""
-        r = ""
-
-        # 1) header (standard repr)
-        header: str = object.__repr__(self)
-        r += header
-
-        # 2) on-sky
-        r += "\n  on-sky: " + str(self.onsky)
-
-        # 3) kinematics
-        r += "\n  kinematics: " + str(self.kinematics)
-
-        return r
+    _cache: dict = field(
+        kw_only=True,
+        factory=_cache_factory(_TSCacheDict),
+        converter=convert_if_none(_cache_factory(_TSCacheDict), deepcopy=True),
+    )
+    cache: MappingProxyType = field(init=False, default=_cache_proxy_factory)
 
     # ===============================================================
     #                            FIT
@@ -129,17 +106,17 @@ class TrackStream:
     def _fit_SOM(
         self,
         som: Optional[SelfOrganizingMap1DBase],
-        stream: StreamArmDescriptor,
+        stream: StreamArm,
         data: SkyCoord,
         onsky: bool,
         tune_SOM: bool,
         kwargs: Dict[str, Any],
-    ) -> SkyCoord:
+    ) -> Tuple[SelfOrganizingMap1DBase, SkyCoord, ndarray]:
         """Fit SOM to a stream arm.
 
         Parameters
         ----------
-        stream : StreamArmDescriptor
+        stream : StreamArm
             The stream arm instance, with information like the stream's origin.
         data : SkyCoord
             The data.
@@ -169,31 +146,14 @@ class TrackStream:
         ValueError
             If the SOM fails miserably and cannot create a visit_order.
         """
-        # arm info / str
-        number = int(stream.name[-1])  # Get number from stream name
-        arm_str = f"arm{number}"  # arm name
-
-        if arm_str not in ("arm1", "arm2"):  # Check it's allowed.
-            raise ValueError("SOM only works with 'arm1', 'arm2'.")
-
-        vo_str = arm_str + "_visit_order"
-        som_str = arm_str + "_SOM"
-
         # Setup
         order = None  # starts as None, will be array
-
-        # Fit the SOM if there's data. `arm2`` doesn't always have data.
-        if not stream.has_data:
-            self._cache[vo_str] = order  # type: ignore
-            self._cache[som_str] = som  # type: ignore
-            return data
-        # else:
 
         # 1) Try to get from cache
         if som is None:
             print("SOM is None")
-            order = self._cache.get(vo_str, None)
-            som = self._cache.get(som_str, None)  # type: ignore
+            order = self.cache["visit_order"]
+            som = self.cache["som"]
 
         # 2) Fit, if None or doing further tuning
         if som is None:
@@ -202,8 +162,6 @@ class TrackStream:
         else:
             if som.onsky != onsky:  # first need to check consistency of fit type.
                 raise TypeError("SOM onsky doesn't match.")
-            # if som.frame != frame:
-            #     raise ValueError("SOM frame doesn't match")
 
             if tune_SOM:  # TODO! incorporate existing order
                 print("SOM is tuning. kwargs are:", kwargs)
@@ -214,12 +172,11 @@ class TrackStream:
             raise ValueError("SOM can't fit a visit order.")
 
         # cache
-        self._cache[vo_str] = order  # type: ignore
-        self._cache[som_str] = som  # type: ignore
+        self._cache["visit_order"] = order
+        self._cache["som"] = som
 
         data = cast(SkyCoord, data[order])  # re-order
-
-        return data
+        return som, data, order
 
     def _run_SOM(
         self,
@@ -231,7 +188,7 @@ class TrackStream:
         learning_rate: float = 0.1,
         sigma: float = 1.0,
         num_iteration: int = 10_000,
-        random_seed: Optional[int] = None,
+        rng: Optional[int] = None,
         progress: bool = False,
         nlattice: Optional[int] = None,
         **kwargs: Any,
@@ -251,7 +208,7 @@ class TrackStream:
         sigma : float, optional keyword-only
         num_iteration : int, optional keyword-only
 
-        random_seed : int or None, optional keyword-only
+        rng : int or None, optional keyword-only
         progress : bool, optional keyword-only
             Whether to show progress bar.
 
@@ -281,12 +238,14 @@ class TrackStream:
 
             # Instantiate SOM
             som = SOM(
-                nlattice,
+                nlattice=nlattice,
                 frame=frame,
-                representation_type=representation_type,
+                frame_representation_type=representation_type,
+                frame_differential_type=None,
                 sigma=sigma,
                 learning_rate=learning_rate,
-                random_seed=random_seed,
+                rng=rng,  # type: ignore
+                prototypes=NOTHING,  # type: ignore
             )
             # And initial weights
             som.make_prototypes_binned(data, **kwargs)
@@ -305,16 +264,14 @@ class TrackStream:
     # FIXME! r_err
     def _fit_kalman_filter(
         self,
-        stream: StreamArmDescriptor,
+        stream: StreamArm,
         data: SkyCoord,
         *,
-        onsky: bool,
-        kinematics: bool,
         r_err: float = 0.05,
         q_err: float = 0.01,
         q_diag: float = 1,
         **options: Any,
-    ) -> Union[Tuple[KalmanFilter, Path, kalman_output], Tuple[None, None, None]]:
+    ) -> Tuple[KalmanFilter, Path]:
         """Fit data with Kalman filter.
 
         Parameters
@@ -331,23 +288,15 @@ class TrackStream:
         mean_path
         kalman_filter
         """
-        arm = f"arm{int(stream.name[-1])}"  # arm string repr for caching info
-
-        if not stream.has_data:
-            self._cache[f"{arm}_mean_path"] = None  # type: ignore
-            self._cache[f"{arm}_kalman"] = None  # type: ignore
-
-            return None, None, None
-
         # -------------------
         # Get the Frame and Representation(+Differential)
 
-        representation_type = UnitSphericalRepresentation if onsky else CartesianRepresentation
-        nrepdims: int = 2 if onsky else 3
+        representation_type = UnitSphericalRepresentation if self.onsky else CartesianRepresentation
+        nrepdims: int = 2 if self.onsky else 3
 
-        if not kinematics:
+        if not self.kinematics:
             differential_type = None
-        elif onsky:  # TODO! need to be cognizant if just radial, etc.
+        elif self.onsky:  # TODO! need to be cognizant if just radial, etc.
             differential_type = UnitSphericalDifferential
         else:
             differential_type = CartesianDifferential
@@ -359,7 +308,7 @@ class TrackStream:
         )
 
         ndifdims: int
-        if kinematics:
+        if self.kinematics:
             data = deep_transform_to(
                 data,
                 frame,
@@ -414,7 +363,7 @@ class TrackStream:
         # -------------------
         # Time steps
 
-        if onsky:
+        if self.onsky:
             dt0 = Quantity(0.5, u.deg)
             vmin = Quantity(0.01, u.deg)
         else:
@@ -425,29 +374,38 @@ class TrackStream:
         # -------------------
         # Fit
 
-        kf = KalmanFilter(x0, P0, onsky=onsky, kinematics=kinematics, frame=frame, Q0=Q, **options)
-        path, center = kf.fit(data, R, timesteps=timesteps, name=stream.name)
+        kf = KalmanFilter.from_representation(
+            x0,
+            P0,
+            onsky=self.onsky,
+            kinematics=self.kinematics,
+            frame=frame,
+            Q0=None,
+            process_noise_model=Q,
+            **options,
+        )
+        path_name = ((stream.full_name or "") + " Path").lstrip()
+        path = kf.fit(data, R, timesteps=timesteps, name=path_name)
 
         # Cache info
-        self._cache[f"{arm}_mean_path"] = center  # type: ignore
-        self._cache[f"{arm}_kalman"] = kf  # type: ignore
+        self._cache["kalman"] = kf
+        self._cache["mean_path"] = path
 
-        return kf, path, center
+        return kf, path
 
     # -------------------------------------------
 
     def fit(
         self,
-        stream: Stream,  # type: ignore
+        stream: StreamArm,
         /,
         *,
         force: bool = False,  # TODO!
-        arm1SOM: Optional[SelfOrganizingMap1DBase] = None,
-        arm2SOM: Optional[SelfOrganizingMap1DBase] = None,
+        som: Optional[SelfOrganizingMap1DBase] = None,
         tune_SOM: bool = True,
         som_fit_kw: Optional[dict] = None,
         kalman_fit_kw: Optional[dict] = None,
-    ) -> StreamTrack:
+    ) -> StreamArmTrack:
         """Fit a track to the data.
 
         Parameters
@@ -466,9 +424,8 @@ class TrackStream:
 
         frame_fit_kw : dict or None, optional keyword-only
 
-        arm1SOM, arm2SOM : `~trackstream.SelfOrganizingMap1DBase` or None, optional keyword-only
-            Fiducial SOMs for stream arms 1 and 2, respectively. Warning: the
-            attribute ``onsky`` will be mutated in-place to `onsky`.
+        som : `~trackstream.SelfOrganizingMap1DBase` or None, optional keyword-only
+            Fiducial SOM for stream arm.
         tune_SOM : bool, optional keyword-only
         som_fit_kw : dict or None, optional keyword-only
 
@@ -476,23 +433,21 @@ class TrackStream:
 
         Returns
         -------
-        StreamTrack instance
+        StreamArmTrack instance
             Also stores as ``.track`` on the Stream
         """
         # --------------------------------------
         # Validation
 
         # Onsky
-        onsky = self.onsky
-        if not onsky and not stream.has_distances:
+        if not self.onsky and not stream.has_distances:
             raise ValueError(
                 "this stream does not have distance information; "
                 "cannot compute track with distances.",
             )
 
         # Kinematics.
-        kinematics = self.kinematics
-        if kinematics and not stream.has_kinematics:  # check they exist
+        if self.kinematics and not stream.has_kinematics:  # check they exist
             raise ValueError(
                 "this stream does not have kinematic information; "
                 "cannot compute track with velocities.",
@@ -509,97 +464,51 @@ class TrackStream:
         # --------------------------------------
         # Setup
 
-        representation_type = frame.representation_type
-
         # Get unordered arms, in frame
-        data1 = deep_transform_to(
-            stream.arm1.coords,
+        data = deep_transform_to(
+            stream.coords,
             frame,
-            representation_type,
-            differential_type=None,
-        )
-        data2 = deep_transform_to(
-            stream.arm2.coords,
-            frame,
-            representation_type,
-            differential_type=None,
+            frame.representation_type,
+            differential_type=None if not self.kinematics else frame.differential_type,
         )
 
         # --------------------------------------
         # Self-Organizing Map
-        # Unlike the previous step, we must do this for both arms.
 
         # SOM
-        if arm1SOM is not None and (onsky is not None and arm1SOM.onsky != onsky):
-            raise ValueError
-        elif arm2SOM is not None and (onsky is not None and arm2SOM.onsky != onsky):
+        if som is not None and som.onsky != self.onsky:
             raise ValueError
 
         som_kw = som_fit_kw or {}  # None -> dict
-        som_kw.setdefault("maxsep", Quantity(5, u.deg) if onsky else None)
+        som_kw.setdefault("maxsep", Quantity(5, u.deg) if self.onsky else None)
 
         # Arm 1
-        data1 = self._fit_SOM(
-            arm1SOM,
-            stream.arm1,
-            data1,
-            onsky=onsky,
-            tune_SOM=tune_SOM,
-            kwargs=som_kw,
-        )
-
-        # Arm 2 (if not None)
-        data2 = self._fit_SOM(
-            arm2SOM,
-            stream.arm2,
-            data2,
-            onsky=onsky,
+        som, data, visit_order = self._fit_SOM(
+            som,
+            stream,
+            data,
+            onsky=self.onsky,
             tune_SOM=tune_SOM,
             kwargs=som_kw,
         )
 
         # -------------------
         # Kalman Filter
-        # both arms start at 0 displacement wrt themselves, but not each other.
+        # arms start at 0 displacement wrt themselves, but not each other.
         # e.g. the progenitor is cut out. To address this the start of affine
         # is offset by epsilon = min(1e-10, 1e-10 * dp2p[0])
 
         kf_kw: Dict[str, Any] = kalman_fit_kw or {}
-
-        # Arm 1  (never None)
-        kf1, path1, _ = self._fit_kalman_filter(
-            stream.arm1, data1, onsky=onsky, kinematics=kinematics, **kf_kw
-        )
-        # Arm 2
-        kf2, path2, _ = self._fit_kalman_filter(
-            stream.arm2, data2, onsky=onsky, kinematics=kinematics, **kf_kw
-        )
+        kf, path = self._fit_kalman_filter(stream, data, **kf_kw)
 
         # -------------------
-        # Combine together into a single path
-        # Need to reverse order of one arm to be indexed toward origin, not away
+        # Make Track
 
-        path_name = ((stream.full_name or "") + " Path").lstrip()
-
-        if path1 is None:
-            raise ValueError
-        elif path2 is not None:
-            # TODO! which is the negative?
-            path = concatenate_paths((path2, path1), name=path_name)
-        else:
-            path = path1
-            path._name = path_name  # Rename, since `_fit_...` does not
-
-        # construct interpolation
-        track = StreamTrack(
+        track = StreamArmTrack(
             stream,
             path,
-            origin=stream.origin,
             name=stream.full_name,
             # metadata
-            # frame_fit=frame_fit,
-            som=dict(arm1=self._cache.get("arm1_SOM"), arm2=self._cache.get("arm2_SOM")),
-            kalman=dict(arm1=kf1, arm2=kf2),
-            meta=None,
+            meta=dict(som=som, visit_order=visit_order, kalman=kf),  # type: ignore
         )
         return track

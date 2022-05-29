@@ -36,6 +36,15 @@ repos:
       - id: script-must-not-have-extension
       - id: shfmt
 
+  - repo: https://github.com/myint/autoflake
+    rev: v1.4
+    hooks:
+      - id: autoflake
+        args:
+          - --in-place
+          - --remove-unused-variables
+          - --remove-all-unused-imports
+
   - repo: https://github.com/pre-commit/mirrors-autopep8
     rev: v1.6.0
     hooks:

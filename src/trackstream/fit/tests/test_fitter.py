@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# """Testing :class:`trackstream.core.TrackStream`."""
+# """Testing :class:`trackstream.core.TrackStreamArm`."""
 
-# __all__ = ["Test_TrackStream"]
+# __all__ = ["Test_TrackStreamArm"]
 
 
 # ##############################################################################
@@ -16,7 +16,7 @@
 # from astropy.tests.helper import assert_quantity_allclose
 
 # # LOCAL
-# from trackstream import StreamTrack, TrackStream
+# from trackstream import StreamArmTrack, TrackStreamArm
 # from trackstream.example_data import get_example_pal5
 # from trackstream.som import SelfOrganizingMap1D
 # from trackstream.stream import Stream
@@ -26,8 +26,8 @@
 # ##############################################################################
 
 
-# class Test_TrackStream:
-#     """Test :class:`~trackstream.core.TrackStream`."""
+# class Test_TrackStreamArm:
+#     """Test :class:`~trackstream.core.TrackStreamArm`."""
 
 #     def setup_class(self):
 #         """Setup fixtures for testing."""
@@ -46,11 +46,11 @@
 #             # TODO! have a test for a pre-made SOM
 #             arm2SOM = None
 
-#         return TrackStream(onsky=False)
+#         return TrackStreamArm(onsky=False)
 
 #     @pytest.fixture
 #     def tracker_cls(self):
-#         return TrackStream
+#         return TrackStreamArm
 
 #     @pytest.fixture
 #     def stream_cls(self):
@@ -78,7 +78,7 @@
 #         """Test method ``fit``."""
 #         track = tracker.fit(stream)
 
-#         assert isinstance(track, StreamTrack)
+#         assert isinstance(track, StreamArmTrack)
 #         # TODO! a lot more tests
 
 #     def test_predict(self, tracker):
@@ -100,8 +100,8 @@
 # # -------------------------------------------------------------------
 
 
-# class Test_StreamTrack:
-#     """Test :class:`~trackstream.core.StreamTrack`."""
+# class Test_StreamArmTrack:
+#     """Test :class:`~trackstream.core.StreamArmTrack`."""
 
 #     #     @classmethod
 #     #     def setup_class(self):
@@ -135,7 +135,7 @@
 
 #     @pytest.fixture
 #     def track_cls(self):
-#         return StreamTrack
+#         return StreamArmTrack
 
 #     @pytest.fixture
 #     def track(self, track_cls, path, scrd, origin, frame):
@@ -148,7 +148,7 @@
 
 #     #     def test_init(self, track_cls, frame):
 #     #         """Test instantiation."""
-#     #         track = StreamTrack(self.interps, stream_data=self.data,
+#     #         track = StreamArmTrack(self.interps, stream_data=self.data,
 #     #                             origin=self.origin, frame=frame)
 #     #
 #     #         assert hasattr(track, "_data")
@@ -230,4 +230,4 @@
 
 #         frame_name = track.frame.__class__.__name__
 #         rep_name = track.track.representation_type.__name__
-#         assert f"StreamTrack ({frame_name}|{rep_name})" in s
+#         assert f"StreamArmTrack ({frame_name}|{rep_name})" in s

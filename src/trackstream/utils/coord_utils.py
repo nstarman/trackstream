@@ -30,7 +30,7 @@ from astropy.units import Quantity
 from numpy import arcsin, arctan2, broadcast_to, cos, ndarray, pi, sin
 
 # LOCAL
-from trackstream._type_hints import CoordinateType
+from trackstream._type_hints import CoordinateLikeType
 
 ##############################################################################
 # PARAMETERS
@@ -151,14 +151,14 @@ def resolve_framelike(frame: SkyCoord, type_error: bool = True) -> BaseFrame:  #
 
 
 def resolve_framelike(  # type: ignore
-    frame: Union[str, BaseFrame, SkyCoord],
+    frame: CoordinateLikeType,
     type_error: bool = True,
 ) -> BaseFrame:  # noqa: F811
     """Determine the frame and return a blank instance.
 
     Parameters
     ----------
-    frame : frame-like instance or None (optional)
+    frame : frame-like instance (optional)
         If BaseCoordianteFrame, replicates without data.
         If str, uses astropy parsers to determine frame class
 
@@ -231,13 +231,14 @@ def deep_transform_to(
     crd : SkyCoord or BaseCoordinateFrame
         Transformed to ``frame`` and ``representation_type``.
     """
-    c: CoordinateType = crd.transform_to(frame)
-    r: _RT = c.represent_as(representation_type, s=differential_type)  # type: ignore
+    tcrd = crd.frame if isinstance(crd, SkyCoord) else crd
+    f: _FT = tcrd.transform_to(frame)
+    r: _RT = tcrd.represent_as(representation_type, s=differential_type)  # type: ignore
 
-    dt = differential_type if differential_type != "base" else type(c.data.differentials["s"])
+    dt = differential_type if differential_type != "base" else type(r.differentials["s"])
     data = cast(
         _FT,
-        c.realize_frame(
+        f.realize_frame(
             r,
             representation_type=representation_type,
             differential_type=dt,

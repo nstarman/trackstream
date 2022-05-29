@@ -6,7 +6,6 @@
 __all__ = [
     "intermix_arrays",
     "make_shuffler",
-    "abstract_attribute",
     "is_structured",
     "covariance_ellipse",
 ]
@@ -16,8 +15,7 @@ __all__ = [
 # IMPORTS
 
 # STDLIB
-from abc import ABCMeta
-from typing import Any, Callable, Optional, Sequence, Tuple, Type, TypeVar, Union, cast
+from typing import Any, Callable, Optional, Sequence, Tuple, TypeVar, Union
 
 # THIRD PARTY
 import astropy.units as u
@@ -25,9 +23,6 @@ from astropy.units import Quantity
 from numpy import any, arange, arctan2, asanyarray, ndarray, sqrt, vectorize
 from numpy.random import Generator, RandomState, default_rng
 from scipy.linalg import svd
-
-# LOCAL
-from trackstream._type_hints import AbstractAttribute
 
 ##############################################################################
 # PARAMETERS
@@ -125,67 +120,6 @@ def make_shuffler(
     undo = shuffler.argsort()  # and construct the un-shuffler
 
     return shuffler, undo
-
-
-# -------------------------------------------------------------------
-
-
-class ABCwAMeta(ABCMeta):
-    """:class:`abc.ABCMeta` supporting abstract attributes.
-
-    References
-    ----------
-    .. [1] https://stackoverflow.com/a/50381071
-    """
-
-    def __call__(cls: Type[R], *args: Any, **kwargs: Any) -> R:
-        instance = super().__call__(*args, **kwargs)  # type: ignore
-
-        # Add abstract attribute check
-        abstract_attributes = set()
-        for name in dir(instance):
-            try:
-                attr = getattr(instance, name)
-            except Exception:  # Some things error. Can't be helped.
-                continue  # Assume they are not abstract.
-            # Test attribute for abstractness
-            isabs = getattr(attr, "__is_abstract_attribute__", False)
-            if isabs:
-                abstract_attributes.add(name)
-
-        if abstract_attributes:
-            raise NotImplementedError(
-                f"cannot instantiate abstract class {cls.__name__} "
-                f"with abstract attributes: {', '.join(abstract_attributes)}",
-            )
-        return cast(R, instance)
-
-
-def abstract_attribute(obj: Optional[Callable[[Any], R]] = None, /) -> R:
-    """Make an instance attribute abstract.
-
-    The class must be of type :class:`trackstream.utils.misc.ABCwAMeta`.
-
-    Parameters
-    ----------
-    obj : callable or None, optional
-        Attribute or method to make abstract, by default `None`.
-        If a method it must return one variable.
-
-    Returns
-    -------
-    R
-        The one return variable.
-
-    References
-    ----------
-    .. [1] https://stackoverflow.com/a/50381071
-    """
-    _obj = cast(Any, obj)  # prevent complaint about assigning attributes
-    if obj is None:
-        _obj = AbstractAttribute()
-    _obj.__is_abstract_attribute__ = True
-    return cast(R, _obj)
 
 
 # -------------------------------------------------------------------

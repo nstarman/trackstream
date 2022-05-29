@@ -3,19 +3,18 @@
 """Descriptors for :mod:`~trackstream`."""
 
 
-__all__ = ["InstanceDescriptor", "TypedMetaAttribute"]
+__all__ = ["InstanceDescriptor"]
 
 
 ##############################################################################
 # IMPORTS
 
 # STDLIB
-import sys
 import weakref
-from typing import Any, Generic, Optional, Type, TypeVar, Union, overload
+from typing import Generic, Optional, Type, TypeVar
 
 # THIRD PARTY
-from astropy.utils.metadata import MetaAttribute
+from attrs import define, field
 from typing_extensions import Self
 
 ##############################################################################
@@ -30,6 +29,7 @@ EnclType = TypeVar("EnclType")
 ##############################################################################
 
 
+@define(frozen=True, repr=False, slots=False)
 class InstanceDescriptor(Generic[EnclType]):
     """
 
@@ -43,7 +43,7 @@ class InstanceDescriptor(Generic[EnclType]):
     descriptor.
     """
 
-    _enclosing_attr: str
+    _enclosing_attr: str = field(init=False, default="", repr=False)
     """The enclosing instance's attribute name for this descriptor.
 
     Set in ``__set_name__``. Initialized as '' (a blank str) so that the
@@ -51,18 +51,8 @@ class InstanceDescriptor(Generic[EnclType]):
     descriptor and ``__set_name__`` is not called.
     """
 
-    if sys.version_info >= (3, 9):
-        _enclosing_ref: Optional[weakref.ReferenceType[EnclType]]
-        """Reference to the enclosing instance."""
-    else:
-        _enclosing_ref: Optional[weakref.ReferenceType]
-        """Reference to the enclosing instance."""
-
-    def __init__(self) -> None:
-        # Setting these attributes here so they always exist, even if the class
-        # is not instantiated as a descriptor.
-        self._enclosing_attr = ""  # set in __set_name__
-        self._enclosing_ref = None  # set in __get__
+    _enclosing_ref: Optional[weakref.ReferenceType] = field(init=False, default=None, repr=False)
+    """Reference to the enclosing instance."""
 
     # ------------------------------------
     # Enclosing instance
@@ -105,9 +95,11 @@ class InstanceDescriptor(Generic[EnclType]):
     # Descriptor properties
 
     def __set_name__(self, _: Type[EnclType], name: str) -> None:
-        self._enclosing_attr = name
+        object.__setattr__(self, "_enclosing_attr", name)
 
-    def __get__(self: Self, obj: Optional[EnclType], _: Optional[Type[EnclType]]) -> Self:
+    def __get__(
+        self: Self, obj: Optional[EnclType], _: Optional[Type[EnclType]], *args, **kwargs
+    ) -> Self:
         # accessed from a class
         if obj is None:
             return self
@@ -115,25 +107,12 @@ class InstanceDescriptor(Generic[EnclType]):
         # accessed from an obj
         descriptor: Optional[Self] = obj.__dict__.get(self._enclosing_attr)  # get from obj
         if descriptor is None:  # hasn't been created on the obj
-            descriptor = self.__class__()
-            descriptor._enclosing_attr = self._enclosing_attr
+            descriptor = self.__class__(*args, **kwargs)
+            object.__setattr__(descriptor, "_enclosing_attr", self._enclosing_attr)
             obj.__dict__[self._enclosing_attr] = descriptor
 
         # We set `_enclosing_ref` on every call, since if one makes copies of objs,
         # 'descriptor' will be copied as well, which will lose the reference.
-        descriptor._enclosing_ref = weakref.ref(obj)  # type: ignore
+        object.__setattr__(descriptor, "_enclosing_ref", weakref.ref(obj))  # type: ignore
 
         return descriptor
-
-
-class TypedMetaAttribute(MetaAttribute, Generic[T]):
-    @overload
-    def __get__(self: Self, obj: None, objtype: type) -> Self:
-        ...
-
-    @overload
-    def __get__(self: Self, obj: Any, objtype: Optional[type]) -> T:
-        ...
-
-    def __get__(self: Self, obj: Optional[Any], objtype: Optional[type] = None) -> Union[Self, T]:
-        return super().__get__(obj, objtype)

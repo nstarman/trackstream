@@ -15,15 +15,16 @@ from typing import Any, Dict, Iterator, Optional, Type, TypeVar
 import pytest
 from astropy.coordinates import BaseCoordinateFrame, RadialDifferential, SkyCoord
 from astropy.table import QTable
+from attr import evolve
 
 # LOCAL
 from .test_base import StreamBaseTest
-from trackstream.stream.arm import StreamArmDescriptor
+from trackstream.stream.arm import StreamArm
 from trackstream.stream.base import StreamBase
 from trackstream.stream.core import Stream
 from trackstream.stream.tests.test_arm import StreamArmTestMixin
 from trackstream.tests.helper import IbataEtAl2017  # noqa: F401
-from trackstream.track.fitter import TrackStream
+from trackstream.track.fitter import TrackStreamArm
 from trackstream.utils import resolve_framelike
 
 S = TypeVar("S", bound=StreamBase)
@@ -61,12 +62,12 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
         return self.__class__.__name__ if request.param else None
 
     @pytest.fixture(scope="function", params=[None, (None, None)])
-    def fitter(self, request) -> Optional[TrackStream]:
+    def fitter(self, request) -> Optional[TrackStreamArm]:
         if request.param is None:
             return None
         else:
             onsky, kinematics = request.param
-            return TrackStream(onsky=onsky, kinematics=kinematics)
+            return TrackStreamArm(onsky=onsky, kinematics=kinematics)
 
     @pytest.fixture(scope="class")
     def stream(self, stream_cls, data_table, data_error_table, origin, frame, name) -> S:
@@ -82,21 +83,21 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
     @pytest.fixture(scope="function")
     def tempstream(self, stream: S) -> S:
         """function-scoped stream"""
-        return copy.deepcopy(stream)
+        return evolve(stream)
 
     # -----------------------------------------------------
 
     @pytest.fixture(scope="class")
     def stream_f(self, stream: S) -> S:
         """Stream with a fit frame"""
-        strm = copy.deepcopy(stream)
+        strm = evolve(stream)
         strm.fit_frame(fitter=None)
         return strm
 
     @pytest.fixture(scope="function")
     def tempstream_f(self, stream_f: S) -> S:
         """function-scoped stream"""
-        return copy.deepcopy(stream_f)
+        return evolve(stream_f)
 
     # -----------------------------------------------------
 
@@ -108,17 +109,17 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
     def stream_t(self, stream_f):
         """Fixture returning a fit stream."""
         strm = copy.deepcopy(stream_f)  # decouple from stream
-        strm.fit_track(fitter=None, force=False, **{})  # TODO! test kwargs
+        strm.fit_track(force=False, **{})  # TODO! test kwargs
         return strm
 
     @pytest.fixture(scope="function")
     def tempstream_t(self, stream_t: S):
-        return copy.deepcopy(stream_t)
+        return evolve(stream_t)
 
     # -----------------------------------------------------
 
     @pytest.fixture(params=["arm1", "arm2"])
-    def arm(self, stream: Stream, request) -> StreamArmDescriptor:
+    def arm(self, stream: Stream, request) -> StreamArm:
         return getattr(stream, request.param)
 
     # ===============================================================
@@ -128,7 +129,7 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
         """Test property ``data``."""
         super().test_data(stream)
 
-        assert stream.data is stream._data
+        # todo!
 
         # See Data Normalization tests
 
@@ -165,8 +166,6 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
     def test_name(self, stream, name) -> None:
         """Test property ``name``."""
         super().test_name(stream)
-
-        assert stream.name is stream._name
         assert stream.name is name
 
     def test_origin(self, stream, origin) -> None:
@@ -267,9 +266,9 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
             assert stream._best_frame == stream.data_frame
             assert stream_f._best_frame == stream_f.system_frame
 
-    def test_number_of_tails(self, stream: S) -> None:
+    def test_number_of_tails_with_data(self, stream: S) -> None:
         expected = any(stream.data["tail"] == "arm1") + any(stream.data["tail"] == "arm2")
-        assert stream.number_of_tails == expected
+        assert stream.number_of_tails_with_data == expected
 
     # -----------------------------------------------------
 
@@ -313,8 +312,6 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
     def test_track_fit(self, tempstream_f: S) -> None:
         tempstream_f.track
 
-        pass
-
     # -----------------------------------------------------
 
     def test_fit_track_already_fit(self, stream_t: S) -> None:
@@ -337,7 +334,6 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
     @pytest.mark.skip("TODO!")
     def test_track_probability(self, stream_t: S) -> None:
         stream_t.track
-        pass
 
     @pytest.mark.xfail(reason="can't pickle GenericDifferential")
     def test_pickle_fit(self, stream_t: S) -> None:

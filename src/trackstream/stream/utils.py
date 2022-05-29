@@ -9,35 +9,31 @@ from __future__ import annotations
 
 # STDLIB
 import copy
-from typing import TYPE_CHECKING, List, Mapping, Optional, Type, TypeVar, Union, cast
+from typing import TYPE_CHECKING, List, Mapping, Optional, Union, cast
 
 # THIRD PARTY
 import astropy.units as u
 from astropy.coordinates import SkyCoord
 from astropy.table import QTable, Table
+from attrs import define, field
 from numpy import arange, ones
 
 # LOCAL
 from trackstream.utils.coord_utils import deep_transform_to
-from trackstream.utils.descriptors import InstanceDescriptor
 
 if TYPE_CHECKING:
     # LOCAL
-    from trackstream.stream.core import Stream  # noqa: F401
+    from trackstream.stream.core import StreamArm  # noqa: F401
 
 __all__: List[str] = []
-
-##############################################################################
-# PARAMETERS
-
-StreamT = TypeVar("StreamT", bound="Stream")
 
 ##############################################################################
 # CODE
 ##############################################################################
 
 
-class StreamDataNormalizer(InstanceDescriptor[StreamT]):
+@define(frozen=True)
+class StreamArmDataNormalizer:
     """Instance-level descriptor to normalize stream data tables.
 
     Methods
@@ -46,21 +42,20 @@ class StreamDataNormalizer(InstanceDescriptor[StreamT]):
         Run the normalizer.
     """
 
-    def __get__(self, obj: Optional[StreamT], _: Optional[Type[StreamT]]) -> StreamDataNormalizer:
-        if obj is None:
-            raise AttributeError(f"{type(self).__name__} can only be called from an instance")
-
-        return super().__get__(obj, _)
+    original_coord: Optional[SkyCoord] = field(init=False, default=None, repr=False)
 
     # ===============================================================
 
-    def run(self, original: Table, original_err: Optional[Table]) -> QTable:
+    def __call__(
+        self, stream: "StreamArm", original: Table, original_err: Optional[Table]
+    ) -> QTable:
         """Normalize data table.
 
         Parameters
         ----------
         original : |Table|
-            The table of data.
+            The table of data. It will be modified if not alrady grouped and
+            labeled by the stream arm index.
         original_err : |Table| or None
             A table of the errors.
 
@@ -70,17 +65,14 @@ class StreamDataNormalizer(InstanceDescriptor[StreamT]):
         """
         data = QTable()  # going to be assigned in-place
 
-        # 1) data probability. `data` modded in-place
-        self._data_probability(original, out=data, default_weight=1)
-
-        # 2) stream arm labels. `data` modded in-place
-        self._data_arm(original, out=data)
+        # 2) data probability. `data` modded in-place
+        self._data_probability(stream, original, out=data, default_weight=1)
 
         # 3) coordinates. `data` modded in-place
-        self._data_coordinates(original, original_err, out=data)
+        self._data_coordinates(stream, original, original_err, out=data)
 
-        # 4) SOM ordering
-        self._data_arm_index(original, out=data)
+        # 4) ordering
+        self._data_index(stream, original, out=data)
 
         # Metadata
         meta = copy.deepcopy(original.meta)
@@ -89,7 +81,12 @@ class StreamDataNormalizer(InstanceDescriptor[StreamT]):
         return data
 
     def _data_probability(
-        self, original: Table, *, out: QTable, default_weight: Union[float, u.Quantity] = 1.0
+        self,
+        _: "StreamArm",
+        original: Table,
+        *,
+        out: QTable,
+        default_weight: Union[float, u.Quantity] = 1.0,
     ) -> None:
         """Data probability. Units of percent. Default is 100%.
 
@@ -128,33 +125,16 @@ class StreamDataNormalizer(InstanceDescriptor[StreamT]):
         # Add metadata
         out.meta["Pmemb"] = meta or "Probability of stream membership."  # type: ignore
 
-    def _data_arm(self, original: Table, *, out: QTable) -> None:
-        """Parse the tail labels.
-
-        Parameters
-        ----------
-        original : |Table|
-            The original data.
-
-        out : |QTable|
-            The stream data.
-
-        Returns
-        -------
-        None
-        """
-        # TODO!!! better
-        out["tail"] = original["tail"]
-
-        # group and add index
-        out = out.group_by("tail")
-        out.add_index("tail")
-
-        # add metadata
-        # out.meta["tail"] =
+        # # modify printing  # TODO!
+        # out.formatter
 
     def _data_coordinates(
-        self, original: Table, original_err: Optional[Table] = None, *, out: QTable
+        self,
+        stream: "StreamArm",
+        original: Table,
+        original_err: Optional[Table] = None,
+        *,
+        out: QTable,
     ) -> None:
         """Parse the data table.
 
@@ -176,8 +156,6 @@ class StreamDataNormalizer(InstanceDescriptor[StreamT]):
         -------
         None
         """
-        stream = self._enclosing
-
         # ----------
         # 1) the data
 
@@ -188,16 +166,18 @@ class StreamDataNormalizer(InstanceDescriptor[StreamT]):
             osc = SkyCoord.guess_from_table(original)
 
         # add coordinates to stream
-        stream._original_coord = osc
+        object.__setattr__(self, "original_coord", osc)
 
         if stream.system_frame is None:  # no new frame
+            sc = osc
+        elif stream.cache["system_frame"] is not None:  # previously fit
             sc = osc
         else:
             sc = deep_transform_to(
                 osc,
                 stream.system_frame,
                 stream.system_frame.representation_type,
-                stream.system_frame.differential_type,
+                stream.system_frame.differential_type if "s" in osc.data.differentials else None,
             )
 
         # it's now clean and can be added
@@ -228,8 +208,8 @@ class StreamDataNormalizer(InstanceDescriptor[StreamT]):
             else:
                 out[dn] = 0 * getattr(sc, n)  # (get correct units)
 
-    def _data_arm_index(self, original: Table, *, out: QTable) -> None:
-        """Data probability. Units of percent. Default is 100%.
+    def _data_index(self, _: "StreamArm", original: Table, *, out: QTable) -> None:
+        """Data ordering.
 
         Parameters
         ----------
@@ -242,7 +222,17 @@ class StreamDataNormalizer(InstanceDescriptor[StreamT]):
         -------
         None
         """
-        if "order" in original.colnames:
+        # Intra-arm ordering.
+        if "order" in original.colnames:  # transfer if available.
             out["order"] = original["order"]
-        else:
-            out["order"] = arange(len(original))  # read order
+        else:  # Make, if not.
+            out["order"] = -1  # sentinel value
+            # pairwise iterate, making per-arm ordering
+            for i, j in zip(out.groups.indices[:-1], out.groups.indices[1:]):
+                out["order"][i:j] = arange(j - i)
+
+        # # Total ordering.
+        # if "order" in original.colnames:
+        #     out["order"] = original["order"]
+        # else:
+        #     out["order"] = arange(len(original))  # read order

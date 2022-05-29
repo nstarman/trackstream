@@ -19,7 +19,7 @@ __credits__ = "MiniSom"
 import warnings
 from abc import abstractmethod
 from copy import deepcopy
-from typing import Any, Dict, Optional, Type, Union, cast
+from typing import Any, Dict, Optional, Type, TypeVar, Union, cast
 
 # THIRD PARTY
 import astropy.units as u
@@ -34,6 +34,7 @@ from astropy.coordinates import (
 )
 from astropy.coordinates.angle_utilities import angular_separation
 from astropy.units import Quantity, StructuredUnit
+from attrs import define, field
 from numpy import (
     arange,
     arccos,
@@ -44,6 +45,7 @@ from numpy import (
     dtype,
     exp,
     flatnonzero,
+    floating,
     interp,
     isnan,
     linalg,
@@ -71,7 +73,7 @@ from scipy.stats import binned_statistic
 
 # LOCAL
 from trackstream._type_hints import CoordinateType
-from trackstream.base import CommonBase
+from trackstream.base import FramedBase
 from trackstream.utils.coord_utils import offset_by, position_angle
 from trackstream.utils.pbar import get_progress_bar
 
@@ -87,13 +89,17 @@ warnings.filterwarnings(
 
 DataType = Union[CoordinateType, BaseRepresentation]
 
+NDT = TypeVar("NDT", bound=ndarray)
+
 
 ##############################################################################
 # CODE
 ##############################################################################
 
 
-def _respace_bins_from_left(bins: ndarray, maxsep: ndarray, onsky: bool, eps: float) -> ndarray:
+def _respace_bins_from_left(
+    bins: NDT, maxsep: ndarray, onsky: bool, eps: Union[float, floating]
+) -> NDT:
     """Respace bins to have a maximum separation.
 
     Bins are respaced from the left-most bin up to the penultimate bin. The
@@ -136,7 +142,7 @@ def _respace_bins_from_left(bins: ndarray, maxsep: ndarray, onsky: bool, eps: fl
     return bins
 
 
-def _respace_bins(bins: ndarray, maxsep: ndarray, onsky: bool, eps: float) -> ndarray:
+def _respace_bins(bins: NDT, maxsep: ndarray, onsky: bool, eps: Union[float, floating]) -> NDT:
     """Respace bins to have a maximum separation.
 
     Parameters
@@ -180,7 +186,8 @@ def _respace_bins(bins: ndarray, maxsep: ndarray, onsky: bool, eps: float) -> nd
 ##############################################################################
 
 
-class SelfOrganizingMap1DBase(CommonBase):
+@define(frozen=True, kw_only=True)
+class SelfOrganizingMap1DBase(FramedBase):
     """Initializes a Self-Organizing Map.
 
     Inspired by the design of [MiniSom]_
@@ -201,7 +208,7 @@ class SelfOrganizingMap1DBase(CommonBase):
     learning_rate : initial learning rate
         (at the iteration t we have learning_rate(t) = learning_rate / (1 + t/T)
         where T is #num_iteration/2)
-    random_seed : int, optional keyword-only (default=None)
+    rng : int, optional keyword-only (default=None)
         Random seed to use.
 
     representation_type : `astropy.coordinates.BaseRepresentation` or None, optional keyword-only
@@ -225,44 +232,35 @@ class SelfOrganizingMap1DBase(CommonBase):
     .. [frankenz] Josh Speagle. Frankenz: a photometric redshift monstrosity.
     """
 
-    _units: Optional[u.StructuredUnit]
+    nlattice: int = field()
+    sigma: float = field(default=0.1, converter=float)
+    learning_rate: float = field(default=0.3, converter=float)
+    rng: random.Generator = field(default=None, converter=random.default_rng)
+    prototypes: ndarray = field()
 
-    _nlattice: int
-    _sigma: float
-    _prototypes: ndarray
-    _yy: ndarray
+    _units: Optional[u.StructuredUnit] = field(default=None, init=False)
+    _yy: ndarray = field(init=False)
+    _init_prototypes = field(init=False)
 
-    _rng: random.Generator
+    @prototypes.default  # type: ignore
+    def _prototypes_factory(self):
+        prototypes = 2 * self.rng.random((self.nlattice, self.nfeature)) - 1
+        return prototypes
 
-    def __init__(
-        self,
-        nlattice: int,
-        frame: BaseCoordinateFrame,
-        *,
-        sigma: float = 0.1,
-        learning_rate: float = 0.3,
-        random_seed: Optional[int] = None,
-        representation_type: Optional[Type[BaseRepresentation]] = None,
-    ) -> None:
-        if sigma >= 1 or sigma >= nlattice:
+    @_init_prototypes.default  # type: ignore
+    def _init_prototypes_factory(self):
+        ps = deepcopy(self.prototypes)
+        ps.flags.writeable = False
+        return ps
+
+    @_yy.default  # type: ignore
+    def _yy_factory(self):
+        return arange(self.nlattice, dtype=float)
+
+    @sigma.validator  # type: ignore
+    def check_sigma(self, _, value):
+        if value >= 1 or value >= self.nlattice:
             warnings.warn("sigma is too high for the dimension of the map")
-
-        # for interpreting input data
-        super().__init__(frame=frame, representation_type=representation_type)
-        self._units = None
-
-        # normal SOM stuff
-        self._nlattice = nlattice
-        self._sigma = sigma
-        self._learning_rate = learning_rate
-
-        self._rng = random.default_rng(random_seed)
-
-        # used to evaluate the neighborhood function
-        self._yy = arange(nlattice, dtype=float)
-
-        # random initialization, if onsky is known
-        self.make_prototypes_random()
 
     # -------------------------------------------
 
@@ -285,23 +283,9 @@ class SelfOrganizingMap1DBase(CommonBase):
     # -------------------------------------------
 
     @property
-    def nlattice(self) -> int:
-        """Number of lattice points."""
-        return self._nlattice
-
-    @property
     @abstractmethod
     def nfeature(self) -> int:
         """Number of features."""
-
-    @property
-    def sigma(self) -> float:
-        return self._sigma
-
-    @property
-    def learning_rate(self) -> float:
-        """Learning Rate."""
-        return self._learning_rate
 
     @staticmethod
     def _decay_function(learning_rate: float, iteration: int, max_iter: float) -> float:
@@ -323,15 +307,15 @@ class SelfOrganizingMap1DBase(CommonBase):
         return learning_rate / (1.0 + (2.0 * iteration / max_iter))
 
     @property
-    def prototypes(self) -> BaseCoordinateFrame:
+    def prototypes_crd(self) -> BaseCoordinateFrame:
         "Read-only view of prototypes vectors."
-        p = self._prototypes.view()
+        p = self.prototypes.view()
         p.flags.writeable = False
 
         return self._v_to_crd(p)
 
     @property
-    def init_prototypes(self) -> BaseCoordinateFrame:
+    def init_prototypes_crd(self) -> BaseCoordinateFrame:
         "Read-only view of prototypes vectors."
         p = self._init_prototypes.view()
         p.flags.writeable = False
@@ -369,19 +353,13 @@ class SelfOrganizingMap1DBase(CommonBase):
         data = {n: (arr[:, i] << unit) for i, (n, unit) in enumerate(self.data_units.items())}
         rep = self.internal_representation_type(**data)
         crd = self.frame.realize_frame(rep)
-        crd.representation_type = self.representation_type
+        crd.representation_type = self.frame_representation_type
         return crd
 
     # ===============================================================
 
     # ---------------------------------------------------------------
     # prototypes
-
-    def make_prototypes_random(self) -> None:
-        """Randomly initialize prototype vectors."""
-        prototypes = 2 * self._rng.random((self.nlattice, self.nfeature)) - 1
-        self._prototypes = prototypes
-        self._init_prototypes = deepcopy(prototypes)
 
     @abstractmethod
     def make_prototypes_binned(
@@ -427,12 +405,12 @@ class SelfOrganizingMap1DBase(CommonBase):
         iterations = arange(num_iteration) % len(data)
         # Optionally randomize the cycles
         if random_order:
-            self._rng.shuffle(iterations)
+            self.rng.shuffle(iterations)
 
         # Get the in internal unitless representation
         q = self._crd_to_q(data)
         if self._units is None:  # if not init weighted
-            self._units = cast(u.StructuredUnit, q.unit)
+            object.__setattr__(self, "_units", cast(u.StructuredUnit, q.unit))
         X = self._crd_to_v(data)  # (D, 2 or 3)
 
         # Fit the data by sequential update
@@ -464,7 +442,7 @@ class SelfOrganizingMap1DBase(CommonBase):
         int
             The index of the best-matching prototype.
         """
-        activation_map = self._activation_distance(x, self._prototypes)
+        activation_map = self._activation_distance(x, self.prototypes)
         ibmu = int(activation_map.argmin())
         return ibmu
 
@@ -476,17 +454,17 @@ class SelfOrganizingMap1DBase(CommonBase):
         nlattice = self.nlattice
 
         # vector from one point to next  (nlattice-1, nfeature)
-        lattice_points = self._prototypes
+        lattice_points = self.prototypes
         p1 = lattice_points[:-1, :]
         p2 = lattice_points[1:, :]
         # vector from one point to next  (nlattice-1, nfeature)
-        viip1 = p2 - p1
+        viip1 = subtract(p2, p1)
         # square distance from one point to next  (nlattice-1, nfeature)
         liip1 = sum(square(viip1), axis=1)
 
         # data - point_i  (D, nlattice-1, nfeature)
         # for each slice in D,
-        dmi = data[:, None, :] - p1[None, :, :]  # d-p1
+        dmi = subtract(data[:, None, :], p1[None, :, :])  # d-p1
 
         # The line extending the segment is parameterized as p1 + t (p2 - p1).
         # The projection falls where t = [(p3-p1) . (p2-p1)] / |p2-p1|^2
@@ -502,7 +480,7 @@ class SelfOrganizingMap1DBase(CommonBase):
         all_points = np.empty((data_len, 2 * nlattice - 1, nfeature), dtype=float)
         all_points[:, 1::2, :] = projected_points
         all_points[:, 0::2, :] = lattice_points
-        distances = np.linalg.norm(data[:, None, :] - all_points, axis=-1)
+        distances = np.linalg.norm(subtract(data[:, None, :], all_points), axis=-1)
 
         # detect whether it is in the segment
         # nodes are considered in the segment
@@ -587,6 +565,7 @@ class SelfOrganizingMap1DBase(CommonBase):
 # ----------------------------------------------------------------------------
 
 
+@define(frozen=True, kw_only=True)
 class CartesianSelfOrganizingMap1D(SelfOrganizingMap1DBase):
     """Initializes a Self-Organizing Map.
 
@@ -608,7 +587,7 @@ class CartesianSelfOrganizingMap1D(SelfOrganizingMap1DBase):
     learning_rate : initial learning rate
         (at the iteration t we have learning_rate(t) = learning_rate / (1 + t/T)
         where T is #num_iteration/2)
-    random_seed : int, optional keyword-only (default=None)
+    rng : int, optional keyword-only (default=None)
         Random seed to use.
 
     representation_type : `astropy.coordinates.BaseRepresentation` or None, optional keyword-only
@@ -631,15 +610,6 @@ class CartesianSelfOrganizingMap1D(SelfOrganizingMap1DBase):
         implementation of the Self Organizing Map.
     .. [frankenz] Josh Speagle. Frankenz: a photometric redshift monstrosity.
     """
-
-    _units: Optional[u.StructuredUnit]
-
-    _nlattice: int
-    _sigma: float
-    _prototypes: ndarray
-    _yy: ndarray
-
-    _rng: random.Generator
 
     # -------------------------------------------
 
@@ -685,7 +655,7 @@ class CartesianSelfOrganizingMap1D(SelfOrganizingMap1DBase):
         """
         # Get the data as a structured Quantity to set the units parameter
         q = self._crd_to_q(data)
-        self._units = cast(u.StructuredUnit, q.unit)
+        object.__setattr__(self, "_units", cast(u.StructuredUnit, q.unit))
 
         # Get coordinate to bin
         # This is most easily done as a NON-structured array
@@ -699,10 +669,13 @@ class CartesianSelfOrganizingMap1D(SelfOrganizingMap1DBase):
             x = xq.value
 
         # Create equi-frequency bins
-        bins: Quantity = interp(
-            x=linspace(0, len(xq), self.nlattice + 1),
-            xp=arange(len(xq)),
-            fp=sort(xq),
+        bins: Quantity = cast(
+            Quantity,
+            interp(
+                x=linspace(0, len(xq), self.nlattice + 1),
+                xp=arange(len(xq)),
+                fp=sort(xq),
+            ),
         )
 
         # Optionally respace the bins to have a maximum separation
@@ -738,8 +711,8 @@ class CartesianSelfOrganizingMap1D(SelfOrganizingMap1DBase):
             mask = isnan(d)
             prototypes[mask, j] = interp(flatnonzero(mask), flatnonzero(~mask), d[~mask])
 
-        self._prototypes = prototypes
-        self._init_prototypes = deepcopy(prototypes)
+        object.__setattr__(self, "prototypes", prototypes)
+        object.__setattr__(self, "_init_prototypes", deepcopy(prototypes))
 
     # ---------------------------------------------------------------
     # fitting
@@ -756,14 +729,14 @@ class CartesianSelfOrganizingMap1D(SelfOrganizingMap1DBase):
         max_iteration : int
             Maximum number of training itarations.
         """
-        eta = self._decay_function(self._learning_rate, t, max_iteration)
+        eta = self._decay_function(self.learning_rate, t, max_iteration)
         # sigma and learning rate decrease with the same rule
-        sig = self._decay_function(self._sigma, t, max_iteration)
+        sig = self._decay_function(self.sigma, t, max_iteration)
         # improves the performances
         ibmu = self._best_matching_unit_index(x)
         g = self._neighborhood(ibmu, sig) * eta
         # w_new = eta * neighborhood_function * (x-w)
-        self._prototypes += g[:, None] * (x - self._prototypes)  # type: ignore
+        self.prototypes += g[:, None] * (x - self.prototypes)  # type: ignore
 
     # ---------------------------------------------------------------
     # predicting structure
@@ -826,6 +799,7 @@ class CartesianSelfOrganizingMap1D(SelfOrganizingMap1DBase):
 # ----------------------------------------------------------------------------
 
 
+@define(frozen=True, kw_only=True)
 class UnitSphereSelfOrganizingMap1D(SelfOrganizingMap1DBase):
     """Initializes a Self-Organizing Map.
 
@@ -849,7 +823,7 @@ class UnitSphereSelfOrganizingMap1D(SelfOrganizingMap1DBase):
     learning_rate : initial learning rate
         (at the iteration t we have learning_rate(t) = learning_rate / (1 + t/T)
         where T is #num_iteration/2)
-    random_seed : int, optional keyword-only (default=None)
+    rng : int, optional keyword-only (default=None)
         Random seed to use.
 
     representation_type : `astropy.coordinates.BaseRepresentation` or None, optional keyword-only
@@ -872,15 +846,6 @@ class UnitSphereSelfOrganizingMap1D(SelfOrganizingMap1DBase):
         implementation of the Self Organizing Map.
     .. [frankenz] Josh Speagle. Frankenz: a photometric redshift monstrosity.
     """
-
-    _units: Optional[u.StructuredUnit]
-
-    _nlattice: int
-    _sigma: float
-    _prototypes: ndarray
-    _yy: ndarray
-
-    _rng: random.Generator
 
     @property
     def onsky(self) -> bool:
@@ -917,7 +882,7 @@ class UnitSphereSelfOrganizingMap1D(SelfOrganizingMap1DBase):
         """
         # Get the data as a structured Quantity to set the units parameter
         q = self._crd_to_q(data)
-        self._units = cast(u.StructuredUnit, q.unit)
+        object.__setattr__(self, "_units", cast(u.StructuredUnit, q.unit))
 
         # Get coordinate to bin
         # This is most easily done as a NON-structured array
@@ -956,10 +921,13 @@ class UnitSphereSelfOrganizingMap1D(SelfOrganizingMap1DBase):
         # Create equi-frequency bins
         # https://www.statology.org/equal-frequency-binning-python/
         # endpoint=False is used to prevent a x>xp endpoint repetition
-        bins: Quantity = interp(
-            x=linspace(0, len(xq), self.nlattice + 1, endpoint=False),
-            xp=arange(len(xq)),
-            fp=sort(xq),
+        bins: Quantity = cast(
+            Quantity,
+            interp(
+                x=linspace(0, len(xq), self.nlattice + 1, endpoint=False),
+                xp=arange(len(xq)),
+                fp=sort(xq),
+            ),
         )
 
         # Optionally respace the bins to have a maximum separation
@@ -973,14 +941,14 @@ class UnitSphereSelfOrganizingMap1D(SelfOrganizingMap1DBase):
 
             # Respace bins
             unit = u.rad if self.onsky else bins.unit
-            bins = (
+            bins = Quantity(
                 _respace_bins(
                     deepcopy(bins.to_value(unit)),
                     maxsep.to_value(unit),
                     onsky=self.onsky,
                     eps=2 * np.finfo(maxsep.dtype).eps,
-                )
-                * unit
+                ),
+                unit,
             )
 
         res = binned_statistic(x, XT, bins=bins, statistic="median")  # type: ignore
@@ -992,8 +960,8 @@ class UnitSphereSelfOrganizingMap1D(SelfOrganizingMap1DBase):
             mask = isnan(d)
             prototypes[mask, j] = interp(flatnonzero(mask), flatnonzero(~mask), d[~mask])
 
-        self._prototypes = prototypes
-        self._init_prototypes = deepcopy(prototypes)
+        object.__setattr__(self, "prototypes", prototypes)
+        object.__setattr__(self, "_init_prototypes", deepcopy(prototypes))
 
     # ---------------------------------------------------------------
     # fitting
@@ -1015,22 +983,22 @@ class UnitSphereSelfOrganizingMap1D(SelfOrganizingMap1DBase):
         max_iteration : int
             Maximum number of training itarations.
         """
-        eta = self._decay_function(self._learning_rate, t, max_iteration)
+        eta = self._decay_function(self.learning_rate, t, max_iteration)
         # sigma and learning rate decrease with the same rule
-        sig = self._decay_function(self._sigma, t, max_iteration)
+        sig = self._decay_function(self.sigma, t, max_iteration)
         # improves the performances
         ibmu = self._best_matching_unit_index(x)
         g = self._neighborhood(ibmu, sig) * eta
         # w_new = eta * neighborhood_function * (x-w)
         # The first two dimensions are angular. The distance should be on the sphere.
-        ps = self._prototypes
+        ps = self.prototypes
         separation = angular_separation(ps[:, 0], ps[:, 1], x[0], x[1])
         posang = position_angle(ps[:, 0], ps[:, 1], x[0], x[1])
         nlon, nlat = offset_by(ps[:, 0], ps[:, 1], posang=posang, distance=g * separation)
         nps = np.c_[nlon, nlat]  # same shape
         # Note: need to do non-angular components, if ever add
 
-        self._prototypes = nps
+        object.__setattr__(self, "prototypes", nps)
 
     # ---------------------------------------------------------------
     # predicting structure

@@ -18,6 +18,7 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
+    Type,
     Union,
     cast,
 )
@@ -26,6 +27,7 @@ from typing import (
 import astropy.units as u
 from astropy.coordinates import (
     BaseCoordinateFrame,
+    BaseDifferential,
     BaseRepresentation,
     CartesianDifferential,
     CartesianRepresentation,
@@ -34,7 +36,7 @@ from astropy.coordinates import (
     UnitSphericalRepresentation,
 )
 from astropy.units import Quantity, StructuredUnit
-from astropy.utils.misc import indent
+from attrs import converters, define, field
 from numpy import (
     arccos,
     arctan2,
@@ -66,8 +68,9 @@ from scipy.linalg import block_diag
 
 # LOCAL
 from trackstream._type_hints import CoordinateType
-from trackstream.base import CommonBase
-from trackstream.track.path import Path, path_moments
+from trackstream.base import FramedBase
+from trackstream.fit.path import Path
+from trackstream.utils.coord_utils import resolve_framelike
 from trackstream.utils.misc import intermix_arrays
 
 ##############################################################################
@@ -86,7 +89,7 @@ class kalman_output(NamedTuple):
 ##############################################################################
 
 
-def make_timesteps(data: SkyCoord, *, dt0: Quantity, vmin: Quantity, width: int = 6) -> ndarray:
+def make_timesteps(data: SkyCoord, *, dt0: Quantity, vmin: Quantity, width: int = 6) -> Quantity:
     """Make distance arrays.
 
     Parameters
@@ -122,7 +125,7 @@ def make_timesteps(data: SkyCoord, *, dt0: Quantity, vmin: Quantity, width: int 
     dts = insert(Ds, 0, values=dt0)
     dts = insert(dts, 0, values=0)
 
-    return cumsum(dts.value)  # TODO! as quantity
+    return cast(Quantity, cumsum(dts))  # TODO! as Quantity
 
 
 # TODO check against Q_discrete_white_noise
@@ -157,27 +160,6 @@ def make_Q(dt: float, var: float = 1.0, ndims: int = 3, order: int = 2) -> ndarr
     return Q
 
 
-def make_H(ndims: int) -> ndarray:
-    """Make H Matrix.
-
-    Parameters
-    ----------
-    ndims : int
-
-    Returns
-    -------
-    ndarray
-    """
-    # component of block diagonal
-    h = array([[1, 0], [0, 0]])
-
-    # full matrix is for all components
-    # and reduce down to `dim_z` of Kalman Filter, skipping velocity rows
-    H: ndarray = block_diag(*([h] * ndims))[::2]
-
-    return H
-
-
 def make_R(data: ndarray, /) -> ndarray:
     """Make measurement noise covariance matrix from errors.
 
@@ -203,10 +185,75 @@ def make_R(data: ndarray, /) -> ndarray:
     return R
 
 
+def _crd_to_q(
+    data: Union[CoordinateType, BaseRepresentation], /, frame, rep_type, dif_type
+) -> Quantity:
+    """Coordinate-type object to structured Quantity.
+
+    Parameters
+    ----------
+    data : (N,) SkyCoord or BaseCoordinateFrame or BaseRepresentation, positional-only
+        The data to convert to a structured quantity.
+
+    Returns
+    -------
+    (N, D) Quantity
+    """
+    # Representation
+    if isinstance(data, BaseRepresentation):
+        rep = data.represent_as(
+            rep_type,
+            differential_class=dif_type,
+        )
+    else:
+        crd = data.transform_to(frame)
+        rep = crd.represent_as(
+            rep_type,
+            s=dif_type if dif_type is not None else "base",  # type: ignore
+        )
+    rv = rep._values  # structured ndarray
+    units = {n: getattr(rep, n).unit for n in (rv.dtype.names or {})}
+    # TODO! enforce rad if onsky
+
+    # Differentials (optional)
+    if dif_type is not None:
+        dif = rep.differentials["s"]
+        dv = dif._values
+        # note: merge_arrays adds a dimension to scalar ndarrays
+        v = merge_arrays((rv, dv), flatten=True, usemask=False).reshape(rv.shape)
+        units.update({n: getattr(dif, n).unit for n in dv.dtype.names})
+    else:
+        v = rv
+
+    # structured quantity
+    su = StructuredUnit(tuple(units.values()), names=tuple(units.keys()))
+    q: Quantity = v << su
+    return q
+
+
+def _q_to_v(q: Quantity, /) -> ndarray:
+    """Quantity to unstructured array.
+
+    Parameters
+    ----------
+    q : (N, D) Quantity, positional-only
+        Structured Quantity.
+
+    Returns
+    -------
+    (N, D) ndarray
+    """
+    # TODO! check units. should match.
+    sv: ndarray = q.value
+    v: ndarray = structured_to_unstructured(sv)
+    return v
+
+
 ##############################################################################
 
 
-class FirstOrderNewtonianKalmanFilter(CommonBase):
+@define(frozen=True)
+class FirstOrderNewtonianKalmanFilter(FramedBase):
     """First-order Newtonian Kalman filter class.
 
     Parameters
@@ -226,94 +273,130 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
     R0 : ndarray callable or None, optional keyword-only
     """
 
-    _onsky: bool
-    _kinematics: bool
-    _options: Dict[str, Any]
+    x0: ndarray = field(converter=array)
+    P0: ndarray = field(converter=array)
+    Q0: Optional[ndarray] = field(default=None, converter=converters.optional(array))
+    H: ndarray = field(init=False, repr=False)  # always default
 
-    _units: StructuredUnit
-    _x0: ndarray
-    _P0: ndarray
-    _H: ndarray
-    _Q0: Optional[ndarray]
+    onsky: bool = field(kw_only=True)
+    kinematics: bool = field(kw_only=True)
+    options: Dict[str, Any] = field(factory=dict, kw_only=True)
 
-    _process_noise_model: Callable[..., ndarray]
+    process_noise_model: Callable[..., ndarray] = field(default=make_Q, kw_only=True)
+
+    frame: BaseCoordinateFrame = field(kw_only=True, converter=resolve_framelike)
+    """The frame of this object, set at initialization."""
+    frame_representation_type: Type[BaseRepresentation] = field(kw_only=True)
+    frame_differential_type: Optional[Type[BaseDifferential]] = field(kw_only=True)
+    units: StructuredUnit = field(default=None, kw_only=True)  # set by default
+
+    _I: ndarray = field(init=False, repr=False)
 
     # results
-    __result: Optional[kalman_output]
-    __smooth_result: Optional[kalman_output]
-    __path: Optional[Path]
+    __result: Optional[kalman_output] = field(init=False, default=None, repr=False)
+    __smooth_result: Optional[kalman_output] = field(init=False, default=None, repr=False)
+    __path: Optional[Path] = field(init=False, default=None, repr=False)
 
-    def __init__(
-        self,
-        x0: BaseRepresentation,
+    @H.default  # type: ignore
+    def _H_factory(self):
+        # component of block diagonal
+        h = array([[1, 0], [0, 0]])
+        # full matrix is for all components
+        # and reduce down to `dim_z` of Kalman Filter, skipping velocity rows
+        H: ndarray = block_diag(*([h] * self.ndims))[::2]
+        return H
+
+    @_I.default  # type: ignore
+    def _I_factory(self) -> ndarray:
+        return eye(2 * self.ndims)
+
+    @frame_representation_type.default  # type: ignore
+    def _representation_type_factory(self) -> Type[BaseRepresentation]:
+        return UnitSphericalRepresentation if self.onsky else CartesianRepresentation
+
+    @frame_differential_type.default  # type: ignore
+    def _differential_type_factory(self) -> Optional[Type[BaseDifferential]]:
+        if not self.kinematics:
+            dif_type = None
+        elif self.onsky:  # TODO! need to be cognizant if just radial, etc.
+            dif_type = UnitSphericalDifferential
+        else:
+            dif_type = CartesianDifferential
+
+        return dif_type
+
+    @x0.validator  # type: ignore
+    def _x0_validate(self, _, value: ndarray) -> None:
+        if len(value.shape) != 1:
+            raise ValueError("x0 must be 1D")
+        elif len(value) % 2 != 0:
+            raise ValueError("x0 must have an even number of dimensions.")
+
+        nd = self.ndims
+        if nd < 2 or nd > 6:
+            raise ValueError(f"x0 must have 2 <= x0 <= 6 components, not {nd}")
+
+    @P0.validator  # type: ignore
+    def _P0_validate(self, _, value: ndarray) -> None:
+        if len(value.shape) != 2:
+            raise ValueError("P0 must be 2D")
+        if not all(array(value.shape) % 2 == 0):
+            raise ValueError("P0 must have an even number of dimensions.")
+
+    @classmethod
+    def from_representation(
+        cls,
+        start: BaseRepresentation,
         P0: ndarray,
+        Q0: Optional[ndarray] = None,
         *,
         onsky: bool,
         kinematics: bool,
         frame: BaseCoordinateFrame,
-        kfv0: Optional[ndarray] = None,
-        Q0: Union[None, ndarray, Callable[..., ndarray]] = None,
-        **options: Any,
-    ) -> None:
-        representation_type = UnitSphericalRepresentation if onsky else CartesianRepresentation
+        kf_v0: Optional[ndarray] = None,
+        process_noise_model: Optional[Callable[..., ndarray]] = None,
+        **options,
+    ) -> "FirstOrderNewtonianKalmanFilter":
+        rep_type = UnitSphericalRepresentation if onsky else CartesianRepresentation
         if not kinematics:
-            differential_type = None
+            dif_type = None
         elif onsky:  # TODO! need to be cognizant if just radial, etc.
-            differential_type = UnitSphericalDifferential
+            dif_type = UnitSphericalDifferential
         else:
-            differential_type = CartesianDifferential
-        super().__init__(
+            dif_type = CartesianDifferential
+
+        # Initial position
+        q0 = _crd_to_q(start, frame=frame, rep_type=rep_type, dif_type=dif_type)
+        x0_v = _q_to_v(q0)
+        units = cast(StructuredUnit, q0.unit)
+        ndims: int = len(q0.dtype.names)
+
+        # KF "velocity". Will be intermixed into `x0`
+        kfv0: ndarray = array([0] * ndims) if kf_v0 is None else kf_v0
+        x0 = intermix_arrays(x0_v, kfv0)
+
+        if process_noise_model is None:
+            Q: Callable = cls.process_noise_model.default
+        else:
+            Q = process_noise_model
+
+        return cls(
+            x0=x0,
+            P0=P0,
+            Q0=Q0,
+            process_noise_model=Q,
+            onsky=onsky,
+            kinematics=kinematics,
             frame=frame,
-            representation_type=representation_type,
-            differential_type=differential_type,
+            frame_representation_type=rep_type,
+            frame_differential_type=dif_type,
+            units=units,
+            options=options,
         )
 
-        # onsky & kinematics, for dimensionality.
-        self._onsky = onsky
-        self._kinematics = kinematics
-
-        # Initial position  (requires onsky and kinematics to be set)
-        q = self._crd_to_q(x0)
-        self._units = cast(StructuredUnit, q.unit)
-        _x0 = self._q_to_v(q)
-
-        # Check the number of dimensions
-        ndims: int = len(q.dtype.names)
-        if ndims < 2 or ndims > 6:
-            raise ValueError(f"x0 must have 2 <= x0 <= 6 components, not {ndims}")
-        self._I = eye(2 * ndims)  # 2 x dims b/c hidden velocity terms.
-
-        #     KF "velocity". Will be intermixed into `x0`
-        _kfv0: ndarray = array([0] * ndims) if kfv0 is None else kfv0
-        self._x0 = intermix_arrays(_x0, _kfv0)
-
-        # Kalman Filter
-        self._P0 = P0
-        self._H = make_H(ndims=ndims)
-        self._Q0 = Q0 if not callable(Q0) else None
-
-        # functions
-        setattr(self, "_process_noise_model", Q0 if callable(Q0) else make_Q)
-
-        # Running
-        self.__result = None
-        self.__smooth_result = None
-        self.__path = None
-
-        self._options = options  # all the other fitting options.
-
-    # ---------------------------------------------------------------
-    # Flags
-
     @property
-    def onsky(self) -> bool:
-        """Whether to fit on-sky or 3d."""
-        return self._onsky
-
-    @property
-    def kinematics(self) -> bool:
-        """Whether to fit the kinematics also."""
-        return self._kinematics
+    def ndims(self):
+        return len(self.x0) // 2
 
     @property
     def _dif_attrs(self) -> Tuple[str, ...]:
@@ -322,28 +405,6 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
 
     # ---------------------------------------------------------------
     # Initial Conditions
-
-    @property
-    def x0(self) -> ndarray:
-        """Initial state."""
-        return self._x0
-
-    @property
-    def P0(self) -> ndarray:
-        """Initial state covariance matrix."""
-        return self._P0
-
-    @property
-    def Q0(self) -> Optional[ndarray]:
-        return self._Q0
-
-    @property
-    def H(self) -> ndarray:
-        return self._H
-
-    @property
-    def options(self) -> Dict[str, Any]:
-        return self._options
 
     @staticmethod
     def state_transition_model(dt: float, ndims: int) -> ndarray:
@@ -366,12 +427,6 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         # F block-diagonal array
         F: ndarray = block_diag(*([f] * ndims))
         return F
-
-    @property
-    def process_noise_model(self) -> Callable[..., ndarray]:
-        model: Callable[..., ndarray]
-        model = self._process_noise_model
-        return model
 
     # ---------------------------------------------------------------
     # Requires the Kalman filter to be run
@@ -397,71 +452,6 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
     # ---------------------------------------------------------------
     # Coordinates <-> internals
 
-    @property
-    def units(self) -> StructuredUnit:
-        """Units of the coordinates."""
-        return self._units
-
-    def _crd_to_q(self, data: Union[CoordinateType, BaseRepresentation], /) -> Quantity:
-        """Coordinate-type object to structured Quantity.
-
-        Parameters
-        ----------
-        data : (N,) SkyCoord or BaseCoordinateFrame or BaseRepresentation, positional-only
-            The data to convert to a structured quantity.
-
-        Returns
-        -------
-        (N, D) Quantity
-        """
-        # Representation
-        if isinstance(data, BaseRepresentation):
-            rep = data.represent_as(
-                self.representation_type,
-                differential_class=self.differential_type if self.kinematics else None,
-            )
-        else:
-            crd = data.transform_to(self.frame)
-            rep = crd.represent_as(
-                self.representation_type,
-                s=self.differential_type if self.kinematics else "base",  # type: ignore
-            )
-        rv = rep._values
-        units = {n: getattr(rep, n).unit for n in rv.dtype.names}
-        # TODO! enforce rad if onsky
-
-        # Differentials (optional)
-        if self.kinematics:
-            dif = rep.differentials["s"]
-            dv = dif._values
-            # note: merge_arrays adds a dimension to scalar ndarrays
-            v = merge_arrays((rv, dv), flatten=True, usemask=False).reshape(rv.shape)
-            units.update({n: getattr(dif, n).unit for n in dv.dtype.names})
-        else:
-            v = rv
-
-        # structured quantity
-        su = StructuredUnit(tuple(units.values()), names=tuple(units.keys()))
-        q: Quantity = v << su
-        return q
-
-    def _q_to_v(self, q: Quantity, /) -> ndarray:
-        """Quantity to unstructured array.
-
-        Parameters
-        ----------
-        q : (N, D) Quantity, positional-only
-            Structured Quantity.
-
-        Returns
-        -------
-        (N, D) ndarray
-        """
-        # TODO! check units. should match.
-        sv: ndarray = q.value
-        v: ndarray = structured_to_unstructured(sv)
-        return v
-
     def _crd_to_v(self, crd: Union[CoordinateType, BaseRepresentation], /) -> ndarray:
         """Coordinate / Representation to unstructured array.
 
@@ -474,8 +464,13 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         -------
         (N, D) ndarray
         """
-        q: Quantity = self._crd_to_q(crd)
-        v: ndarray = self._q_to_v(q)
+        q: Quantity = _crd_to_q(
+            crd,
+            frame=self.frame,
+            rep_type=self.frame_representation_type,
+            dif_type=self.frame_differential_type,
+        )
+        v: ndarray = _q_to_v(q)
         return v
 
     def _v_to_q(self, v: ndarray, /) -> Quantity:
@@ -509,20 +504,20 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         SkyCoord
         """
         # Differentials
-        if not self.kinematics:
+        if self.frame_differential_type is None:
             dif = None
         else:
-            dif = self.differential_type(**{n: q[n] for n in self._dif_attrs}, copy=False)
+            dif = self.frame_differential_type(**{n: q[n] for n in self._dif_attrs}, copy=False)
 
         # Representation, including Differentials
         rcs = {n: q[n] for n in self._rep_attrs}
-        rep = self.representation_type(**rcs, differentials=dif, copy=False)
+        rep = self.frame_representation_type(**rcs, differentials=dif, copy=False)
 
         # Frame
         crd: BaseCoordinateFrame = self.frame.realize_frame(
             rep,
-            representation_type=self.representation_type,
-            differential_type=self.differential_type,
+            representation_type=self.frame_representation_type,
+            differential_type=self.frame_differential_type,
             copy=False,
         )
 
@@ -546,31 +541,31 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
 
     # ---------------------------------------------------------------
 
-    def __repr__(self) -> str:
-        """String representation."""
-        r = ""
+    # def __repr__(self) -> str:
+    #     """String representation."""
+    #     r = ""
 
-        # 1) header (standard repr)
-        header: str = object.__repr__(self)
-        r += header
+    #     # 1) header (standard repr)
+    #     header: str = object.__repr__(self)
+    #     r += header
 
-        # 2) units
-        unit = ", ".join([", ".join((s, s + "/<affine>")) for s in map(str, self.units.values())])
-        r += f"\n  units: ({unit})"
+    #     # 2) units
+    #     unit = ", ".join([", ".join((s, s + "/<affine>")) for s in map(str, self.units.values())])
+    #     r += f"\n  units: ({unit})"
 
-        # 3) x0
-        r += "\n  x0: " + str(self.x0)
+    #     # 3) x0
+    #     r += "\n  x0: " + str(self.x0)
 
-        # 4) P0
-        r += "\n  P0: " + indent(str(self.P0), width=6).lstrip()
+    #     # 4) P0
+    #     r += "\n  P0: " + indent(str(self.P0), width=6).lstrip()
 
-        # 5) Q0
-        r += "\n  Q0: " + indent(str(self.Q0), width=6).lstrip()
+    #     # 5) Q0
+    #     r += "\n  Q0: " + indent(str(self.Q0), width=6).lstrip()
 
-        # 6) H
-        r += "\n  H : " + indent(str(self.H), width=6).lstrip()
+    #     # 6) H
+    #     r += "\n  H : " + indent(str(self.H), width=6).lstrip()
 
-        return r
+    #     return r
 
     #######################################################
     # Math (2 phase + smoothing)
@@ -583,7 +578,6 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         Q: ndarray,
         z: ndarray,
         R: ndarray,
-        oz: ndarray,
     ) -> Tuple[ndarray, ndarray]:
         """
         Predict prior using Kalman filter transition functions.
@@ -628,10 +622,10 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         # -------------------
         # Posterior
 
-        S = dot(dot(self._H, P), self._H.T) + R  # system uncertainty in measurement space
-        K = dot(dot(P, self._H.T), linalg.inv(S))  # Kalman gain
+        S = dot(dot(self.H, P), self.H.T) + R  # system uncertainty in measurement space
+        K = dot(dot(P, self.H.T), linalg.inv(S))  # Kalman gain
 
-        predict = dot(self._H, x)  # prediction in measurement space
+        predict = dot(self.H, x)  # prediction in measurement space
         residual = z - predict  # measurement and prediction residual
 
         if self.onsky:  # unwrap to keep x close to z
@@ -651,7 +645,7 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
             x[0] -= 2 * pi if (x[0] >= pi) else 0
             # todo! similar unwrapping of the |Latitude|
 
-        KH = dot(K, self._H)
+        KH = dot(K, self.H)
         ImKH = self._I - KH
         # stable representation using Joseph equation (from Filterpy)
         # P = (1 - KH)P(1 - KH)' + KRK'
@@ -732,7 +726,7 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
 
     def fit(
         self, data: SkyCoord, errors: Union[ndarray, Quantity], /, timesteps: ndarray, **kwargs: Any
-    ) -> Tuple[Path, kalman_output]:
+    ) -> Path:
         """Run Kalman Filter with updates on each step.
 
         Parameters
@@ -746,8 +740,7 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
 
         Returns
         -------
-        smooth : `~kalman_output`
-            "timesteps", "Xs", "Ps", "Qs"
+        path : `~trackstream.fit.path.Path`
         """
         # ------ setup ------
 
@@ -776,10 +769,12 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         # KF
         x, P = self.x0, self.P0
         ndims = len(x) // 2
-        Q = self.process_noise_model(dts[0], ndims=ndims) if self.Q0 is None else self.Q0  # FIXME!
+        Q = (
+            self.process_noise_model(dts[0].value, ndims=ndims) if self.Q0 is None else self.Q0
+        )  # FIXME!
 
         # Data
-        oz = self.x0  # i-1 'data' is KF starting point
+        # oz = self.x0  # i-1 'data' is KF starting point
 
         # initialize arrays
         Xs = empty((num_z, *shape(x)))
@@ -798,29 +793,31 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
             Q = self.process_noise_model(dt, ndims=ndims, **q_kw)
 
             # predict & update
-            x, P = self._math_predict_and_update(x=x, P=P, F=F, Q=Q, z=z, R=R, oz=oz)
+            x, P = self._math_predict_and_update(x=x, P=P, F=F, Q=Q, z=z, R=R)
 
             # append results
             Xs[i], Ps[i] = x, P
             Qs[i] = Q
 
         # save
-        self.__result = kalman_output(timesteps, Xs, Ps, Qs)
+        result = kalman_output(timesteps, Xs, Ps, Qs)
+        object.__setattr__(self, "__result", result)
 
         # smoothed
         try:
             xs, Ps, _, Qs = self._rts_smoother(dts, Xs, Ps, Qs)
         except Exception as e:
             print("can't smooth", str(e))
-            self.__smooth_result = smooth = self.__result
+            smooth = result
         else:
             smooth = kalman_output(timesteps, xs, Ps, Qs)
-            self.__smooth_result = smooth
+
+        object.__setattr__(self, "__smooth_result", smooth)
 
         # ------ make path ------
 
         # Measured Xs
-        # mXs = dot(self._H, smooth.Xs.T).T  # (N, D)
+        # mXs = dot(self.H, smooth.Xs.T).T  # (N, D)
         mc = self._v_to_crd(array(smooth.Xs[:, ::2], copy=True))  # needs to be C-continuous
 
         # Covariance matrix.
@@ -834,49 +831,17 @@ class FirstOrderNewtonianKalmanFilter(CommonBase):
         ci = cast(SkyCoord, mc[:-1])
         cj = cast(SkyCoord, mc[1:])
         sp2p = ci.separation(cj)  # point-2-point sep
-        minafn = min(Quantity(1e-10, sp2p.unit), 1e-10 * sp2p[0])
+        minafn = Quantity(min(1e-10, 1e-10 * sp2p.value[0]), sp2p.unit)
         affine = concatenate((array(minafn, subok=True), sp2p.cumsum()))
 
-        self.__path = path = Path(
+        path = Path.from_skycoord(
             mc,
             width=width,
             amplitude=None,  # TODO!
-            # keyword-only
             name=path_name,
-            affine=affine,
-            frame=self.frame,
-            representation_type=self.representation_type,
-            meta=None,
+            affine=Quantity(affine, copy=False),
+            meta=dict(result=result, smooth=smooth),
         )
+        object.__setattr__(self, "__path", path)
 
-        return path, smooth
-
-    def predict(self, affine: Quantity, /) -> path_moments:
-        """Predict the Kalman Filter path.
-
-        Parameters
-        ----------
-        affine: Quantity
-
-        Returns
-        -------
-        SkyCoord
-
-        Raises
-        ------
-        ValueError
-            If the KF is not ``fit()``.
-        """
-        return self._path(affine)
-
-    def fit_predict(
-        self,
-        affine: Quantity,
-        data: SkyCoord,
-        errors: Union[ndarray, Quantity],
-        /,
-        timesteps: ndarray,
-        **kwargs: Any,
-    ) -> path_moments:
-        self.fit(data, errors, timesteps=timesteps, **kwargs)
-        return self.predict(affine)
+        return path
