@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Stream arm classes.
 
 Stream arms are descriptors on a `trackstrea.Stream` class.
@@ -13,17 +11,7 @@ from __future__ import annotations
 
 # STDLIB
 from types import MappingProxyType
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    Mapping,
-    Optional,
-    Tuple,
-    TypedDict,
-    Union,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, Mapping, TypedDict, cast
 
 # THIRD PARTY
 import astropy.units as u
@@ -35,21 +23,17 @@ from astropy.coordinates import (
 from astropy.coordinates import concatenate as concatenate_coords
 from astropy.table import QTable
 from astropy.units import Quantity
-from attrs import define, evolve, field
+from attrs import define, field
 
 # LOCAL
 from .base import StreamBase
 from .core import StreamArm
 from .visualization import StreamPlotDescriptor
-from trackstream._type_hints import CoordinateLikeType
+from trackstream._typing import CoordinateLikeType
 from trackstream.base import CollectionBase
-from trackstream.fit import StreamArmTrack, TrackStreamArm
+from trackstream.fit import FitterStreamArmTrack, StreamArmTrack
 from trackstream.fit.track.plural import StreamArmsTracks, StreamTrack
-from trackstream.utils._attrs import (
-    _cache_factory,
-    _cache_proxy_factory,
-    convert_if_none,
-)
+from trackstream.utils._attrs import _cache_factory, convert_if_none
 
 if TYPE_CHECKING:
     # LOCAL
@@ -69,13 +53,13 @@ class _StreamCache(TypedDict):
     """Cache for Stream."""
 
     # arms' caches
-    arm_caches: Optional[MappingProxyType]
+    fitters: MappingProxyType | None
     # frame
     # system_frame: Optional[BaseCoordinateFrame]
-    frame_fit: Optional[FrameOptimizeResult]
+    frame_fit: FrameOptimizeResult | None
     # frame_fitter: Optional[RotatedFrameFitter]
     # track
-    track: Optional[StreamArmTrack]
+    track: StreamArmTrack | None
 
 
 ##############################################################################
@@ -139,7 +123,6 @@ class Stream(StreamArmsBase, StreamBase):
         factory=_cache_factory(_StreamCache),
         converter=convert_if_none(_cache_factory(_StreamCache), deepcopy=True),
     )
-    cache: MappingProxyType = field(init=False, default=_cache_proxy_factory)
 
     arms: StreamArms = field(init=False)
 
@@ -154,7 +137,7 @@ class Stream(StreamArmsBase, StreamBase):
 
     def __attrs_post_init__(self) -> None:
         # Make composite cache
-        self._cache["arm_caches"] = MappingProxyType({k: arm.cache for k, arm in self.items()})
+        self._cache["fitters"] = MappingProxyType({k: arm.cache["track_fitter"] for k, arm in self.items()})
 
         # validate that all the data frames are the same
         data_frame = self.data_frame
@@ -178,10 +161,10 @@ class Stream(StreamArmsBase, StreamBase):
         data: QTable,
         origin: SkyCoord,
         *,
-        name: Optional[str] = None,
-        data_err: Optional[QTable] = None,
-        system_frame: Optional[CoordinateLikeType] = None,
-        caches: Optional[Dict[str, Optional[dict]]] = None,
+        name: str | None = None,
+        data_err: QTable | None = None,
+        system_frame: CoordinateLikeType | None = None,
+        caches: dict[str, dict | None] | None = None,
     ):
         # split data by arm
         data = data.group_by("tail")
@@ -197,7 +180,7 @@ class Stream(StreamArmsBase, StreamBase):
 
         # initialize each arm
         groups_keys = cast(QTable, data.groups.keys)
-        arm_names: Tuple[str, ...] = tuple(groups_keys["tail"])
+        arm_names: tuple[str, ...] = tuple(groups_keys["tail"])
         arms = {}
         for k in arm_names:
             arm = StreamArm(
@@ -214,6 +197,10 @@ class Stream(StreamArmsBase, StreamBase):
         return cls(arms, name=name)
 
     # ===============================================================
+
+    @property
+    def cache(self) -> MappingProxyType:
+        return MappingProxyType(self._cache)
 
     @property
     def data(self) -> MappingProxyType:
@@ -236,17 +223,23 @@ class Stream(StreamArmsBase, StreamBase):
     @property
     def data_coords(self) -> SkyCoord:
         """The concatenated coordinates of all the arms."""
-        sc = concatenate_coords([arm.data_coords for arm in self.values()])
+        if len(self.arms) > 1:
+            sc = concatenate_coords([arm.data_coords for arm in self.values()])
+        else:
+            sc = next(iter(self.values())).data_coords
         return cast(SkyCoord, sc)
 
     @property
     def coords(self) -> SkyCoord:
         """The concatenated coordinates of all the arms."""
-        sc = concatenate_coords([arm.coords for arm in self.values()])
+        if len(self.arms) > 1:
+            sc = concatenate_coords([arm.coords for arm in self.values()])
+        else:
+            sc = next(iter(self.values())).coords
         return cast(SkyCoord, sc)
 
     @property
-    def system_frame(self) -> Optional[BaseCoordinateFrame]:
+    def system_frame(self) -> BaseCoordinateFrame | None:
         """Return a system-centric frame (or None)."""
         key0 = tuple(self.keys())[0]
         frame = self[key0].system_frame
@@ -254,32 +247,33 @@ class Stream(StreamArmsBase, StreamBase):
 
     @property
     def has_distances(self) -> bool:
-        return all((arm.has_distances for arm in self.values()))
+        return all(arm.has_distances for arm in self.values())
 
     @property
     def has_kinematics(self) -> bool:
-        return all((arm.has_kinematics for arm in self.values()))
+        return all(arm.has_kinematics for arm in self.values())
 
     @property
     def coords_ord(self) -> SkyCoord:
         """The (ordered) coordinates of the arm."""
-
-        # arm1 = nonzero(self.data["tail"] == "arm1")[0]
-        # order1 = arm1[self.data["order"][arm1]]  # order within arm1
-
-        # arm2 = nonzero(self.data["tail"] == "arm2")[0]
-        # order2 = arm2[self.data["order"][arm2]]
-
         arm0, arm1 = tuple(self.values())
         return concatenate_coords((arm0.coords_ord[::-1], arm1.coords_ord))
+
+    # ===============================================================
+    # Cleaning Data
+
+    def label_outliers(self, outlier_method="scipyKDTreeLOF", **kwargs) -> None:
+        """Detect and label outliers, setting their ``order`` to -1."""
+        for arm in self.values():
+            arm.label_outliers(outlier_method, **kwargs)
 
     # ===============================================================
     # Fitting
 
     def fit_frame(
         self,
-        fitter: Optional[RotatedFrameFitter] = None,
-        rot0: Optional[Quantity] = Quantity(0, u.deg),
+        fitter: RotatedFrameFitter | None = None,
+        rot0: Quantity | None = Quantity(0, u.deg),
         *,
         force: bool = False,
         **kwargs: Any,
@@ -378,7 +372,8 @@ class Stream(StreamArmsBase, StreamBase):
 
     def fit_track(
         self,
-        fitters: Union[bool, Dict[str, TrackStreamArm]] = True,
+        fitters: bool | Mapping[str, bool | FitterStreamArmTrack] = True,
+        tune: bool = True,
         force: bool = False,
         composite: bool = True,
         **kwargs: Any,
@@ -399,7 +394,7 @@ class Stream(StreamArmsBase, StreamBase):
             information.
 
         **kwargs
-            Passed to :meth:`trackstream.TrackStreamArm.fit`.
+            Passed to :meth:`trackstream.FitterStreamArmTrack.fit`.
 
         Returns
         -------
@@ -420,23 +415,14 @@ class Stream(StreamArmsBase, StreamBase):
         if len(self.arms) > 2:
             raise NotImplementedError("TODO")
 
+        # broadcast bool -> Dict[arm_name, bool]
         if not isinstance(fitters, Mapping):
-            use_cached = fitters is True
-            backup_fitter = TrackStreamArm(
-                onsky=not self.has_distances, kinematics=self.has_kinematics
-            )
+            fitters = {k: fitters for k in self.keys()}
 
-            fitters = {}
-            for k, arm in self.items():
-                cached = arm.cache["track_fitter"]
-                if use_cached and cached is not None:
-                    fitters[k] = cached
-                else:  # copy to separate cache
-                    fitters[k] = evolve(backup_fitter)
-
+        # Fit all tracks
         tracks = {}
         for k, arm in self.items():
-            tracks[k] = arm.fit_track(fitters[k], force=force, **kwargs)
+            tracks[k] = arm.fit_track(fitter=fitters.get(k, True), tune=tune, force=force, **kwargs)
 
         # -------------------
         # Currently only two arms are supported, so the tracks can be combined
@@ -449,18 +435,14 @@ class Stream(StreamArmsBase, StreamBase):
             track = StreamArmsTracks(tracks, name=(self.full_name or "").lstrip())
 
         self._cache["track"] = track
+        self._cache["fitters"] = MappingProxyType({k: arm.cache["track_fitter"] for k, arm in self.items()})
 
         return track
 
     # ===============================================================
     # Math on the Track (requires fitting track)
 
-    def predict_track(
-        self,
-        affine: Optional[u.Quantity] = None,
-        *,
-        angular: bool = False,
-    ) -> path_moments:
+    def predict_track(self, affine: u.Quantity | None = None, *, angular: bool = False) -> path_moments:
         """
         Parameters
         ----------
@@ -479,16 +461,14 @@ class Stream(StreamArmsBase, StreamBase):
     def __len__(self) -> int:
         return sum(map(len, self.values()))
 
-    def __base_repr__(self, max_lines: Optional[int] = None) -> list:
+    def __base_repr__(self, max_lines: int | None = None) -> list:
         rs = super().__base_repr__(max_lines=max_lines)
 
         # 5) contained streams
         datarepr = (
             f"{name}:\n\t\t"
             + "\n\t\t".join(
-                arm.data._base_repr_(
-                    html=False, max_width=None, max_lines=arm._data_max_lines
-                ).split("\n")[1:]
+                arm.data._base_repr_(html=False, max_width=None, max_lines=arm._data_max_lines).split("\n")[1:]
             )
             for name, arm in self.items()
         )

@@ -1,13 +1,9 @@
-# -*- coding: utf-8 -*-
-
 """Load Example Palomar 5 Data."""
 
 __credits__ = ["Rodrigo Ibata"]
 
 
-__all__ = [
-    "get_stream_data",
-]
+__all__ = ["get_stream_data"]
 
 
 ##############################################################################
@@ -28,10 +24,7 @@ from astropy.utils.data import get_pkg_data_filename
 
 def _load_data() -> QTable:
 
-    path = get_pkg_data_filename(
-        os.path.join("data", "IbataEtAl2017", "table2.ecsv"),
-        package="trackstream",
-    )
+    path = get_pkg_data_filename(os.path.join("data", "IbataEtAl2017", "table2.ecsv"), package="trackstream")
 
     data = QTable.read(path, format="ecsv")
 

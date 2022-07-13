@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # """Testing :class:`trackstream.core.TrackStreamArm`."""
 
 # __all__ = ["Test_TrackStreamArm"]

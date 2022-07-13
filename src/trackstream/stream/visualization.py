@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Core Functions."""
 
 ##############################################################################
@@ -8,7 +6,7 @@
 from __future__ import annotations
 
 # STDLIB
-from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Mapping, TypeVar
 
 # THIRD PARTY
 from astropy.visualization import quantity_support
@@ -16,7 +14,7 @@ from attrs import define
 from matplotlib.pyplot import Axes
 
 # LOCAL
-from trackstream._type_hints import CoordinateType, FrameLikeType
+from trackstream._typing import CoordinateType, FrameLikeType
 from trackstream.visualization import (
     DKindT,
     PlotCollectionBase,
@@ -29,7 +27,7 @@ if TYPE_CHECKING:
     from .plural import Stream  # noqa: F401
 
 
-__all__: List[str] = []
+__all__: list[str] = []
 
 ##############################################################################
 # PARAMETERS
@@ -55,7 +53,7 @@ class StreamBasePlotDescriptor(StreamPlotDescriptorBase[StreamBaseT]):
         kind: DKindT = "positions",
         *,
         origin: bool = False,
-        ax: Optional[Axes] = None,
+        ax: Axes | None = None,
         format_ax: bool = False,
         **kwargs: Any,
     ) -> Axes:
@@ -85,12 +83,12 @@ class StreamBasePlotDescriptor(StreamPlotDescriptorBase[StreamBaseT]):
         -------
         |Axes|
         """
-        stream, _ax, *_ = self._setup(ax=ax)
+        _, _ax, *_ = self._setup(ax=ax)
 
         super().in_frame(frame=frame, kind=kind, ax=_ax, format_ax=format_ax, **kwargs)
 
         if origin:
-            self.origin(stream.origin, frame=frame, kind=kind, ax=_ax, format_ax=format_ax)
+            self.origin(frame=frame, kind=kind, ax=_ax, format_ax=format_ax)
 
         return _ax
 
@@ -106,14 +104,14 @@ class StreamPlotDescriptor(PlotCollectionBase["Stream"]):
         self,
         origin: CoordinateType,
         /,
-        frame: Optional[FrameLikeType] = None,
+        frame: FrameLikeType | None = None,
         kind: DKindT = "positions",
         *,
-        ax: Optional[Axes],
+        ax: Axes | None,
         format_ax: bool = True,
     ) -> Axes:
         arm0 = next(iter(self._enclosing.values()))
-        return arm0.plot.origin(origin, frame=frame, kind=kind, ax=ax, format_ax=format_ax)
+        return arm0.plot.origin(frame=frame, kind=kind, ax=ax, format_ax=format_ax)
 
     def in_frame(
         self,
@@ -121,19 +119,17 @@ class StreamPlotDescriptor(PlotCollectionBase["Stream"]):
         kind: DKindT = "positions",
         *,
         origin: bool = False,
-        ax: Optional[Axes] = None,
+        ax: Axes | None = None,
         format_ax: bool = True,
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         stream = self._enclosing
         last = len(stream.arms) - 1
 
         out = {}
         for i, n in enumerate(stream.keys()):
             # allow for arm-specific kwargs.
-            kw = {
-                k: (v[n] if (isinstance(v, Mapping) and n in v) else v) for k, v in kwargs.items()
-            }
+            kw = {k: (v[n] if (isinstance(v, Mapping) and n in v) else v) for k, v in kwargs.items()}
 
             out[n] = stream[n].plot.in_frame(
                 frame=frame,

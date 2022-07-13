@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Self-Organizing Maps.
 
 References
@@ -9,17 +7,18 @@ References
 .. [frankenz] Josh Speagle. Frankenz: a photometric redshift monstrosity.
 
 """
-__credits__ = "MiniSom"
-
 
 ##############################################################################
 # IMPORTS
+
+from __future__ import annotations
 
 # STDLIB
 import warnings
 from abc import abstractmethod
 from copy import deepcopy
-from typing import Any, Dict, Optional, Type, TypeVar, Union, cast
+from math import pi
+from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
 
 # THIRD PARTY
 import astropy.units as u
@@ -34,58 +33,35 @@ from astropy.coordinates import (
 )
 from astropy.coordinates.angle_utilities import angular_separation
 from astropy.units import Quantity, StructuredUnit
-from attrs import define, field
-from numpy import (
-    arange,
-    arccos,
-    arctan2,
-    array,
-    cos,
-    diff,
-    dtype,
-    exp,
-    flatnonzero,
-    floating,
-    interp,
-    isnan,
-    linalg,
-    linspace,
-    mean,
-    nan,
-    nanmean,
-    ndarray,
-    nonzero,
-    pi,
-    power,
-    random,
-    sort,
-    square,
-    subtract,
-    sum,
-)
-from numpy.lib.recfunctions import (
-    structured_to_unstructured,
-    unstructured_to_structured,
-)
+from attrs import cmp_using  # type: ignore
+from attrs import NOTHING, Attribute, define, field
+from numpy import arccos, cos, diff, exp, mean, ndarray, nonzero, power, subtract
+from numpy.lib.recfunctions import structured_to_unstructured
+from numpy.linalg import norm
+from numpy.random import Generator, default_rng
 from scipy.cluster.hierarchy import fclusterdata
 from scipy.spatial import distance_matrix
 from scipy.stats import binned_statistic
 
 # LOCAL
-from trackstream._type_hints import CoordinateType
+from trackstream._typing import CoordinateType
 from trackstream.base import FramedBase
 from trackstream.utils.coord_utils import offset_by, position_angle
 from trackstream.utils.pbar import get_progress_bar
 
+if TYPE_CHECKING:
+    # LOCAL
+    from trackstream.stream import StreamArm
+
+
 __all__ = ["CartesianSelfOrganizingMap1D", "UnitSphereSelfOrganizingMap1D"]
+
+__credits__ = "MiniSom"
 
 ##############################################################################
 # PARAMETERS
 
-warnings.filterwarnings(
-    "ignore",
-    message="sigma is too high for the dimension of the map",
-)
+warnings.filterwarnings("ignore", message="sigma is too high for the dimension of the map")
 
 DataType = Union[CoordinateType, BaseRepresentation]
 
@@ -97,9 +73,7 @@ NDT = TypeVar("NDT", bound=ndarray)
 ##############################################################################
 
 
-def _respace_bins_from_left(
-    bins: NDT, maxsep: ndarray, onsky: bool, eps: Union[float, floating]
-) -> NDT:
+def _respace_bins_from_left(bins: NDT, maxsep: ndarray, onsky: bool, eps: float | np.floating) -> NDT:
     """Respace bins to have a maximum separation.
 
     Bins are respaced from the left-most bin up to the penultimate bin. The
@@ -142,7 +116,7 @@ def _respace_bins_from_left(
     return bins
 
 
-def _respace_bins(bins: NDT, maxsep: ndarray, onsky: bool, eps: Union[float, floating]) -> NDT:
+def _respace_bins(bins: NDT, maxsep: ndarray, onsky: bool, eps: float | np.floating) -> NDT:
     """Respace bins to have a maximum separation.
 
     Parameters
@@ -164,8 +138,8 @@ def _respace_bins(bins: NDT, maxsep: ndarray, onsky: bool, eps: Union[float, flo
         Better-spaced bins. Bins are modified in-place.
     """
     # Check the separations
-    diffs = np.arccos(np.cos(np.diff(bins))) if onsky else diff(bins)
-    (seps,) = np.nonzero(diffs > maxsep)
+    diffs = arccos(cos(diff(bins))) if onsky else diff(bins)
+    (seps,) = nonzero(diffs > maxsep)
 
     i = 0  # cap at 10k iterations
     while any(seps) and i < 50:
@@ -175,12 +149,34 @@ def _respace_bins(bins: NDT, maxsep: ndarray, onsky: bool, eps: Union[float, flo
         bins[::-1] = -_respace_bins_from_left(-bins[::-1], maxsep=maxsep, onsky=onsky, eps=eps)
 
         # Check the separations
-        diffs = np.arccos(np.cos(np.diff(bins))) if onsky else diff(bins)
-        (seps,) = np.nonzero(diffs > maxsep)
+        diffs = arccos(cos(diff(bins))) if onsky else diff(bins)
+        (seps,) = nonzero(diffs > maxsep)
 
         i += 1
 
     return bins
+
+
+# ===================================================================
+
+
+def _decay_function(learning_rate: float, iteration: int, max_iter: float) -> float:
+    """Decay function of the learning process.
+
+    Parameters
+    ----------
+    learning_rate : float
+        current learning rate.
+    iteration : int
+        current iteration.
+    max_iter : int
+        maximum number of iterations for the training.
+
+    Returns
+    -------
+    float
+    """
+    return learning_rate / (1.0 + (2.0 * iteration / max_iter))
 
 
 ##############################################################################
@@ -197,10 +193,6 @@ class SelfOrganizingMap1DBase(FramedBase):
     nlattice : int
         Number of lattice points (prototypes) in the 1D SOM.
 
-    frame : `astropy.coordinates.BaseCoordinateFrame`
-        The frame in which to build the SOM. Data is transformed into this frame
-        before the SOM is fit.
-
     sigma : float, optional (default=1.0)
         Spread of the neighborhood function, needs to be adequate to the
         dimensions of the map. (at the iteration t we have sigma(t) = sigma / (1
@@ -211,7 +203,16 @@ class SelfOrganizingMap1DBase(FramedBase):
     rng : int, optional keyword-only (default=None)
         Random seed to use.
 
-    representation_type : `astropy.coordinates.BaseRepresentation` or None, optional keyword-only
+    prototypes : ndarray, optional
+        The prototype vectors
+
+    units : `~astropy.units.StructuredUnit`, keyword-only
+        The units.
+
+    frame : `astropy.coordinates.BaseCoordinateFrame`
+        The frame in which to build the SOM. Data is transformed into this frame
+        before the SOM is fit.
+    frame_representation_type : |BaseRepresentation| or None, optional keyword-only
         The representation type in which to return coordinates.
         The representation type in which the SOM is fit is either
         `astropy.coordinates.CartesianRepresentation` if `onsky` is `False`
@@ -235,49 +236,91 @@ class SelfOrganizingMap1DBase(FramedBase):
     nlattice: int = field()
     sigma: float = field(default=0.1, converter=float)
     learning_rate: float = field(default=0.3, converter=float)
-    rng: random.Generator = field(default=None, converter=random.default_rng)
-    prototypes: ndarray = field()
+    rng: Generator = field(default=None, converter=default_rng)
 
-    _units: Optional[u.StructuredUnit] = field(default=None, init=False)
-    _yy: ndarray = field(init=False)
-    _init_prototypes = field(init=False)
+    units: u.StructuredUnit = field(kw_only=True)
+    _yy: ndarray = field(init=False, repr=False, eq=False)
+    prototypes: ndarray = field(eq=cmp_using(eq=np.array_equal))
+    _init_prototypes = field(init=False, repr=False, eq=cmp_using(eq=np.array_equal))
 
     @prototypes.default  # type: ignore
-    def _prototypes_factory(self):
+    def _prototypes_factory(self) -> ndarray:
         prototypes = 2 * self.rng.random((self.nlattice, self.nfeature)) - 1
         return prototypes
 
     @_init_prototypes.default  # type: ignore
-    def _init_prototypes_factory(self):
+    def _init_prototypes_factory(self) -> ndarray:
         ps = deepcopy(self.prototypes)
         ps.flags.writeable = False
         return ps
 
     @_yy.default  # type: ignore
-    def _yy_factory(self):
-        return arange(self.nlattice, dtype=float)
+    def _yy_factory(self) -> ndarray:
+        return np.arange(self.nlattice, dtype=float)
 
     @sigma.validator  # type: ignore
-    def check_sigma(self, _, value):
+    def _sigma_validator(self, _: Attribute, value: float) -> None:
         if value >= 1 or value >= self.nlattice:
             warnings.warn("sigma is too high for the dimension of the map")
 
-    # -------------------------------------------
+    @units.validator  # type: ignore
+    def _units_validator(self, _: Attribute, value: u.StructuredUnit) -> None:
+        required = tuple(self.internal_representation_type.attr_classes.keys())  # type: ignore
+        if not value.keys() == required:
+            raise ValueError
 
+    @classmethod
+    def from_stream(
+        cls,
+        arm: StreamArm,
+        /,
+        *,
+        nlattice: int | None = None,
+        sigma: float = 0.1,
+        learning_rate: float = 0.3,
+        rng: Generator | int | None = None,
+    ):
+        data = arm.coords  # unordered, in system_frame
+
+        frame = data.frame.replicate_without_data()
+        representation_type = data.frame.representation_type
+
+        # Determine number of lattice points, within [5, 100]
+        if nlattice is None:
+            nlattice = min(max(len(data) // 50, 5), 20)
+
+        rep = data.transform_to(frame).represent_as(cls.internal_representation_type)
+        units: dict[str, u.UnitBase] = rep._units
+        su = StructuredUnit(tuple(units.values()), names=tuple(units.keys()))
+
+        # Make SOM
+        som = cls(
+            nlattice=nlattice,
+            frame=frame,
+            frame_representation_type=representation_type,
+            frame_differential_type=None,
+            sigma=sigma,
+            learning_rate=learning_rate,
+            rng=rng,  # type: ignore
+            prototypes=NOTHING,  # type: ignore
+            units=su,
+        )
+
+        return som
+
+    # ========================================================
+
+    @classmethod
     @property
     @abstractmethod
-    def onsky(self) -> bool:
+    def onsky(cls) -> bool:
         """Whether to fit on-sky or 3d."""
+        raise NotImplementedError
 
-    @property
-    def data_units(self) -> StructuredUnit:
-        if self._units is None:
-            raise ValueError("SOM must be fit for data_units")
-        return self._units  # type: ignore
-
+    @classmethod
     @property
     @abstractmethod
-    def internal_representation_type(self) -> Type[BaseRepresentation]:
+    def internal_representation_type(cls) -> type[BaseRepresentation]:
         """Representation type."""
 
     # -------------------------------------------
@@ -286,25 +329,6 @@ class SelfOrganizingMap1DBase(FramedBase):
     @abstractmethod
     def nfeature(self) -> int:
         """Number of features."""
-
-    @staticmethod
-    def _decay_function(learning_rate: float, iteration: int, max_iter: float) -> float:
-        """Decay function of the learning process.
-
-        Parameters
-        ----------
-        learning_rate : float
-            current learning rate.
-        iteration : int
-            current iteration.
-        max_iter : int
-            maximum number of iterations for the training.
-
-        Returns
-        -------
-        float
-        """
-        return learning_rate / (1.0 + (2.0 * iteration / max_iter))
 
     @property
     def prototypes_crd(self) -> BaseCoordinateFrame:
@@ -325,32 +349,36 @@ class SelfOrganizingMap1DBase(FramedBase):
     # ===============================================================
 
     def _crd_to_q(self, crd: CoordinateType) -> Quantity:
-        """Coordinate to structured Quantity."""
-        crd = crd.transform_to(self.frame)
-        rep = crd.represent_as(self.internal_representation_type)
-        units: Dict[str, u.UnitBase] = rep._units
+        """Coordinate to structured Quantity.
+
+        Parameters
+        ----------
+        crd : |Frame| or |SkyCoord|, positional-only
+
+        Returns
+        -------
+        Quantity
+        """
+        rep = crd.transform_to(self.frame).represent_as(self.internal_representation_type)
+        units: dict[str, u.UnitBase] = rep._units
 
         # structured quantity
         su = StructuredUnit(tuple(units.values()), names=tuple(units.keys()))
         q: Quantity = rep._values << su
-        return q
 
-    def _crd_to_v(self, crd: Union[CoordinateType, ndarray]) -> ndarray:
+        return q.to(self.units)
+
+    def _crd_to_v(self, crd: CoordinateType | ndarray) -> ndarray:
         """Coordinate to unstructured array."""
         if isinstance(crd, ndarray):
             return crd
 
         q = self._crd_to_q(crd)
-        v: ndarray = structured_to_unstructured(q.value)
+        v: ndarray = structured_to_unstructured(q.to_value(self.units))
         return v
 
-    def _v_to_q(self, v: ndarray, /) -> Quantity:
-        dt = dtype([(n, v.dtype) for n in self.data_units.field_names])
-        q = Quantity(unstructured_to_structured(v, dt), unit=self.data_units)
-        return q
-
     def _v_to_crd(self, arr: ndarray, /) -> BaseCoordinateFrame:
-        data = {n: (arr[:, i] << unit) for i, (n, unit) in enumerate(self.data_units.items())}
+        data = {n: (arr[:, i] << unit) for i, (n, unit) in enumerate(self.units.items())}
         rep = self.internal_representation_type(**data)
         crd = self.frame.realize_frame(rep)
         crd.representation_type = self.frame_representation_type
@@ -363,7 +391,7 @@ class SelfOrganizingMap1DBase(FramedBase):
 
     @abstractmethod
     def make_prototypes_binned(
-        self, data: SkyCoord, byphi: bool = False, maxsep: Optional[Quantity] = None, **_: Any
+        self, data: SkyCoord, byphi: bool = False, maxsep: Quantity | None = None, **_: Any
     ) -> None:
         pass
 
@@ -381,7 +409,7 @@ class SelfOrganizingMap1DBase(FramedBase):
     def fit(
         self,
         data: SkyCoord,
-        num_iteration: int,
+        num_iteration: int = int(1e5),
         random_order: bool = False,
         progress: bool = False,
     ) -> None:
@@ -402,15 +430,12 @@ class SelfOrganizingMap1DBase(FramedBase):
             If True, show a progress bar
         """
         # Number of cycles through the data
-        iterations = arange(num_iteration) % len(data)
+        iterations = np.arange(num_iteration) % len(data)
         # Optionally randomize the cycles
         if random_order:
             self.rng.shuffle(iterations)
 
         # Get the in internal unitless representation
-        q = self._crd_to_q(data)
-        if self._units is None:  # if not init weighted
-            object.__setattr__(self, "_units", cast(u.StructuredUnit, q.unit))
         X = self._crd_to_v(data)  # (D, 2 or 3)
 
         # Fit the data by sequential update
@@ -447,40 +472,56 @@ class SelfOrganizingMap1DBase(FramedBase):
         return ibmu
 
     # ---------------------------------------------------------------
-    # predicting structure
+    # Predicting structure
+    # steps:
+    #
 
-    def _order_along_projection(self, data: ndarray) -> ndarray:
+    def _get_info_for_projection(
+        self,
+        data: ndarray,
+    ) -> tuple[ndarray, ndarray, ndarray, ndarray]:
+        """Get orthogonal distance matrix for each point to each segment & node.
+
+        Parameters
+        ----------
+        data : (N, D) ndarray
+            The data. Rows are points, columns are features.
+
+        Returns
+        -------
+        (N, PSN) ndarray
+            Where P is the number of prototypes and connecting segments.
+        """
         data_len, nfeature = data.shape
-        nlattice = self.nlattice
 
         # vector from one point to next  (nlattice-1, nfeature)
         lattice_points = self.prototypes
         p1 = lattice_points[:-1, :]
         p2 = lattice_points[1:, :]
         # vector from one point to next  (nlattice-1, nfeature)
-        viip1 = subtract(p2, p1)
+        viip1 = np.subtract(p2, p1)
         # square distance from one point to next  (nlattice-1, nfeature)
-        liip1 = sum(square(viip1), axis=1)
+        liip1 = np.sum(np.square(viip1), axis=1)
 
         # data - point_i  (D, nlattice-1, nfeature)
         # for each slice in D,
-        dmi = subtract(data[:, None, :], p1[None, :, :])  # d-p1
+        dmi = np.subtract(data[:, None, :], p1[None, :, :])  # d-p1
 
         # The line extending the segment is parameterized as p1 + t (p2 - p1).
         # The projection falls where t = [(p3-p1) . (p2-p1)] / |p2-p1|^2
         # tM is the matrix of "t"'s.
-        tM = sum((dmi * viip1[None, :, :]), axis=-1) / liip1
+        tM = np.sum((dmi * viip1[None, :, :]), axis=-1) / liip1
 
         projected_points = p1[None, :, :] + tM[:, :, None] * viip1[None, :, :]
 
         # add in the nodes and find all the distances
         # the correct "place" to put the data point is within a
-        # projection, unless it outside (by and endpoint)
+        # projection, unless it outside (by an endpoint)
         # or inside, but on the convex side of a segment junction
-        all_points = np.empty((data_len, 2 * nlattice - 1, nfeature), dtype=float)
+        all_points = np.empty((data_len, 2 * self.nlattice - 1, nfeature), dtype=float)
         all_points[:, 1::2, :] = projected_points
         all_points[:, 0::2, :] = lattice_points
-        distances = np.linalg.norm(subtract(data[:, None, :], all_points), axis=-1)
+        distances = norm(np.subtract(data[:, None, :], all_points), axis=-1)
 
         # detect whether it is in the segment
         # nodes are considered in the segment
@@ -490,23 +531,44 @@ class SelfOrganizingMap1DBase(FramedBase):
         # make distances for not-in-segment infinity
         distances[not_in_projection] = np.inf
 
-        # find the best distance (including nodes)
-        best_distance = np.argmin(distances, axis=1)
+        return viip1, tM, all_points, distances
+
+    def _get_projected_point(self, data: ndarray, all_points: ndarray, distances: ndarray, /) -> SkyCoord:
+        """Project data onto SOM.
+
+        Parameters
+        ----------
+        data : (N, D) ndarray
+            The data to project
+
+        Returns
+        -------
+        SkyCoord
+        """
+        ind_best_distance = np.argmin(distances, axis=1)
+        projpnts = all_points[(np.arange(len(distances))), ind_best_distance, :]
+
+        return SkyCoord(self._v_to_crd(projpnts), copy=False)
+
+    def _order_along_projection(self, data: ndarray, /, viip1: ndarray, tM: ndarray, distances: ndarray) -> ndarray:
+
+        # find the index of the best distance (including nodes)
+        ind_best_distance = np.argmin(distances, axis=1)
 
         ordering = np.zeros(len(data), dtype=int) - 1
 
         counter = 0  # count through edge/node groups
-        for i in np.unique(best_distance):
+        for i in np.unique(ind_best_distance):
             # for i in (1, ):
             # get the data rows for which the best distance is the i'th node/segment
-            rowi = np.where((best_distance == i))[0]
+            rowi = np.where(ind_best_distance == i)[0]
             numrows = len(rowi)
 
             # move edge points to corresponding segment
             if i == 0:
                 i = 1
-            elif i == 2 * (nlattice - 1):
-                i = nlattice - 1
+            elif i == 2 * (self.nlattice - 1):
+                i = self.nlattice - 1
 
             # odds (remainder 1) are segments
             if bool(i % 2):
@@ -515,9 +577,9 @@ class SelfOrganizingMap1DBase(FramedBase):
 
             # evens are by nodes
             else:  # TODO! find and fix the potential ordering mistake
-                phi1 = arctan2(*viip1[i // 2 - 1, :2])
-                phim2 = arctan2(*-viip1[i // 2, :2])
-                phi = arctan2(*data[rowi, :2].T)
+                phi1 = np.arctan2(*viip1[i // 2 - 1, :2])
+                phim2 = np.arctan2(*-viip1[i // 2, :2])
+                phi = np.arctan2(*data[rowi, :2].T)
 
                 # detect if in branch cut territory
                 if (np.pi / 2 <= phi1) & (-np.pi <= phim2) & (phim2 <= -np.pi / 2):
@@ -535,22 +597,25 @@ class SelfOrganizingMap1DBase(FramedBase):
         return ordering
 
     @abstractmethod
-    def predict(self, crd: SkyCoord, origin: Optional[SkyCoord] = None) -> ndarray:
+    def predict(self, crd: SkyCoord, origin: SkyCoord | None = None) -> tuple[SkyCoord, ndarray]:
         pass
 
     def fit_predict(
         self,
         data: SkyCoord,
-        num_iteration: int,
+        num_iteration: int = int(1e5),
         random_order: bool = False,
         progress: bool = False,
-        origin: Optional[SkyCoord] = None,
-    ) -> ndarray:
+        origin: SkyCoord | None = None,
+    ) -> tuple[SkyCoord, ndarray]:
         """Fit then predict.
 
         Returns
         -------
-        ndarray
+        projdata : SkyCoord
+            Ordered.
+        order : ndarray
+            Array to order ``data``.
 
         See Also
         --------
@@ -558,8 +623,8 @@ class SelfOrganizingMap1DBase(FramedBase):
         trackstream.SelfOrganizingMap1D.predict
         """
         self.fit(data, num_iteration=num_iteration, random_order=random_order, progress=progress)
-        order = self.predict(data, origin=origin)
-        return order
+        projdata, order = self.predict(data, origin=origin)
+        return projdata, order
 
 
 # ----------------------------------------------------------------------------
@@ -618,9 +683,10 @@ class CartesianSelfOrganizingMap1D(SelfOrganizingMap1DBase):
         """Whether to fit on-sky or 3d."""
         return False
 
+    @classmethod
     @property
-    def internal_representation_type(self) -> Type[CartesianRepresentation]:
-        irt: Type[CartesianRepresentation] = CartesianRepresentation
+    def internal_representation_type(cls) -> type[CartesianRepresentation]:
+        irt: type[CartesianRepresentation] = CartesianRepresentation
         return irt
 
     @property
@@ -632,7 +698,7 @@ class CartesianSelfOrganizingMap1D(SelfOrganizingMap1DBase):
 
     def _activation_distance(self, x: ndarray, w: ndarray) -> ndarray:
         distance: ndarray
-        distance = linalg.norm(subtract(x, w), axis=-1)
+        distance = norm(subtract(x, w), axis=-1)
         return distance
         # TODO! change to ChiSquare
         # REDUCES TO GAUSSIAN LIKELIHOOD
@@ -641,7 +707,7 @@ class CartesianSelfOrganizingMap1D(SelfOrganizingMap1DBase):
     # initialization
 
     def make_prototypes_binned(
-        self, data: SkyCoord, byphi: bool = False, maxsep: Optional[Quantity] = None, **_: Any
+        self, data: SkyCoord, byphi: bool = False, maxsep: Quantity | None = None, **_: Any
     ) -> None:
         r"""Initialize prototype vectors from binned data.
 
@@ -655,27 +721,22 @@ class CartesianSelfOrganizingMap1D(SelfOrganizingMap1DBase):
         """
         # Get the data as a structured Quantity to set the units parameter
         q = self._crd_to_q(data)
-        object.__setattr__(self, "_units", cast(u.StructuredUnit, q.unit))
 
         # Get coordinate to bin
         # This is most easily done as a NON-structured array
         xq: Quantity = cast(Quantity, q[q.dtype.names[0]])
         x = xq.value
-        XT = array([cast(Quantity, q[n]).value for n in q.dtype.names])
+        XT = np.array([cast(Quantity, q[n]).value for n in q.dtype.names])
 
         # Determine the binning coordinate
         if byphi:
-            xq = arctan2(q[q.dtype.names[1]], q[q.dtype.names[0]])
+            xq = np.arctan2(q[q.dtype.names[1]], q[q.dtype.names[0]])
             x = xq.value
 
         # Create equi-frequency bins
         bins: Quantity = cast(
             Quantity,
-            interp(
-                x=linspace(0, len(xq), self.nlattice + 1),
-                xp=arange(len(xq)),
-                fp=sort(xq),
-            ),
+            np.interp(x=np.linspace(0, len(xq), self.nlattice + 1), xp=np.arange(len(xq)), fp=np.sort(xq)),
         )
 
         # Optionally respace the bins to have a maximum separation
@@ -684,7 +745,7 @@ class CartesianSelfOrganizingMap1D(SelfOrganizingMap1DBase):
             if (abs(max(xq) - min(xq)) / self.nlattice) > maxsep:
                 raise ValueError(
                     f"{self.nlattice} bins is not enough to cover [{min(xq)}, {max(xq)}] "
-                    f"with a maximum bin separation of {maxsep}",
+                    f"with a maximum bin separation of {maxsep}"
                 )
             # Respace bins
             unit = u.rad if self.onsky else bins.unit
@@ -708,8 +769,8 @@ class CartesianSelfOrganizingMap1D(SelfOrganizingMap1DBase):
         # When there is no data in a bin, it is set to NaN.
         # This is replaced with the interplation from nearby points.
         for j, d in enumerate(prototypes.T):
-            mask = isnan(d)
-            prototypes[mask, j] = interp(flatnonzero(mask), flatnonzero(~mask), d[~mask])
+            mask = np.isnan(d)
+            prototypes[mask, j] = np.interp(np.flatnonzero(mask), np.flatnonzero(~mask), d[~mask])
 
         object.__setattr__(self, "prototypes", prototypes)
         object.__setattr__(self, "_init_prototypes", deepcopy(prototypes))
@@ -729,19 +790,19 @@ class CartesianSelfOrganizingMap1D(SelfOrganizingMap1DBase):
         max_iteration : int
             Maximum number of training itarations.
         """
-        eta = self._decay_function(self.learning_rate, t, max_iteration)
+        eta = _decay_function(self.learning_rate, t, max_iteration)
         # sigma and learning rate decrease with the same rule
-        sig = self._decay_function(self.sigma, t, max_iteration)
+        sig = _decay_function(self.sigma, t, max_iteration)
         # improves the performances
         ibmu = self._best_matching_unit_index(x)
         g = self._neighborhood(ibmu, sig) * eta
         # w_new = eta * neighborhood_function * (x-w)
-        self.prototypes += g[:, None] * (x - self.prototypes)  # type: ignore
+        self.prototypes[:] += g[:, None] * (x - self.prototypes)  # type: ignore
 
     # ---------------------------------------------------------------
     # predicting structure
 
-    def predict(self, crd: SkyCoord, origin: Optional[SkyCoord] = None) -> ndarray:
+    def predict(self, crd: SkyCoord, origin: SkyCoord | None = None) -> tuple[SkyCoord, ndarray]:
         """Order data from SOM in 2+N Dimensions.
 
         Parameters
@@ -777,7 +838,9 @@ class CartesianSelfOrganizingMap1D(SelfOrganizingMap1DBase):
 
         # Prediction of ordering. Might need to correct for the origin and
         # phase wraps.
-        ordering = self._order_along_projection(data)
+        viip1, tM, all_points, distances = self._get_info_for_projection(data)
+        ordering = self._order_along_projection(data, viip1, tM, distances)
+        projdata = self._get_projected_point(data, all_points, distances)
 
         # Correct for a phase wrap
 
@@ -793,7 +856,8 @@ class CartesianSelfOrganizingMap1D(SelfOrganizingMap1DBase):
             if np.argmin(sep) == 1:  # the end point is closer than the start
                 ordering = ordering[::-1]
 
-        return ordering
+        projdata = cast(SkyCoord, projdata[ordering])
+        return projdata, ordering
 
 
 # ----------------------------------------------------------------------------
@@ -852,10 +916,10 @@ class UnitSphereSelfOrganizingMap1D(SelfOrganizingMap1DBase):
         """Whether to fit on-sky or 3d."""
         return True
 
+    @classmethod
     @property
-    def internal_representation_type(self) -> Type[UnitSphericalRepresentation]:
-        irt: Type[UnitSphericalRepresentation] = UnitSphericalRepresentation
-        return irt
+    def internal_representation_type(cls) -> type[UnitSphericalRepresentation]:
+        return UnitSphericalRepresentation
 
     @property
     def nfeature(self) -> int:
@@ -868,7 +932,7 @@ class UnitSphereSelfOrganizingMap1D(SelfOrganizingMap1DBase):
     # initialization
 
     def make_prototypes_binned(
-        self, data: SkyCoord, byphi: bool = False, maxsep: Optional[Quantity] = None, **_: Any
+        self, data: SkyCoord, byphi: bool = False, maxsep: Quantity | None = None, **_: Any
     ) -> None:
         r"""Initialize prototype vectors from binned data.
 
@@ -882,17 +946,16 @@ class UnitSphereSelfOrganizingMap1D(SelfOrganizingMap1DBase):
         """
         # Get the data as a structured Quantity to set the units parameter
         q = self._crd_to_q(data)
-        object.__setattr__(self, "_units", cast(u.StructuredUnit, q.unit))
 
         # Get coordinate to bin
         # This is most easily done as a NON-structured array
         xq: Quantity = cast(Quantity, q[q.dtype.names[0]])
         x: ndarray = xq.value
-        XT = array([cast(Quantity, q[n]).value for n in q.dtype.names])
+        XT = np.array([cast(Quantity, q[n]).value for n in q.dtype.names])
 
         # Determine the binning coordinate
         if byphi:
-            xq = arctan2(q[q.dtype.names[1]], q[q.dtype.names[0]])
+            xq = np.arctan2(q[q.dtype.names[1]], q[q.dtype.names[0]])
             x = xq.value
         else:
             xq = Quantity(Angle(xq, copy=False).wrap_at("180d"), u.rad, copy=False)
@@ -901,8 +964,8 @@ class UnitSphereSelfOrganizingMap1D(SelfOrganizingMap1DBase):
             # Unwrap, as best we can
             # Start by separating the populations so we can grab all wrapped points
             d = distance_matrix(x[:, None], x[:, None])
-            d[d == 0] = nan
-            t = mean(nanmean(d, axis=0))  # typical separation, upweighted by sep groups
+            d[d == 0] = np.nan
+            t = mean(np.nanmean(d, axis=0))  # typical separation, upweighted by sep groups
             label = fclusterdata(x[:, None], t=t, criterion="distance") - 1
             # TODO! this is only for 2 pops, what if 3+?
             x0, x1, lesser = x[label == 0], x[label == 1], 0
@@ -923,10 +986,10 @@ class UnitSphereSelfOrganizingMap1D(SelfOrganizingMap1DBase):
         # endpoint=False is used to prevent a x>xp endpoint repetition
         bins: Quantity = cast(
             Quantity,
-            interp(
-                x=linspace(0, len(xq), self.nlattice + 1, endpoint=False),
-                xp=arange(len(xq)),
-                fp=sort(xq),
+            np.interp(
+                x=np.linspace(0, len(xq), self.nlattice + 1, endpoint=False),
+                xp=np.arange(len(xq)),
+                fp=np.sort(xq),
             ),
         )
 
@@ -936,7 +999,7 @@ class UnitSphereSelfOrganizingMap1D(SelfOrganizingMap1DBase):
             if (abs(max(xq) - min(xq)) / self.nlattice) > maxsep:
                 raise ValueError(
                     f"{self.nlattice} bins is not enough to cover [{min(xq)}, {max(xq)}] "
-                    f"with a maximum bin separation of {maxsep}",
+                    f"with a maximum bin separation of {maxsep}"
                 )
 
             # Respace bins
@@ -957,8 +1020,8 @@ class UnitSphereSelfOrganizingMap1D(SelfOrganizingMap1DBase):
         # When there is no data in a bin, it is set to NaN.
         # This is replaced with the interplation from nearby points.
         for j, d in enumerate(prototypes.T):
-            mask = isnan(d)
-            prototypes[mask, j] = interp(flatnonzero(mask), flatnonzero(~mask), d[~mask])
+            mask = np.isnan(d)
+            prototypes[mask, j] = np.interp(np.flatnonzero(mask), np.flatnonzero(~mask), d[~mask])
 
         object.__setattr__(self, "prototypes", prototypes)
         object.__setattr__(self, "_init_prototypes", deepcopy(prototypes))
@@ -983,9 +1046,9 @@ class UnitSphereSelfOrganizingMap1D(SelfOrganizingMap1DBase):
         max_iteration : int
             Maximum number of training itarations.
         """
-        eta = self._decay_function(self.learning_rate, t, max_iteration)
+        eta = _decay_function(self.learning_rate, t, max_iteration)
         # sigma and learning rate decrease with the same rule
-        sig = self._decay_function(self.sigma, t, max_iteration)
+        sig = _decay_function(self.sigma, t, max_iteration)
         # improves the performances
         ibmu = self._best_matching_unit_index(x)
         g = self._neighborhood(ibmu, sig) * eta
@@ -1003,7 +1066,7 @@ class UnitSphereSelfOrganizingMap1D(SelfOrganizingMap1DBase):
     # ---------------------------------------------------------------
     # predicting structure
 
-    def predict(self, crd: SkyCoord, origin: Optional[SkyCoord] = None) -> ndarray:
+    def predict(self, crd: SkyCoord, origin: SkyCoord | None = None) -> tuple[SkyCoord, ndarray]:
         """Order data from SOM in 2+N Dimensions.
 
         Parameters
@@ -1039,7 +1102,9 @@ class UnitSphereSelfOrganizingMap1D(SelfOrganizingMap1DBase):
 
         # Prediction of ordering. Might need to correct for the origin and
         # phase wraps.
-        ordering = self._order_along_projection(data)
+        viip1, tM, all_points, distances = self._get_info_for_projection(data)
+        ordering = self._order_along_projection(data, viip1, tM, distances)
+        projdata = self._get_projected_point(data, all_points, distances)
 
         # Correct for a phase wrap
         qs = self._crd_to_q(crd)
@@ -1069,4 +1134,5 @@ class UnitSphereSelfOrganizingMap1D(SelfOrganizingMap1DBase):
             if np.argmin(sep) == 1:  # the end point is closer than the start
                 ordering = ordering[::-1]
 
-        return ordering
+        projdata = cast(SkyCoord, projdata[ordering])
+        return projdata, ordering

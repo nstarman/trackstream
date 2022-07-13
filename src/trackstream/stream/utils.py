@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Core Functions."""
 
 ##############################################################################
@@ -9,7 +7,7 @@ from __future__ import annotations
 
 # STDLIB
 import copy
-from typing import TYPE_CHECKING, List, Mapping, Optional, Union, cast
+from typing import TYPE_CHECKING, Mapping, cast
 
 # THIRD PARTY
 import astropy.units as u
@@ -25,7 +23,7 @@ if TYPE_CHECKING:
     # LOCAL
     from trackstream.stream.core import StreamArm  # noqa: F401
 
-__all__: List[str] = []
+__all__: list[str] = []
 
 ##############################################################################
 # CODE
@@ -42,13 +40,11 @@ class StreamArmDataNormalizer:
         Run the normalizer.
     """
 
-    original_coord: Optional[SkyCoord] = field(init=False, default=None, repr=False)
+    original_coord: SkyCoord | None = field(init=False, default=None, repr=False)
 
     # ===============================================================
 
-    def __call__(
-        self, stream: "StreamArm", original: Table, original_err: Optional[Table]
-    ) -> QTable:
+    def __call__(self, stream: StreamArm, original: Table, original_err: Table | None) -> QTable:
         """Normalize data table.
 
         Parameters
@@ -64,29 +60,30 @@ class StreamArmDataNormalizer:
         data : :class:`~astropy.table.QTable`
         """
         data = QTable()  # going to be assigned in-place
+        data.meta = {}
 
-        # 2) data probability. `data` modded in-place
+        # 1) data probability. `data` modded in-place
         self._data_probability(stream, original, out=data, default_weight=1)
 
-        # 3) coordinates. `data` modded in-place
+        # 2) coordinates. `data` modded in-place
         self._data_coordinates(stream, original, original_err, out=data)
 
-        # 4) ordering
+        # 3) ordering
         self._data_index(stream, original, out=data)
 
         # Metadata
-        meta = copy.deepcopy(original.meta)
+        meta = copy.deepcopy(original.meta) if isinstance(original.meta, Mapping) else {}
         data.meta = {**meta, **data.meta}
 
         return data
 
     def _data_probability(
         self,
-        _: "StreamArm",
+        _: StreamArm,
         original: Table,
         *,
         out: QTable,
-        default_weight: Union[float, u.Quantity] = 1.0,
+        default_weight: float | u.Quantity = 1.0,
     ) -> None:
         """Data probability. Units of percent. Default is 100%.
 
@@ -130,9 +127,9 @@ class StreamArmDataNormalizer:
 
     def _data_coordinates(
         self,
-        stream: "StreamArm",
+        stream: StreamArm,
         original: Table,
-        original_err: Optional[Table] = None,
+        original_err: Table | None = None,
         *,
         out: QTable,
     ) -> None:
@@ -208,7 +205,7 @@ class StreamArmDataNormalizer:
             else:
                 out[dn] = 0 * getattr(sc, n)  # (get correct units)
 
-    def _data_index(self, _: "StreamArm", original: Table, *, out: QTable) -> None:
+    def _data_index(self, _: StreamArm, original: Table, *, out: QTable) -> None:
         """Data ordering.
 
         Parameters
@@ -230,9 +227,3 @@ class StreamArmDataNormalizer:
             # pairwise iterate, making per-arm ordering
             for i, j in zip(out.groups.indices[:-1], out.groups.indices[1:]):
                 out["order"][i:j] = arange(j - i)
-
-        # # Total ordering.
-        # if "order" in original.colnames:
-        #     out["order"] = original["order"]
-        # else:
-        #     out["order"] = arange(len(original))  # read order

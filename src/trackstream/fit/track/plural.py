@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Stream track fit result."""
 
 ##############################################################################
@@ -9,7 +7,7 @@ from __future__ import annotations
 
 # STDLIB
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 # THIRD PARTY
 from attrs import define
@@ -18,7 +16,7 @@ from attrs import define
 from .core import StreamArmTrack, StreamArmTrackBase
 from .visualization import StreamArmsTrackBasePlotDescriptor
 from trackstream.base import CollectionBase
-from trackstream.fit.path import concatenate_paths
+from trackstream.fit.track.path import concatenate_paths
 
 if TYPE_CHECKING:
     # LOCAL
@@ -64,30 +62,22 @@ class StreamTrack(StreamArmTrack, StreamArmsTrackBase):
 
     plot = StreamArmsTrackBasePlotDescriptor()
 
-    def __init__(
-        self, stream: Stream, path: Path, *, name: Optional[str] = None, meta: Optional[dict] = None
-    ) -> None:
+    def __init__(self, stream: Stream, path: Path, *, name: str | None = None, meta: dict | None = None) -> None:
         tracks = {k: arm.track for k, arm in stream.items()}
         self.__attrs_init__(data=tracks, stream_ref=stream, path=path, name=name, meta=meta)
 
     @classmethod
-    def from_stream(
-        cls,
-        stream: "Stream",
-        *,
-        name: str,
-        meta: Optional[dict] = None,
-    ):
+    def from_stream(cls, stream: Stream, *, name: str, meta: dict | None = None):
         tracks = {k: arm.track for k, arm in stream.items()}
 
         # TODO! concatenation that intelligently stitches
         # and works with more than two
         if len(tracks) > 2:
             raise NotImplementedError
-
-        path = concatenate_paths(
-            tuple(track.path for track in tracks.values()), name=name + " Path"
-        )
+        elif len(tracks) == 1:
+            path = next(iter(tracks.values())).path
+        elif len(tracks) == 2:
+            path = concatenate_paths(tuple(track.path for track in tracks.values()), name=name + " Path")
         soms = {k: v.som for k, v in tracks.items()}
         kalmans = {k: v.kalman for k, v in tracks.items()}
 
@@ -99,7 +89,7 @@ class StreamTrack(StreamArmTrack, StreamArmsTrackBase):
         return cls(stream, path, name=name, meta=meta)
 
     @property
-    def stream(self) -> "Stream":
+    def stream(self) -> Stream:
         """The `~trackstream.Stream`, or `None` if the weak reference is broken."""
         strm = self._stream_ref()
         if strm is None:

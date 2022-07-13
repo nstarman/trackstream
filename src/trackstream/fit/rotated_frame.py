@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Fit a Rotated reference frame."""
 
 ##############################################################################
@@ -10,17 +8,7 @@ from __future__ import annotations
 # STDLIB
 from copy import deepcopy
 from types import FunctionType, MethodType
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    Optional,
-    Sequence,
-    Tuple,
-    TypedDict,
-    TypeVar,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Sequence, TypedDict, TypeVar
 
 # THIRD PARTY
 import astropy.units as u
@@ -39,7 +27,7 @@ from numpy import abs, array, dot, linspace, median, ndarray, sqrt, square, sum
 from scipy.optimize import Bounds
 
 # LOCAL
-from trackstream._type_hints import EllipsisType
+from trackstream._typing import EllipsisType
 from trackstream.base import CollectionBase, FramedBase
 from trackstream.utils.coord_utils import reference_to_skyoffset_matrix
 from trackstream.visualization import PlotDescriptorBase
@@ -58,11 +46,11 @@ FT = TypeVar("FT", MethodType, FunctionType)
 
 
 class _RotatedFrameFitterOptions(TypedDict):
-    rot0: Optional[Quantity]
-    bounds: Union[None, Sequence, Bounds]
+    rot0: Quantity | None
+    bounds: None | Sequence | Bounds
     # fix_origin: Optional[bool]
-    leastsquares: Optional[bool]
-    align_v: Optional[bool]
+    leastsquares: bool | None
+    align_v: bool | None
 
 
 ##############################################################################
@@ -73,10 +61,10 @@ class _RotatedFrameFitterOptions(TypedDict):
 def cartesian_model(
     data: CartRep,
     *,
-    lon: Union[Quantity, float],
-    lat: Union[Quantity, float],
-    rotation: Union[Quantity, float],
-) -> Tuple[Quantity, Quantity, Quantity]:
+    lon: Quantity | float,
+    lat: Quantity | float,
+    rotation: Quantity | float,
+) -> tuple[Quantity, Quantity, Quantity]:
     """Model from Cartesian Coordinates.
 
     Parameters
@@ -110,11 +98,7 @@ def cartesian_model(
 # -------------------------------------------------------------------
 
 
-def residual(
-    variables: Tuple[float, float, float],
-    data: CartRep,
-    scalar: bool = False,
-) -> Union[float, ndarray]:
+def residual(variables: tuple[float, float, float], data: CartRep, scalar: bool = False) -> float | ndarray:
     r"""How close phi2, the rotated |Latitude| (e.g. dec), is to flat.
 
     Parameters
@@ -199,10 +183,10 @@ class RotatedFrameFitter(FramedBase):
     origin: SkyCoord
     """The location of point on sky about which to rotate."""
 
-    default_fit_options: Dict[str, Any] = field()
+    default_fit_options: dict[str, Any] = field()
     """The fitting options."""
 
-    minimizer_kwargs: Dict[str, Any] = field(factory=dict)
+    minimizer_kwargs: dict[str, Any] = field(factory=dict)
 
     @default_fit_options.default  # type: ignore
     def _default_fit_options_factory(self):
@@ -249,9 +233,9 @@ class RotatedFrameFitter(FramedBase):
     def align_v_positive_lon(
         self,
         data: SkyCoord,
-        fit_values: Dict[str, Any],
-        subsel: Union[EllipsisType, Sequence, slice] = Ellipsis,  # type: ignore
-    ) -> Dict[str, Any]:
+        fit_values: dict[str, Any],
+        subsel: EllipsisType | Sequence | slice = Ellipsis,  # type: ignore
+    ) -> dict[str, Any]:
         """Align the velocity along the positive Longitudinal direction.
 
         Parameters
@@ -291,12 +275,12 @@ class RotatedFrameFitter(FramedBase):
         self,
         data: SkyCoord,
         /,
-        rot0: Optional[Quantity] = None,
-        bounds: Optional[ndarray] = None,
+        rot0: Quantity | None = None,
+        bounds: ndarray | None = None,
         *,
         # fix_origin: Optional[bool] = None,
-        leastsquares: Optional[bool] = None,
-        align_v: Optional[bool] = None,  # TODO!
+        leastsquares: bool | None = None,
+        align_v: bool | None = None,  # TODO!
         **minimizer_kwargs: Any,
     ) -> FrameOptimizeResult:
         """Find Best-Fit Rotated Frame.
@@ -342,16 +326,14 @@ class RotatedFrameFitter(FramedBase):
         # Prepare, using defaults for arguments not provided.
 
         # minimizer kwargs, preferring newer
-        kwargs: Dict[str, Any] = {**self.minimizer_kwargs, **minimizer_kwargs}
+        kwargs: dict[str, Any] = {**self.minimizer_kwargs, **minimizer_kwargs}
 
         rot0 = self.default_fit_options["rot0"] if rot0 is None else rot0
         if rot0 is None:
             raise ValueError("no prespecified `rot0`; need to provide one.")
 
         # Process fit options
-        leastsquares = (
-            self.default_fit_options["leastsquares"] if leastsquares is None else leastsquares
-        )
+        leastsquares = self.default_fit_options["leastsquares"] if leastsquares is None else leastsquares
         if leastsquares:
             minimizer = opt.least_squares
             method = kwargs.pop("method", "trf")
@@ -391,9 +373,7 @@ class RotatedFrameFitter(FramedBase):
 class FrameOptimizeResultPlotDescriptor(PlotDescriptorBase["FrameOptimizeResult"]):
     """Plot FrameOptimizeResult."""
 
-    def residual(
-        self, stream: "StreamBase", *, ax: Optional[Axes] = None, format_ax: bool = True
-    ) -> Axes:
+    def residual(self, stream: StreamBase, *, ax: Axes | None = None, format_ax: bool = True) -> Axes:
         """Residual plot of fitting the frame.
 
         Parameters
@@ -420,11 +400,11 @@ class FrameOptimizeResultPlotDescriptor(PlotDescriptorBase["FrameOptimizeResult"
             [
                 residual(
                     (float(angle), float(r.lon.deg), float(r.lat.deg)),
-                    stream.data_coords.icrs.cartesian,  # TODO! not require ICRS
+                    stream.data_coords.cartesian,
                     scalar=True,
                 )
                 for angle in rotation_angles
-            ],
+            ]
         )
         _ax.scatter(rotation_angles, res)
 
@@ -451,11 +431,11 @@ class FrameOptimizeResultPlotDescriptor(PlotDescriptorBase["FrameOptimizeResult"
         stream: StreamBase,
         *,
         origin: bool = True,
-        axes: Optional[ndarray] = None,
+        axes: ndarray | None = None,
         format_ax: bool = True,
         **kwargs: Any,
-    ) -> Tuple[Figure, ndarray]:
-        """Plot frame fit in a 3 pandel plot.
+    ) -> tuple[Figure, ndarray]:
+        """Plot frame fit in a 3 panel plot.
 
         Parameters
         ----------
@@ -500,16 +480,11 @@ class FrameOptimizeResultPlotDescriptor(PlotDescriptorBase["FrameOptimizeResult"
             fig, axs = plt.subplots(3, nrows, figsize=figsize)  # type: ignore
 
         set_title: bool = kwargs.pop("title", True)
+        kwargs.setdefault("format_ax", format_ax)
+        origin = kwargs.pop("origin", kwargs.setdefault("origin", origin))
 
         # Plot 1 : Stream in its own frame
-        stream.plot.in_frame(
-            frame="ICRS",
-            kind="positions",
-            ax=axs[0, 0],
-            format_ax=format_ax,
-            origin=origin,
-            **kwargs,
-        )
+        stream.plot.in_frame(frame="ICRS", kind="positions", ax=axs[0, 0], origin=origin, **kwargs)
         if format_ax and set_title:
             axs[0, 0].set_title("Stream Star Positions")
         if plot_vs:
@@ -517,7 +492,6 @@ class FrameOptimizeResultPlotDescriptor(PlotDescriptorBase["FrameOptimizeResult"
                 frame="ICRS",
                 kind="kinematics",
                 ax=axs[0, 1],
-                format_ax=format_ax,
                 origin=origin and ORIGIN_HAS_VS,
                 **kwargs,
             )
@@ -534,19 +508,22 @@ class FrameOptimizeResultPlotDescriptor(PlotDescriptorBase["FrameOptimizeResult"
 
         # Plot 3 : Rotated Stream
         # here it matters the length of the stream to the plotting method.
-        kwargs.pop("c")  # setting from residual
-        c: Union[Quantity, Dict[str, Quantity]]
+        kwargs.pop("c", None)  # setting from residual
+        c: Quantity | dict[str, Quantity]
+        rotstr = r" ($\theta=$" + f"{fr.rotation.value:.4}" + r"$^\degree$)"
         if isinstance(stream, CollectionBase):
             c = {k: fr.calculate_residual(arm.coords_ord) for k, arm in stream.items()}
+            label = {k: arm.name + rotstr for k, arm in stream.items()}
         else:
             c = fr.calculate_residual(stream.coords_ord)
+            label = full_name + rotstr
+        kwargs.pop("label", None)  # setting from residual
         stream.plot.in_frame(
             frame="stream",
             kind="positions",
             c=c,
             ax=axs[2, 0],
-            format_ax=format_ax,
-            label=full_name + r" ($\theta=$" f"{fr.rotation.value:.4} [deg])",
+            label=label,
             origin=origin,
             **kwargs,
         )
@@ -556,8 +533,7 @@ class FrameOptimizeResultPlotDescriptor(PlotDescriptorBase["FrameOptimizeResult"
                 kind="kinematics",
                 c=c,
                 ax=axs[2, 1],
-                format_ax=format_ax,
-                label=full_name + r" ($\theta=$" f"{fr.rotation.value:.4} [deg])",
+                label=label,
                 origin=origin and ORIGIN_HAS_VS,
                 **kwargs,
             )
@@ -590,10 +566,7 @@ class FrameOptimizeResult(opt.OptimizeResult, FramedBase):
         optimize_result.x <<= u.deg
         fit_rot, fit_lon, fit_lat = optimize_result.x
         r = USphrRep(lon=fit_lon, lat=fit_lat)
-        origin = SkyCoord(
-            frame.realize_frame(r, representation_type=frame.representation_type),
-            copy=False,
-        )
+        origin = SkyCoord(frame.realize_frame(r, representation_type=frame.representation_type), copy=False)
         fit_frame = origin.skyoffset_frame(rotation=fit_rot)
         fit_frame.representation_type = frame.representation_type
         return cls(frame=fit_frame, **optimize_result)

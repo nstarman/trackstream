@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Core Functions."""
 
 ##############################################################################
@@ -10,29 +8,31 @@ from __future__ import annotations
 # STDLIB
 from abc import ABCMeta, abstractmethod
 from types import MappingProxyType
-from typing import List, Optional, cast
+from typing import cast
 
 # THIRD PARTY
-from astropy.coordinates import BaseCoordinateFrame, SkyCoord, SphericalRepresentation
+from astropy.coordinates import BaseCoordinateFrame, SkyCoord
 from astropy.table import QTable
 from astropy.utils.misc import indent
-from astropy.visualization import quantity_support
 from attrs import define, field
+from numpy import ndarray
 
 # LOCAL
 from .visualization import StreamBasePlotDescriptor
-from trackstream.utils._attrs import _cache_proxy_factory, convert_if_none
+from trackstream.utils._attrs import convert_if_none
 
-__all__: List[str] = []
+__all__ = ["StreamBase"]
 
 ##############################################################################
 # PARAMETERS
 
-# Ensure Quantity is supported in plots
-quantity_support()
-
-# Error message for ABCs
 _ABC_MSG = "Can't instantiate abstract class {} with abstract method {}"
+""" Error message for ABCs.
+
+ABCs only prevent a subclass from being defined if it doesn't override the
+necessary methods. ABCs do not prevent empty methods from being called. This
+message is for errors in abstract methods.
+"""
 
 ##############################################################################
 # CODE
@@ -41,41 +41,46 @@ _ABC_MSG = "Can't instantiate abstract class {} with abstract method {}"
 
 @define(frozen=True, slots=False, repr=False)
 class StreamBase(metaclass=ABCMeta):
-    """Abstract base class for streams, including stream arms.
+    """Abstract base class for stream arms, and collections thereof.
+    s
+        Streams must define the following attributes / properties.
 
-    Streams must define the following attributes / properties.
-
-    Attributes
-    ----------
-    data : `astropy.table.QTable`
-        The Stream data.
-    frame : `astropy.coordinates.BaseCoordinateFrame`
-        The frame of the stream.
-    name : str
-        Name of the stream.
+        Attributes
+        ----------
+        data : `astropy.table.QTable`
+            The Stream data.
+        frame : `astropy.coordinates.BaseCoordinateFrame`
+            The frame of the stream.
+        name : str
+            Name of the stream.
     """
 
     plot = StreamBasePlotDescriptor()
 
     # ===============================================================
 
-    name: Optional[str] = field(default=None, kw_only=True)
+    name: str | None = field(default=None, kw_only=True)
 
     _cache: dict = field(kw_only=True, factory=dict, converter=convert_if_none(dict, deepcopy=True))
-    cache: MappingProxyType = field(init=False, default=_cache_proxy_factory)
     _data_max_lines: int = field(init=False, default=10, kw_only=True)
 
     # ===============================================================
 
     @property
+    def cache(self) -> MappingProxyType:
+        """View of cache, which is used to store results generated after initialization."""
+        return MappingProxyType(self._cache)
+
+    @property
     @abstractmethod
     def data(self) -> QTable:
-        """The stream data."""
+        """The stream data table."""
 
     @property
     @abstractmethod
     def origin(self) -> SkyCoord:
-        """The origin on the stream."""
+        """The origin of the stream."""
+        raise TypeError(_ABC_MSG.format(self.__class__.__qualname__, "origin"))
 
     @property
     @abstractmethod
@@ -90,7 +95,7 @@ class StreamBase(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def system_frame(self) -> Optional[BaseCoordinateFrame]:
+    def system_frame(self) -> BaseCoordinateFrame | None:
         """The stream data."""
         raise TypeError(_ABC_MSG.format(self.__class__.__qualname__, "system_frame"))
 
@@ -104,16 +109,14 @@ class StreamBase(metaclass=ABCMeta):
     @abstractmethod
     def coords_ord(self) -> SkyCoord:
         """The (ordered) coordinates. Requires fitting."""
-        # TODO! total order
-        return cast(SkyCoord, self.coords[self.data["order"]])
+        use: ndarray = self.data["order"] >= 0
+        order: ndarray = self.data["order"][use]
+        return cast(SkyCoord, self.coords[order])
 
     @property
     def has_distances(self) -> bool:
         """Return `True` if ``.coords`` has distance information."""
-        return (
-            self.coords.represent_as(SphericalRepresentation).distance.unit.physical_type
-            == "length"
-        )
+        return self.coords.spherical.distance.unit.physical_type == "length"
 
     @property
     def has_kinematics(self) -> bool:
@@ -121,13 +124,13 @@ class StreamBase(metaclass=ABCMeta):
         return "s" in self.coords.data.differentials
 
     @property
-    def full_name(self) -> Optional[str]:
+    def full_name(self) -> str | None:
         """The name of the stream."""
         return self.name
 
     # ===============================================================
 
-    def __base_repr__(self, max_lines: Optional[int] = None) -> list:
+    def __base_repr__(self, max_lines: int | None = None) -> list:
         rs = []
 
         # 0) header (standard repr)

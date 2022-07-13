@@ -1,10 +1,22 @@
-# -*- coding: utf-8 -*-
-
 """Type hints.
 
 This project extensively uses :mod:`~typing` hints.
 Note that this is not (necessarily) static typing.
 """
+
+##############################################################################
+# IMPORTS
+
+from __future__ import annotations
+
+# STDLIB
+import os
+from typing import Protocol, Union
+
+# THIRD PARTY
+import astropy.units as u
+import numpy as np
+from astropy.coordinates import BaseCoordinateFrame, BaseRepresentation, SkyCoord
 
 __all__ = [
     "EllipsisType",
@@ -19,20 +31,6 @@ __all__ = [
 ]
 
 __credits__ = ["Astropy"]
-
-
-##############################################################################
-# IMPORTS
-
-# STDLIB
-import os
-from typing import Union
-
-# THIRD PARTY
-# THIRD PARTY\
-import astropy.units as u
-import numpy as np
-from astropy.coordinates import BaseCoordinateFrame, BaseRepresentation, SkyCoord
 
 ##############################################################################
 # TYPES
@@ -68,3 +66,9 @@ UnitType = Union[u.Unit, u.IrreducibleUnit, u.UnitBase, u.FunctionUnitBase]
 
 UnitLikeType = Union[UnitType, str]
 """|Unit| or :class:`~astropy.units.FunctionUnitBase` or str"""
+
+
+class HasFrame(Protocol):
+    @property
+    def frame(self) -> BaseCoordinateFrame:
+        ...

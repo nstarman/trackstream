@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 # see LICENSE.rst
 
-"""Stream."""
+"""This module contains class and functions for working with stellar streams."""
 
 # LOCAL
 from .core import StreamArm
 from .plural import Stream, StreamArms
 
-__all__ = ["Stream", "StreamArms", "StreamArm"]
+__all__ = ["StreamArm", "Stream", "StreamArms"]

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Stream track plotting."""
 
 ##############################################################################
@@ -8,34 +6,22 @@
 from __future__ import annotations
 
 # STDLIB
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    List,
-    Literal,
-    Optional,
-    Tuple,
-    Union,
-    cast,
-    overload,
-)
+from typing import TYPE_CHECKING, Any, Literal, cast, overload
 
 # THIRD PARTY
 import astropy.units as u
 import matplotlib.pyplot as plt
+import numpy as np
 from astropy.units import Quantity
 from attrs import define
 from matplotlib.collections import EllipseCollection
 from matplotlib.figure import Figure
 from matplotlib.pyplot import Axes
-from numpy import arange, array, atleast_1d, atleast_2d, ndarray
+from numpy import ndarray
 from typing_extensions import Unpack
 
 # LOCAL
-from trackstream._type_hints import FrameLikeType
-from trackstream.fit.kalman import FirstOrderNewtonianKalmanFilter
-from trackstream.fit.som import SelfOrganizingMap1DBase
+from trackstream._typing import FrameLikeType
 from trackstream.utils.misc import covariance_ellipse
 from trackstream.visualization import (
     DKindT,
@@ -50,7 +36,7 @@ if TYPE_CHECKING:
     from trackstream.stream.base import StreamBase
 
 
-__all__: List[str] = []
+__all__: list[str] = []
 
 
 ##############################################################################
@@ -62,26 +48,24 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
     """Plot descriptor for a :class:`trackstream.fit.StreamArmTrack`."""
 
     @overload
-    def _setup(
-        self, *, ax: Axes
-    ) -> Tuple["StreamArmTrack", Axes, "StreamBase", str, Unpack[Tuple[Any, ...]]]:
+    def _setup(self, *, ax: Axes) -> tuple[StreamArmTrack, Axes, StreamBase, str, Unpack[tuple[Any, ...]]]:
         ...
 
     @overload
-    def _setup(
-        self, *, ax: None
-    ) -> Tuple["StreamArmTrack", Axes, "StreamBase", str, Unpack[Tuple[Any, ...]]]:
+    def _setup(self, *, ax: None) -> tuple[StreamArmTrack, Axes, StreamBase, str, Unpack[tuple[Any, ...]]]:
         ...
 
     @overload
-    def _setup(
-        self, *, ax: Literal[False]
-    ) -> Tuple["StreamArmTrack", None, "StreamBase", str, Unpack[Tuple[Any, ...]]]:
+    def _setup(self, *, ax: Literal[False]) -> tuple[StreamArmTrack, None, StreamBase, str, Unpack[tuple[Any, ...]]]:
+        ...
+
+    @overload
+    def _setup(self, *, ax: bool) -> tuple[StreamArmTrack, Axes, StreamBase, str, Unpack[tuple[Any, ...]]]:
         ...
 
     def _setup(
-        self, *, ax: Union[Axes, None, Literal[False]] = None
-    ) -> Tuple["StreamArmTrack", Optional[Axes], "StreamBase", str, Unpack[Tuple[Any, ...]]]:
+        self, *, ax: Axes | None | bool = None
+    ) -> tuple[StreamArmTrack, Axes | None, StreamBase, str, Unpack[tuple[Any, ...]]]:
         """Setup the plot.
 
         Parameters
@@ -119,7 +103,7 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
         kind: DKindT = "positions",
         *,
         origin: bool = True,
-        ax: Optional[Axes] = None,
+        ax: Axes | None = None,
         format_ax: bool = False,
         **kwargs: Any,
     ) -> Axes:
@@ -154,7 +138,7 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
         # TODO! by arm
 
         if origin:
-            self.origin(stream.origin, frame=frame, kind=kind, ax=_ax)
+            self.origin(frame=frame, kind=kind, ax=_ax)
 
         return _ax
 
@@ -164,9 +148,11 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
         kind: DKindT = "positions",
         *,
         origin: bool = True,
+        connect: bool = True,
         initial_prototypes: bool = False,
-        y_offset: Quantity = Quantity(0.0, u.deg),
-        ax: Optional[Axes] = None,
+        x_offset: Quantity | Literal[0] = 0,
+        y_offset: Quantity | Literal[0] = 0,
+        ax: Axes | None = None,
         format_ax: bool = False,
     ) -> Axes:
         """Plot Self-Organizing Map.
@@ -202,6 +188,9 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
         elif kind != "positions":
             raise ValueError("SOM is only run on positions")
 
+        # LOCAL
+        from trackstream.fit.som import SelfOrganizingMap1DBase
+
         track, _ax, stream, _, *_ = self._setup(ax=ax)
         theframe, frame_name = self._parse_frame(frame)
         som = track.som
@@ -213,8 +202,11 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
             ps1, _ = self._to_frame(som.prototypes_crd, theframe)
             (x, xn), (y, yn) = self._get_xy(ps1, kind=kind)
 
+            if connect:
+                _ax.plot(x + x_offset, y + y_offset, c="k")
+
             _ax.scatter(
-                x,
+                x + x_offset,
                 y + y_offset,
                 marker="P",  # type: ignore
                 edgecolors="black",
@@ -234,7 +226,7 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
                 )
 
         if origin:
-            self.origin(stream.origin, frame=frame, kind=kind, ax=_ax)
+            self.origin(frame=frame, kind=kind, ax=_ax)
 
         if format_ax:  # Axes settings
             self._format_ax(_ax, frame=frame_name, x=xn, y=yn)
@@ -243,71 +235,16 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
 
     # --------------------------------
 
-    def _cov(
-        self,
-        ax: Axes,
-        mean: ndarray,
-        cov: ndarray,
-        std: float = 1,
-        *,
-        facecolor: str = "gray",
-        edgecolor: str = "none",
-        alpha: float = 0.5,
-        ls: str = "solid",
-    ) -> None:
-        """Plot covariance |Ellipse|.
-
-        Plotted as a collection using
-        :class:`matplotlib.collections.EllipseCollection`.
-
-        Parameters
-        ----------
-        ax : |Axes|
-            Matplotlib axes onto which to plot the covariance |Ellipse|.
-        mean : (N?, 2) ndarray
-            Rows are the central positions of the covariance |Ellipse|.
-        cov : (N?, 2, 2) ndarray
-            N x (2, 2) covariance matrices.
-        std : float, optional
-            Number of standard deviations of the covariance |Ellipse| axis,
-            by default 1.
-
-        facecolor : str, optional keyword-only
-            The facecolor of the |Ellipse|, by default 'gray'.
-        edgecolor : str, optional keyword-only
-            The edgecolor of the |Ellipse|, by default 'none'.
-        alpha : float, optional keyword-only
-            Transparency, by default 0.5.
-        ls : str, optional keyword-only
-            Line style, by default solid.
-        """
-        angle, wh = covariance_ellipse(cov, nstd=1)
-        width = 2 * atleast_1d(wh[..., 0])  # TODO! why 2?
-        height = 2 * atleast_1d(wh[..., 0])
-
-        ec = EllipseCollection(
-            std * width,
-            std * height,
-            angle.to_value(u.deg),
-            units="x",
-            offsets=atleast_2d(mean),
-            transOffset=ax.transData,
-            facecolor=facecolor,
-            edgecolor=edgecolor,
-            alpha=alpha,
-            lw=2,
-            ls=ls,
-        )
-        ax.add_collection(ec)
-
     def kalman(
         self,
         frame: FrameLikeType = "stream",
         kind: DKindT = "positions",
         *,
+        connect: bool = True,
         origin: bool = False,
-        ax: Optional[Axes] = None,
+        ax: Axes | None | bool = False,
         format_ax: bool = False,
+        subselect: int = 5,
         **kwargs: Any,
     ) -> Axes:
         """Plot Kalman Filter.
@@ -343,8 +280,16 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
         else:
             _, frame_name = self._parse_frame(frame)
 
-        track, _ax, stream, _, *_ = self._setup(ax=ax)
+        # LOCAL
+        from trackstream.fit.kalman import FirstOrderNewtonianKalmanFilter
+
+        track, _ax, _, _, *_ = self._setup(ax=ax)
         xn, yn = "", ""  # default, updated from data
+
+        # mean path
+        # sc = track.path.position()
+        # (x, xn), (y, yn) = self._get_xy(sc, kind=kind)
+        # _ax.plot(x, y, c="gray")
 
         # TODO! allow for eval by `affine` using the Path
         # TODO! fill_between
@@ -355,23 +300,52 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
         #     y2=pm.mean.lat[:, 0] + pm.width["lat"] / 2,
         # )
 
-        # Subselect from covariance matrix
-        if kind == "positions":
-            start, stop = 0, 4
-        elif kind == "kinematics":
-            start, stop = 4, 8
-        slc = (slice(None), slice(start, stop, 2), slice(start, stop, 2))
-
         kalman = cast(FirstOrderNewtonianKalmanFilter, track.kalman)
-        crd = kalman._v_to_crd(array(track.path._meta["smooth"].Xs[:, ::2]))
+
+        # Subselect from covariance matrix
+        if kind == "positions":  # x, y
+            start = 0
+        elif kind == "kinematics":  # v_x, v_y
+            start = 2 * kalman.ndims_rep
+        slc = (slice(None), slice(start, start + 4, 2), slice(start, start + 4, 2))
+
+        crd = kalman._array_to_coord(np.array(track.path._meta["smooth"].x[:, ::2]))
         (x, xn), (y, yn) = self._get_xy(crd, kind=kind)
         # error
-        Ps = track.path._meta["smooth"].Ps[slc]
+        Ps = track.path._meta["smooth"].P[slc]
 
-        self._cov(_ax, mean=array((x, y)).reshape((2, -1)).T[::5], cov=Ps[::5], **kwargs)
+        nstd = kwargs.get("std", 1)
+        if connect:
+            _ax.plot(x.value, y.value, label=f"track {track.name} : {nstd} std", zorder=100, c="k")
+        else:
+            # still need to auto-set the axes bounds since an EllipseCollection does not.
+            _ax.scatter(x.value, y.value, alpha=0)
+
+        # Covariance Ellipses
+        subsel = slice(None, None, subselect)
+        mean = np.array((x, y)).reshape((2, -1)).T[subsel]
+        angle, wh = covariance_ellipse(Ps[subsel], nstd=nstd)
+        width = 2 * np.atleast_1d(wh[..., 0])  # TODO! why 2?
+        height = 2 * np.atleast_1d(wh[..., 1])
+
+        ec = EllipseCollection(
+            width,
+            height,
+            angle.to_value(u.deg),
+            units="x",
+            offsets=np.atleast_2d(mean),
+            transOffset=_ax.transData,
+            facecolor=kwargs.get("facecolor", "gray"),
+            edgecolor=kwargs.get("edgecolor", "none"),
+            alpha=kwargs.get("alpha", 0.5),
+            lw=2,
+            ls=kwargs.get("ls", "solid"),
+            zorder=0,
+        )
+        _ax.add_collection(ec)
 
         if origin:
-            self.origin(stream.origin, frame=frame, kind=kind, ax=_ax)
+            self.origin(frame=frame, kind=kind, ax=_ax)
 
         if format_ax:
             self._format_ax(_ax, frame=frame_name, x=xn, y=yn)
@@ -387,11 +361,10 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
         *,
         origin: bool = True,
         som: bool = True,
-        som_initial_prototypes: bool = False,
-        som_prototypes_offset: Quantity = Quantity(0.0, u.deg),
+        som_kw: dict | None = None,
         kalman: bool = True,
-        kalman_kw: Optional[dict] = None,
-        ax: Optional[Axes] = None,
+        kalman_kw: dict | None = None,
+        ax: Axes | None = None,
         format_ax: bool = False,
         **kwargs: Any,
     ) -> Axes:
@@ -417,10 +390,8 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
 
         som : bool, optional keyword-only
             Whether to plot the |SOM|, by default `True`.
-        som_initial_prototypes : bool, optional keyword-only
-            Whether to plot the initial prototypes, by default `False`.
-        som_prototypes_offset : Quantity['angle'], optional keyword-only
-            |Latitude| offset for the SOM prototypes.
+        som_kw : dict[str, Any] or None, optional keyword-only
+            Keyword arguments passed to ``.som()``.
 
         kalman : bool, optional keyword-only
             Whether to plot the Kalman Filter, by default `True`.
@@ -443,12 +414,12 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
         # Centrally coordinate plotting the origin since multiple plot methods
         # can plot the origin.
         if origin:
-            self.origin(stream.origin, frame=frame, kind=kind, ax=_ax)
+            self.origin(frame=frame, kind=kind, ax=_ax)
 
         stream.plot.in_frame(
             frame=frame,
             kind=kind,
-            c=arange(len(stream)),
+            c=np.arange(len(stream.coords_ord)),
             ax=_ax,
             format_ax=False,
             origin=False,
@@ -456,25 +427,10 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
         )
 
         if som:
-            self.som(
-                frame=frame,
-                kind=kind,
-                initial_prototypes=som_initial_prototypes,
-                format_ax=False,
-                ax=_ax,
-                y_offset=som_prototypes_offset,
-                origin=False,
-            )
+            self.som(frame=frame, kind=kind, format_ax=False, ax=_ax, origin=False, **(som_kw or {}))
 
         if kalman:
-            self.kalman(
-                frame=frame,
-                kind=kind,
-                ax=_ax,
-                format_ax=False,
-                origin=False,
-                **(kalman_kw or {}),
-            )
+            self.kalman(frame=frame, kind=kind, ax=_ax, format_ax=False, origin=False, **(kalman_kw or {}))
 
         if format_ax:
             self._format_ax(_ax, frame=frame_name, x=xn, y=yn)
@@ -486,19 +442,21 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
     def som_multipanel(
         self,
         *,
+        connect: bool = True,
         initial_prototypes: bool = False,
-        prototypes_offset: Quantity = Quantity(0.0, u.deg),
+        prototypes_x_offset: Quantity | Literal[0] = 0,
+        prototypes_y_offset: Quantity | Literal[0] = 0,
         origin: bool = True,
-        axes: Optional[Tuple[Axes, Axes]] = None,
+        axes: tuple[Axes, Axes] | None = None,
         format_ax: bool = True,
-    ) -> Tuple[Figure, Tuple[Axes, Axes]]:
+    ) -> tuple[Figure, tuple[Axes, Axes]]:
         """Plot |SOM| applied to the stream.
 
         Parameters
         ----------
         initial_prototypes : bool, optional keyword-only
             Whether to plot the initial prototypes, by default `False`.
-        prototypes_offset : Quantity['angle'], optional keyword-only
+        prototypes_y_offset : Quantity['angle'], optional keyword-only
             |Latitude| offset for the SOM prototypes.
         origin : bool, optional keyword-only
             Whether to plot the origin, by default `True`.
@@ -515,7 +473,7 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
         (|Axes|, |Axes|)
             The matplotlib figure axes.
         """
-        _, _, stream, _, *_ = self._setup(ax=None)
+        _, _, stream, _, *_ = self._setup(ax=False)
 
         # Plot setup
         if axes is not None:
@@ -531,7 +489,7 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
         stream.plot.in_frame(
             frame="ICRS",
             kind="positions",
-            c=arange(len(stream)),
+            c=np.arange(len(stream.coords_ord)),
             ax=ax1,
             origin=origin,
             format_ax=format_ax,
@@ -541,8 +499,12 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
             ax=ax2,
             format_ax=format_ax,
             som=True,
-            som_initial_prototypes=initial_prototypes,
-            som_prototypes_offset=prototypes_offset,
+            som_kw=dict(
+                connect=connect,
+                initial_prototypes=initial_prototypes,
+                x_offset=prototypes_x_offset,
+                y_offset=prototypes_y_offset,
+            ),
             kalman=False,
         )
 
@@ -555,22 +517,22 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
         self,
         *,
         origin: bool = True,
-        som_initial_prototypes: bool = False,
-        som_prototypes_offset: Quantity = Quantity(0.0, u.deg),
-        kalman_kw: Optional[Dict[str, Any]] = None,
-        axes: Optional[ndarray] = None,
+        in_frame_kw: dict[str, Any] | None = None,
+        som_kw: dict[str, Any] | None = None,
+        kalman_kw: dict[str, Any] | None = None,
+        axes: ndarray | None = None,
         format_ax: bool = True,
-    ) -> Tuple[Figure, ndarray]:
+    ) -> tuple[Figure, ndarray]:
         """Plot everything.
 
         Parameters
         ----------
         origin : bool, optional keyword-only
             Whether to plot the origin, by default `True`.
-        som_initial_prototypes : bool, optional
-            Whether to plot the original prototypes, by default False
-        som_prototypes_offset : Quantity['angle'], optional keyword-only
-            |Latitude| offset for the SOM prototypes.
+        in_frame_kw : dict[str, Any] or None, optional keyword-only
+            Options passed to ``.in_frame()``.
+        som_kw : dict[str, Any] or None, optional keyword-only
+            Options passed to ``.som()``.
         kalman_kw : dict[str, Any] or None, optional keyword-only
             Options passed to ``.kalman()``.
 
@@ -605,22 +567,19 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
                 axs.shape = (-1, 1)
 
         # Plot stream in system frame
-        stream.plot.in_frame(
-            frame="stream",
-            kind="positions",
-            ax=axs[0, 0],
-            format_ax=format_ax,
-            label=full_name,
-            origin=origin,
-        )
+        in_frame_kw = {} if in_frame_kw is None else in_frame_kw
+        in_frame_kw.setdefault("label", full_name)
+        in_frame_kw.setdefault("format_ax", format_ax)
+        in_frame_kw.setdefault("origin", origin)
+        in_frame_kw.pop("title", True)  # todo! use
+        stream.plot.in_frame(frame="stream", kind="positions", ax=axs[0, 0], **in_frame_kw)
         if plot_vs:
             stream.plot.in_frame(
                 frame="stream",
                 kind="kinematics",
                 ax=axs[0, 1],
-                format_ax=format_ax,
-                label=full_name,
-                origin=origin and ORIGIN_HAS_VS,
+                origin=in_frame_kw.pop("origin") and ORIGIN_HAS_VS,
+                **in_frame_kw,
             )
 
         # SOM plot
@@ -631,8 +590,7 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
             format_ax=format_ax,
             origin=origin,
             som=True,
-            som_initial_prototypes=som_initial_prototypes,
-            som_prototypes_offset=som_prototypes_offset,
+            som_kw=som_kw,
             kalman=False,
         )
         if track.has_kinematics:
@@ -643,13 +601,11 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
                 format_ax=format_ax,
                 origin=origin and "s" in stream.origin.data.differentials,
                 som=False,  # SOM not run on kinematics!
-                som_initial_prototypes=som_initial_prototypes,
-                som_prototypes_offset=som_prototypes_offset,
                 kalman=False,
             )
 
         # Kalman filter plot
-        kalman_kw = {"std": 5} if kalman_kw is None else kalman_kw
+        kalman_kw = {"std": 3} if kalman_kw is None else kalman_kw
         self(
             ax=axs[2, 0],
             frame="stream",
@@ -689,10 +645,10 @@ class StreamArmsTrackBasePlotDescriptor(PlotCollectionBase["StreamArmsTrackBase"
         kind: DKindT = "positions",
         *,
         origin: bool = True,
-        ax: Optional[Axes] = None,
+        ax: Axes | None = None,
         format_ax: bool = False,
         **kwargs: Any,
-    ) -> Dict[str, Axes]:
+    ) -> dict[str, Axes]:
         track = self._enclosing
         last = len(track.keys()) - 1
 
@@ -714,12 +670,13 @@ class StreamArmsTrackBasePlotDescriptor(PlotCollectionBase["StreamArmsTrackBase"
         kind: DKindT = "positions",
         *,
         origin: bool = True,
+        connect: bool = True,
         initial_prototypes: bool = False,
-        y_offset: Quantity = Quantity(0.0, u.deg),
-        ax: Optional[Axes] = None,
+        x_offset: Quantity | Literal[0] = 0,
+        y_offset: Quantity | Literal[0] = 0,
+        ax: Axes | None = None,
         format_ax: bool = False,
-        **kwargs: Any,
-    ) -> Dict[str, Axes]:
+    ) -> dict[str, Axes]:
         track = self._enclosing
         last = len(track.keys()) - 1
 
@@ -728,12 +685,13 @@ class StreamArmsTrackBasePlotDescriptor(PlotCollectionBase["StreamArmsTrackBase"
             out[k] = track[k].plot.som(
                 frame=frame,
                 kind=kind,
+                connect=connect,
                 origin=False if i != last else origin,
                 initial_prototypes=initial_prototypes,
+                x_offset=x_offset,
                 y_offset=y_offset,
                 ax=ax,
                 format_ax=False if i != last else format_ax,
-                **kwargs,
             )
         return out
 
@@ -742,11 +700,12 @@ class StreamArmsTrackBasePlotDescriptor(PlotCollectionBase["StreamArmsTrackBase"
         frame: FrameLikeType = "stream",
         kind: DKindT = "positions",
         *,
+        connect: bool = False,
         origin: bool = False,
-        ax: Optional[Axes] = None,
+        ax: Axes | None = None,
         format_ax: bool = False,
         **kwargs: Any,
-    ) -> Dict[str, Axes]:
+    ) -> dict[str, Axes]:
         track = self._enclosing
         last = len(track.keys()) - 1
 
@@ -755,6 +714,7 @@ class StreamArmsTrackBasePlotDescriptor(PlotCollectionBase["StreamArmsTrackBase"
             out[k] = track[k].plot.kalman(
                 frame=frame,
                 kind=kind,
+                connect=connect,
                 origin=False if i != last else origin,
                 ax=ax,
                 format_ax=False if i != last else format_ax,
@@ -769,26 +729,24 @@ class StreamArmsTrackBasePlotDescriptor(PlotCollectionBase["StreamArmsTrackBase"
         *,
         origin: bool = True,
         som: bool = True,
-        som_initial_prototypes: bool = False,
-        som_prototypes_offset: Quantity = Quantity(0.0, u.deg),
+        som_kw: dict | None = None,
         kalman: bool = True,
-        kalman_kw: Optional[dict] = None,
-        ax: Optional[Axes] = None,
+        kalman_kw: dict | None = None,
+        ax: Axes | None = None,
         format_ax: bool = False,
         **kwargs: Any,
-    ) -> Dict[str, Axes]:
+    ) -> dict[str, Axes]:
         track = self._enclosing
         last = len(track.keys()) - 1
 
         out = {}
         for i, k in enumerate(track.keys()):
-            out[k] = track[k].plot.kalman(
+            out[k] = track[k].plot(
                 frame=frame,
                 kind=kind,
                 origin=False if i != last else origin,
                 som=som,
-                som_initial_prototypes=som_initial_prototypes,
-                som_prototypes_offset=som_prototypes_offset,
+                som_kw=som_kw,
                 kalman=kalman,
                 kalman_kw=kalman_kw,
                 ax=ax,
@@ -800,20 +758,24 @@ class StreamArmsTrackBasePlotDescriptor(PlotCollectionBase["StreamArmsTrackBase"
     def som_multipanel(
         self,
         *,
+        connect: bool = True,
         initial_prototypes: bool = False,
-        prototypes_offset: Quantity = Quantity(0.0, u.deg),
+        prototypes_x_offset: Quantity | Literal[0] = 0,
+        prototypes_y_offset: Quantity | Literal[0] = 0,
         origin: bool = True,
-        axes: Optional[Tuple[Axes, Axes]] = None,
+        axes: tuple[Axes, Axes] | None = None,
         format_ax: bool = True,
-    ) -> Tuple[Optional[Figure], Optional[Tuple[Axes, Axes]]]:
+    ) -> tuple[Figure | None, tuple[Axes, Axes] | None]:
         track = self._enclosing
         last = len(track.keys()) - 1
-        fig: Optional[Figure] = None
+        fig: Figure | None = None
 
         for i, k in enumerate(track.keys()):
             fig, axes = track[k].plot.som_multipanel(
+                connect=connect,
                 initial_prototypes=initial_prototypes,
-                prototypes_offset=prototypes_offset,
+                prototypes_x_offset=prototypes_x_offset,
+                prototypes_y_offset=prototypes_y_offset,
                 origin=False if i != last else origin,
                 axes=axes,
                 format_ax=False if i != last else format_ax,
@@ -824,22 +786,30 @@ class StreamArmsTrackBasePlotDescriptor(PlotCollectionBase["StreamArmsTrackBase"
         self,
         *,
         origin: bool = True,
-        som_initial_prototypes: bool = False,
-        som_prototypes_offset: Quantity = Quantity(0.0, u.deg),
-        kalman_kw: Optional[Dict[str, Any]] = None,
-        axes: Optional[ndarray] = None,
+        in_frame_kw: dict[str, Any] | None = None,
+        som_kw: dict[str, Any] | None = None,
+        kalman_kw: dict[str, Any] | None = None,
+        axes: ndarray | None = None,
         format_ax: bool = True,
-    ) -> Tuple[Optional[Figure], Optional[ndarray]]:
+    ) -> tuple[Figure | None, ndarray | None]:
         track = self._enclosing
         last = len(track.keys()) - 1
-        fig: Optional[Figure] = None
+        fig: Figure | None = None
+
+        in_frame_kw = {} if in_frame_kw is None else in_frame_kw
+        som_kw = {} if som_kw is None else som_kw
+        kalman_kw = {} if kalman_kw is None else kalman_kw
 
         for i, k in enumerate(track.keys()):
+            ifkw = in_frame_kw.get(k, in_frame_kw)
+            skw = som_kw.get(k, som_kw)
+            kkw = kalman_kw.get(k, kalman_kw)
+
             fig, axes = track[k].plot.full_multipanel(
                 origin=False if i != last else origin,
-                som_initial_prototypes=som_initial_prototypes,
-                som_prototypes_offset=som_prototypes_offset,
-                kalman_kw=kalman_kw,
+                in_frame_kw=ifkw,
+                som_kw=skw,
+                kalman_kw=kkw,
                 axes=axes,
                 format_ax=False if i != last else format_ax,
             )

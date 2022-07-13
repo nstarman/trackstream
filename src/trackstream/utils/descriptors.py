@@ -1,21 +1,19 @@
-# -*- coding: utf-8 -*-
-
 """Descriptors for :mod:`~trackstream`."""
-
-
-__all__ = ["InstanceDescriptor"]
-
 
 ##############################################################################
 # IMPORTS
 
+from __future__ import annotations
+
 # STDLIB
 import weakref
-from typing import Generic, Optional, Type, TypeVar
+from typing import Generic, TypeVar
 
 # THIRD PARTY
 from attrs import define, field
 from typing_extensions import Self
+
+__all__ = ["InstanceDescriptor"]
 
 ##############################################################################
 # PARAMETERS
@@ -31,7 +29,7 @@ EnclType = TypeVar("EnclType")
 
 @define(frozen=True, repr=False, slots=False)
 class InstanceDescriptor(Generic[EnclType]):
-    """
+    """A descriptor that knows about the instance to which it is attached.
 
     Notes
     -----
@@ -51,13 +49,13 @@ class InstanceDescriptor(Generic[EnclType]):
     descriptor and ``__set_name__`` is not called.
     """
 
-    _enclosing_ref: Optional[weakref.ReferenceType] = field(init=False, default=None, repr=False)
+    _enclosing_ref: weakref.ReferenceType | None = field(init=False, default=None, repr=False)
     """Reference to the enclosing instance."""
 
     # ------------------------------------
     # Enclosing instance
 
-    def _get_enclosing(self) -> Optional[EnclType]:
+    def _get_enclosing(self) -> EnclType | None:
         """Get the enclosing instance or `None` if none is found.
 
         Returns
@@ -65,7 +63,7 @@ class InstanceDescriptor(Generic[EnclType]):
         None or object
         """
         if isinstance(self._enclosing_ref, weakref.ReferenceType):
-            enclosing: Optional[EnclType] = self._enclosing_ref()
+            enclosing: EnclType | None = self._enclosing_ref()
         else:
             enclosing = None
         return enclosing
@@ -94,25 +92,24 @@ class InstanceDescriptor(Generic[EnclType]):
     # ------------------------------------
     # Descriptor properties
 
-    def __set_name__(self, _: Type[EnclType], name: str) -> None:
+    def __set_name__(self, _: type[EnclType], name: str) -> None:
         object.__setattr__(self, "_enclosing_attr", name)
 
-    def __get__(
-        self: Self, obj: Optional[EnclType], _: Optional[Type[EnclType]], *args, **kwargs
-    ) -> Self:
+    def __get__(self: Self, obj: EnclType | None, _: type[EnclType] | None, *args, **kwargs) -> Self:
         # accessed from a class
         if obj is None:
             return self
 
         # accessed from an obj
-        descriptor: Optional[Self] = obj.__dict__.get(self._enclosing_attr)  # get from obj
+        descriptor: Self | None = obj.__dict__.get(self._enclosing_attr)  # get from obj
         if descriptor is None:  # hasn't been created on the obj
             descriptor = self.__class__(*args, **kwargs)
             object.__setattr__(descriptor, "_enclosing_attr", self._enclosing_attr)
             obj.__dict__[self._enclosing_attr] = descriptor
 
-        # We set `_enclosing_ref` on every call, since if one makes copies of objs,
-        # 'descriptor' will be copied as well, which will lose the reference.
+        # We set `_enclosing_ref` on every call, since if one makes copies of
+        # objs, 'descriptor' will be copied as well, which will lose the
+        # reference.
         object.__setattr__(descriptor, "_enclosing_ref", weakref.ref(obj))  # type: ignore
 
         return descriptor

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Stream arm classes.
 
 Stream arms are descriptors on a `trackstrea.Stream` class.
@@ -12,12 +10,14 @@ Stream arms are descriptors on a `trackstrea.Stream` class.
 from __future__ import annotations
 
 # STDLIB
+import copy
 from functools import cached_property
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, cast
 
 # THIRD PARTY
 import astropy.units as u
+import numpy as np
 from astropy.coordinates import (
     BaseCoordinateFrame,
     RadialDifferential,
@@ -27,12 +27,18 @@ from astropy.coordinates import (
 from astropy.table import QTable
 from astropy.units import Quantity
 from attrs import define, field
+from numpy import ndarray
+from numpy.lib.recfunctions import structured_to_unstructured
 from typing_extensions import TypedDict
 
 # LOCAL
 from .base import StreamBase
 from .utils import StreamArmDataNormalizer
-from trackstream._type_hints import CoordinateLikeType
+from trackstream._typing import CoordinateLikeType
+from trackstream.stream.outlier_detection import (
+    OUTLIER_DETECTOR_CLASSES,
+    OutlierDetectorBase,
+)
 from trackstream.utils._attrs import (
     _cache_factory,
     _cache_proxy_factory,
@@ -43,7 +49,7 @@ from trackstream.utils.coord_utils import resolve_framelike
 
 if TYPE_CHECKING:
     # LOCAL
-    from trackstream.fit.fitter import TrackStreamArm
+    from trackstream.fit.fitter import FitterStreamArmTrack
     from trackstream.fit.rotated_frame import FrameOptimizeResult, RotatedFrameFitter
     from trackstream.fit.track import StreamArmTrack
 
@@ -59,15 +65,15 @@ class _StreamArmCache(TypedDict):
     """Cache for Stream."""
 
     # frame
-    system_frame: Optional[BaseCoordinateFrame]
-    frame_fit: Optional["FrameOptimizeResult"]
-    frame_fitter: Optional["RotatedFrameFitter"]
+    system_frame: BaseCoordinateFrame | None
+    frame_fit: FrameOptimizeResult | None
+    frame_fitter: RotatedFrameFitter | None
     # track
-    track: Optional["StreamArmTrack"]
-    track_fitter: Optional["TrackStreamArm"]
+    track: StreamArmTrack | None
+    track_fitter: FitterStreamArmTrack | None
 
 
-def _opt_resolve_framelike(frame: Optional[CoordinateLikeType]):
+def _opt_resolve_framelike(frame: CoordinateLikeType | None):
     return None if frame is None else resolve_framelike(frame)
 
 
@@ -97,11 +103,9 @@ class StreamArm(StreamBase):
 
     data: QTable = field()
     origin: SkyCoord = field()
-    _data_err: Optional[QTable] = field(kw_only=True, default=None, repr=False)
+    _data_err: QTable | None = field(kw_only=True, default=None, repr=False)
 
-    _system_frame: Optional[BaseCoordinateFrame] = field(
-        default=None, kw_only=True, converter=_opt_resolve_framelike
-    )
+    _system_frame: BaseCoordinateFrame | None = field(default=None, kw_only=True, converter=_opt_resolve_framelike)
 
     _cache: dict = field(
         kw_only=True,
@@ -110,12 +114,11 @@ class StreamArm(StreamBase):
     )
     cache: MappingProxyType = field(init=False, default=_cache_proxy_factory)
 
-    _Normalizer: StreamArmDataNormalizer = field(
-        init=False, factory=StreamArmDataNormalizer, repr=False
-    )
+    _Normalizer: StreamArmDataNormalizer = field(init=False, factory=StreamArmDataNormalizer, repr=False)
     """Data Normalizer. Should only be called once!"""
 
     def __attrs_post_init__(self):
+        # Run data normalizer (also moves ``data`` to _original_data)
         object.__setattr__(self, "data", self._Normalizer(self, self.data, self._data_err))
 
     # ===============================================================
@@ -123,45 +126,49 @@ class StreamArm(StreamBase):
 
     @cached_property
     def has_distances(self) -> bool:
-        """Whether the data has distances or is on-sky"""
-        data_onsky = self.data_coords.spherical.distance.unit.physical_type == "dimensionless"
+        """Whether the data has distances or is on-sky."""
+        data_onsky = self.data["coord"].spherical.distance.unit.physical_type == "dimensionless"
         origin_onsky = self.origin.spherical.distance.unit.physical_type == "dimensionless"
         onsky: bool = data_onsky and origin_onsky
         return not onsky
 
-    @cached_property
+    @property
     def has_kinematics(self) -> bool:
-        hasks = "s" in self.data_coords.data.differentials
+        """Whether the data has kinematics."""
+        has_vs = "s" in self.data["coord"].data.differentials
 
-        # For now can't do only radial diffs # TODO! ease restriction
-        if hasks:
-            hasks &= not isinstance(self.data_coords.data.differentials["s"], RadialDifferential)
+        # For now can't do RadialDifferential
+        if has_vs:
+            has_vs &= not isinstance(self.data["coord"].data.differentials["s"], RadialDifferential)
 
-        return hasks
+        return has_vs
 
     # ===============================================================
     # Directly from Data
 
-    # @property
-    # def _init_system_frame(self):
-    #     return self.frame
+    def get_data_coords(self, minPmemb: Quantity = Quantity(0, u.percent), include_outliers: bool = True) -> SkyCoord:
+        coords = self.data["coord"]
+        # filter data
+        use = self.data["Pmemb"] >= minPmemb
+        if not include_outliers:
+            use &= self.data["order"] >= 0
+
+        return coords[use]
 
     @property
     def data_coords(self) -> SkyCoord:
         """Get ``coord`` from data table."""
-        return self.data["coord"]
+        return self.get_data_coords(minPmemb=Quantity(0, u.percent), include_outliers=False)
 
     @cached_property
     def data_frame(self) -> BaseCoordinateFrame:
         """The `astropy.coordinates.BaseCoordinateFrame` of the data."""
-        reptype = self.data_coords.representation_type
+        reptype = self.data["coord"].representation_type
         if not self.has_distances:
             reptype = getattr(reptype, "_unit_representation", reptype)
 
         # Get the frame from the data
-        frame: BaseCoordinateFrame = self.data_coords.frame.replicate_without_data(
-            representation_type=reptype,
-        )
+        frame: BaseCoordinateFrame = self.data["coord"].frame.replicate_without_data(representation_type=reptype)
 
         return frame
 
@@ -169,14 +176,14 @@ class StreamArm(StreamBase):
     # System stuff (fit dependent)
 
     @property
-    def system_frame(self) -> Optional[BaseCoordinateFrame]:
+    def system_frame(self) -> BaseCoordinateFrame | None:
         """Return a system-centric frame (or None).
 
         Determined from the argument ``frame`` at initialization.
         If None (default) and the method ``fit`` has been called,
         then a system frame has been found and cached.
         """
-        frame: Optional[BaseCoordinateFrame]
+        frame: BaseCoordinateFrame | None
         if self._system_frame is not None:
             frame = self._system_frame
         else:
@@ -190,21 +197,61 @@ class StreamArm(StreamBase):
         frame = self.system_frame if self.system_frame is not None else self.data_frame
         return frame
 
-    @property
-    def coords(self) -> SkyCoord:
-        """Data coordinates transformed to `Stream.system_frame` (if there is one)."""
+    def get_coords(self, *, minPmemb: Quantity = Quantity(0, u.percent), include_outliers: bool = True) -> SkyCoord:
+        """Data coordinates transformed to ``system_frame`` (if there is one).
+
+        Parameters
+        ----------
+        minPmemb : Quantity['percent'], optional keyword-only
+            Minimum member probability to be considered part of the stream, by default all the data.
+        include_outliers : bool, optional
+            Whether to include labelled outliers, by default `True`.
+
+        Returns
+        -------
+        SkyCoord
+        """
+        data_coords = self.get_data_coords(minPmemb=minPmemb, include_outliers=include_outliers)
         frame = self._best_frame
 
-        c = self.data_coords.transform_to(frame)
+        c = data_coords.transform_to(frame)
         c.representation_type = frame.representation_type
         c.differential_type = frame.differential_type
 
         return c
 
     @property
+    def coords(self) -> SkyCoord:
+        """Data coordinates transformed to `Stream.system_frame` (if there is one)."""
+        return self.get_coords(minPmemb=Quantity(0, u.percent), include_outliers=True)
+
+    @property
     def coords_ord(self) -> SkyCoord:
-        """The (ordered) coordinates of the arm."""
-        return cast(SkyCoord, self.coords[self.data["order"]])
+        """The (ordered) coordinates of the arm.
+
+        Note that this can be shorter than ``coords`` since it outliers are
+        removed when fitting the track. # TODO! or tack them on at the end?
+        """
+        use: ndarray = self.data["order"] >= 0
+        order: ndarray = self.data["order"][use]
+        return cast(SkyCoord, self.coords[order])
+
+    # ===============================================================
+    # Cleaning Data
+
+    def label_outliers(self, outlier_method="scipyKDTreeLOF", **kwargs: Any) -> None:
+        """Detect and label outliers, setting their ``order`` to -1."""
+        # TODO! more complete, including velocity data
+        data = structured_to_unstructured(self.data_coords.data._values)
+
+        if isinstance(outlier_method, str):
+            outlier_method = OUTLIER_DETECTOR_CLASSES[outlier_method]()
+        elif not isinstance(outlier_method, OutlierDetectorBase):
+            raise TypeError
+
+        isoutlier = outlier_method.fit_predict(data, data, **kwargs)
+
+        self.data["order"][isoutlier] = -1
 
     # ===============================================================
     # Fitting Frame
@@ -212,10 +259,11 @@ class StreamArm(StreamBase):
 
     def fit_frame(
         self,
-        fitter: Optional["RotatedFrameFitter"] = None,
-        rot0: Optional[Quantity] = Quantity(0, u.deg),
+        fitter: RotatedFrameFitter | None = None,
+        rot0: Quantity[u.deg] | None = Quantity(0, u.deg),
         *,
         force: bool = False,
+        minPmemb: Quantity[u.percent] = Quantity(80, u.percent),
         **kwargs: Any,
     ) -> BaseCoordinateFrame:
         """Fit a frame to the data.
@@ -275,7 +323,7 @@ class StreamArm(StreamBase):
         elif self.system_frame is not None and not force:
             raise ValueError("a frame has already beem fit. use ``force`` to re-fit.")
 
-        if fitter is None:
+        if fitter is None:  # make default fitter
             # LOCAL
             from trackstream.fit.rotated_frame import RotatedFrameFitter
 
@@ -285,7 +333,8 @@ class StreamArm(StreamBase):
                 frame_representation_type=UnitSphericalRepresentation,
             )
 
-        fitted = fitter.fit(self.data_coords, rot0=rot0, **kwargs)
+        use = (self.data["Pmemb"] >= minPmemb) & (self.data["order"] >= 0)
+        fitted = fitter.fit(cast(SkyCoord, self.data_coords[use]), rot0=rot0, **kwargs)
 
         # cache
         self._cache["frame_fitter"] = fitter
@@ -298,7 +347,7 @@ class StreamArm(StreamBase):
     # Fitting Track
 
     @property
-    def track(self) -> "StreamArmTrack":
+    def track(self) -> StreamArmTrack:
         """Stream track.
 
         Raises
@@ -313,37 +362,81 @@ class StreamArm(StreamBase):
 
     def fit_track(
         self,
-        fitter: Optional["TrackStreamArm"] = None,
+        *,
+        fitter: bool | FitterStreamArmTrack = True,
+        tune: bool = True,
         force: bool = False,
+        minPmemb: Quantity[u.percent] = Quantity(80, u.percent),
         **kwargs: Any,
-    ) -> "StreamArmTrack":
+    ) -> StreamArmTrack:
+        r"""Fit `~trackstream.fit.StreamArmTrack` to this stream.
+
+        Parameters
+        ----------
+        fitter : bool or `~trackstream.fit.FitterStreamArmTrack`, optional
+        keyword-only
+            The fitter to use, by default `True`.
+        tune : bool, optional
+            Whether to train the SOM without writing to its current state
+            (`True`, default). Keeping the current state is useful for re-using
+            the SOM.
+        force : bool, optional keyword-only
+            Whether to force a track to be fit, even if one already has been for
+            this stream. By default `False`.
+        minPmemb : Quantity['percent'], optional keyword-only
+            Minimum member probability to be considered part of the stream when
+            fitting the track, by default 80%.
+
+        Returns
+        -------
+        `~trackstream.fit.StreamArmTrack`
+
+        Raises
+        ------
+        ValueError
+            If a track has already been fit and ``force`` is not `True`.
+        """
         # Check if already fit
         if not force and self._cache["track"] is not None:
             raise ValueError("already fit. use ``force`` to re-fit.")
 
         # LOCAL
-        from trackstream.fit.fitter import TrackStreamArm
+        from trackstream.fit.fitter import FitterStreamArmTrack
 
-        if fitter is None:
-            fitter = TrackStreamArm(
-                onsky=not self.has_distances,
-                kinematics=self.has_kinematics,
-            )
-        track = fitter.fit(self, force=force, **kwargs)
+        # Get fitter instance
+        if not isinstance(fitter, FitterStreamArmTrack):
+            use_cached = fitter is True
+            fitter = self.cache["track_fitter"]
+
+            if not use_cached or not isinstance(fitter, FitterStreamArmTrack):
+                fitter = FitterStreamArmTrack.from_stream(self)
+
+        # if tuning, the original fitter is unaffected. This is useful for
+        # saving the fitter and using it many times.
+        if tune:
+            fitter = copy.deepcopy(fitter)
+
+        # FIT
+        track = fitter.fit(self, minPmemb=minPmemb, **kwargs)
 
         # Cache
         self._cache["track_fitter"] = fitter
         self._cache["track"] = track
 
         # Add ordering to data table
-        self.data["order"] = fitter.cache["visit_order"]
+        order = fitter.cache["visit_order"]
+        use = (self.data["Pmemb"] >= minPmemb) & (self.data["order"] >= 0)
+        all_order = np.arange(len(self))
+        all_order[use] = all_order[use][order]  # this skip some
+        all_order[~use] = -1
+        self.data["order"] = all_order
 
         return track
 
     # ===============================================================
     # Misc
 
-    def __base_repr__(self, max_lines: Optional[int] = None) -> list:
+    def __base_repr__(self, max_lines: int | None = None) -> list:
         rs = super().__base_repr__(max_lines=max_lines)
 
         # 5) data table

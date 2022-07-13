@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Initiation Tests for :mod:`trackstream.base`."""
 
 # THIRD PARTY

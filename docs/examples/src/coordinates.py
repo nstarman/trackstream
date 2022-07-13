@@ -1,12 +1,9 @@
-# -*- coding: utf-8 -*-
 # see LICENSE.rst
 
 """Examples Coordinate Utilities."""
 
 
-__all__ = [
-    "get_transform_matrix",
-]
+__all__ = ["get_transform_matrix"]
 
 
 ##############################################################################
@@ -31,10 +28,7 @@ from trackstream._type_hints import CoordinateType
 ##############################################################################
 
 
-def get_transform_matrix(
-    from_frame: CoordinateType,
-    to_frame: CoordinateType,
-) -> T.Sequence:
+def get_transform_matrix(from_frame: CoordinateType, to_frame: CoordinateType) -> T.Sequence:
     """Get Transformation Matrix from Astropy [astropy]_.
 
     Compose sequential matrix transformations (static or dynamic) to get a
@@ -87,10 +81,7 @@ def get_transform_matrix(
     else:
         to_frame_cls = to_frame
 
-    path, distance = coord.frame_transform_graph.find_shortest_path(
-        from_frame_cls,
-        to_frame_cls,
-    )
+    path, distance = coord.frame_transform_graph.find_shortest_path(from_frame_cls, to_frame_cls)
 
     matrices = []
     currsys = from_frame
@@ -112,9 +103,9 @@ def get_transform_matrix(
             M = trans.matrix
         else:
             raise ValueError(
-                "Transform path contains a '{0}': cannot "
+                "Transform path contains a '{}': cannot "
                 "be composed into a single transformation "
-                "matrix.".format(trans.__class__.__name__),
+                "matrix.".format(trans.__class__.__name__)
             )
 
         matrices.append(M)

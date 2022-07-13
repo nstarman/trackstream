@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # type: ignore
 
 """Testing :mod:`~trackstream.stream.core`."""
@@ -72,13 +71,7 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
     @pytest.fixture(scope="class")
     def stream(self, stream_cls, data_table, data_error_table, origin, frame, name) -> S:
         """Stream instance."""
-        return stream_cls(
-            data_table,
-            origin,
-            data_err=data_error_table,
-            frame=frame,
-            name=name,
-        )
+        return stream_cls(data_table, origin, data_err=data_error_table, frame=frame, name=name)
 
     @pytest.fixture(scope="function")
     def tempstream(self, stream: S) -> S:
@@ -197,10 +190,7 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
         """Test property ``has_kinematics``."""
         expected = "s" in stream.data_coords.data.differentials
         if expected is True:
-            expected &= not isinstance(
-                stream.data_coords.data.differentials["s"],
-                RadialDifferential,
-            )
+            expected &= not isinstance(stream.data_coords.data.differentials["s"], RadialDifferential)
         assert stream.has_kinematics is expected
 
     def test_full_name(self, stream: S) -> None:

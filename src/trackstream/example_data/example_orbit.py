@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Example Orbit Data."""
 
 __author__ = "Nathaniel Starkman"
@@ -30,7 +28,7 @@ from galpy import potential
 from galpy.orbit import Orbit
 
 # LOCAL
-from trackstream._type_hints import CoordinateLikeType, RepresentationLikeType, UnitType
+from trackstream._typing import CoordinateLikeType, RepresentationLikeType, UnitType
 from trackstream.utils.misc import make_shuffler
 
 ##############################################################################
@@ -124,13 +122,7 @@ def make_unordered_orbit_data(
     SkyCoord
         (`num`, 3) array
     """
-    osc = make_ordered_orbit_data(
-        stop=stop,
-        num=num,
-        unit=unit,
-        frame=frame,
-        representation_type=representation_type,
-    )
+    osc = make_ordered_orbit_data(stop=stop, num=num, unit=unit, frame=frame, representation_type=representation_type)
 
     shuffler, _ = make_shuffler(len(osc))
     usc = cast(SkyCoord, osc[shuffler])
@@ -173,11 +165,7 @@ def make_noisy_orbit_data(
         sigma = dict(x=Quantity(100, u.pc), y=Quantity(100, u.pc), z=Quantity(20, u.pc))
 
     usc = make_unordered_orbit_data(
-        stop=stop,
-        num=num,
-        unit=unit,
-        frame="galactocentric",
-        representation_type="cartesian",
+        stop=stop, num=num, unit=unit, frame="galactocentric", representation_type="cartesian"
     )
 
     # Noisy SkyCoord with gaussian-convolved values.

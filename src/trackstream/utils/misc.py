@@ -1,21 +1,13 @@
-# -*- coding: utf-8 -*-
-
 """Utilities for :mod:`~trackstream.utils`."""
-
-
-__all__ = [
-    "intermix_arrays",
-    "make_shuffler",
-    "is_structured",
-    "covariance_ellipse",
-]
 
 
 ##############################################################################
 # IMPORTS
 
+from __future__ import annotations
+
 # STDLIB
-from typing import Any, Callable, Optional, Sequence, Tuple, TypeVar, Union
+from typing import Any, Callable, Sequence, TypeVar
 
 # THIRD PARTY
 import astropy.units as u
@@ -23,6 +15,8 @@ from astropy.units import Quantity
 from numpy import any, arange, arctan2, asanyarray, ndarray, sqrt, vectorize
 from numpy.random import Generator, RandomState, default_rng
 from scipy.linalg import svd
+
+__all__ = ["intermix_arrays", "make_shuffler", "is_structured", "covariance_ellipse"]
 
 ##############################################################################
 # PARAMETERS
@@ -35,7 +29,7 @@ R = TypeVar("R")  # return variable
 ##############################################################################
 
 
-def intermix_arrays(*arrs: Union[Sequence, ndarray], axis: int = -1) -> ndarray:
+def intermix_arrays(*arrs: Sequence | ndarray, axis: int = -1) -> ndarray:
     """Intermix arrays.
 
     Parameters
@@ -90,10 +84,7 @@ def intermix_arrays(*arrs: Union[Sequence, ndarray], axis: int = -1) -> ndarray:
 # -------------------------------------------------------------------
 
 
-def make_shuffler(
-    length: int,
-    rng: Optional[Union[Generator, RandomState]] = None,
-) -> Tuple[ndarray, ndarray]:
+def make_shuffler(length: int, rng: Generator | RandomState | None = None) -> tuple[ndarray, ndarray]:
     """Shuffle and un-shuffle arrays.
 
     Parameters
@@ -141,7 +132,7 @@ svd_vec: Callable = vectorize(
 )
 
 
-def covariance_ellipse(P: ndarray, *, nstd: Union[int, ndarray] = 1) -> Tuple[Quantity, ndarray]:
+def covariance_ellipse(P: ndarray, *, nstd: int | ndarray = 1) -> tuple[Quantity, ndarray]:
     """
     Returns a tuple defining the ellipse representing the 2 dimensional
     covariance matrix P.

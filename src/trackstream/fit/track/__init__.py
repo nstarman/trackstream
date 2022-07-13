@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 # see LICENSE.rst
 
 """Fit a Stream."""
 
 # LOCAL
 from .core import StreamArmTrack
+from .plural import StreamTrack
 
-__all__ = ["StreamArmTrack"]
+__all__ = ["StreamArmTrack", "StreamTrack"]

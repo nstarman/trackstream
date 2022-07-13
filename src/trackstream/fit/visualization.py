@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Stream track plotting."""
 
 ##############################################################################
@@ -8,12 +6,10 @@
 from __future__ import annotations
 
 # STDLIB
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, cast
+from typing import TYPE_CHECKING, Any, cast
 
 # THIRD PARTY
-import astropy.units as u
 import matplotlib.pyplot as plt
-from astropy.units import Quantity
 from matplotlib.figure import Figure
 from numpy import ndarray
 
@@ -34,11 +30,11 @@ __all__ = ["fit_frame_multipanel", "full_multipanel"]
 def fit_frame_multipanel(
     stream: StreamBase,
     origin: bool = True,
-    axes: Optional[ndarray] = None,
+    axes: ndarray | None = None,
     format_ax: bool = True,
     **kwargs: Any,
-) -> Tuple[Figure, ndarray]:
-    """Plot frame fit in a 3 pandel plot.
+) -> tuple[Figure, ndarray]:
+    """Plot frame fit in a 3 panel plot.
 
     Parameters
     ----------
@@ -75,21 +71,22 @@ def full_multipanel(
     track: StreamArmTrack,
     *,
     origin: bool = True,
-    som_initial_prototypes: bool = False,
-    som_prototypes_offset: Quantity = Quantity(0.0, u.deg),
-    kalman_kw: Optional[Dict[str, Any]] = None,
+    frame_kw: dict[str, Any] | None = None,
+    som_kw: dict[str, Any] | None = None,
+    kalman_kw: dict[str, Any] | None = None,
     format_ax: bool = True,
-) -> Tuple[Figure, ndarray]:
+) -> tuple[Figure, ndarray]:
     """Plot everything.
 
     Parameters
     ----------
     origin : bool, optional keyword-only
         Whether to plot the origin, by default `True`.
-    som_initial_prototypes : bool, optional
-        Whether to plot the original prototypes, by default False
-    som_prototypes_offset : Quantity['angle'], optional keyword-only
-        |Latitude| offset for the SOM prototypes.
+
+    frame_kw : dict[str, Any] or None, optional keyword-only
+        Options passed to ``.in_frame()``.
+    som_kw : dict[str, Any] or None, optional keyword-only
+        Options passed to ``.som()``.
     kalman_kw : dict[str, Any] or None, optional keyword-only
         Options passed to ``.kalman()``.
 
@@ -113,22 +110,12 @@ def full_multipanel(
         axs.shape = (-1, 1)
 
     # Plot frame fit
-    fit_frame_multipanel(stream, axes=axs[:3, :], format_ax=format_ax, origin=origin)
-
-    # clear the last axes, it's replotted
-    xl = axs[2, 0].get_xlabel()[:-1]
-    axs[2, 0].clear()
-    axs[2, 0].set_xlabel(xl[-xl[::-1].find("[") :])
-
-    if axs.shape[1] > 1:
-        xl = axs[2, -1].get_xlabel()[:-1]
-        axs[2, -1].clear()
-        axs[2, -1].set_xlabel(xl[-xl[::-1].find("[") :])
+    fit_frame_multipanel(stream, axes=axs[:3, :], format_ax=format_ax, origin=origin, **(frame_kw or {}))
 
     track.plot.full_multipanel(
         origin=origin,
-        som_initial_prototypes=som_initial_prototypes,
-        som_prototypes_offset=som_prototypes_offset,
+        in_frame_kw=frame_kw,
+        som_kw=som_kw,
         kalman_kw=kalman_kw,
         axes=axs[2:, :],
         format_ax=format_ax,

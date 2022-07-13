@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Stream track fit result."""
 
 ##############################################################################
@@ -11,7 +9,7 @@ from __future__ import annotations
 import weakref
 from abc import abstractmethod
 from functools import cached_property
-from typing import TYPE_CHECKING, Callable, Optional, Type
+from typing import TYPE_CHECKING, Callable
 
 # THIRD PARTY
 import astropy.units as u
@@ -29,13 +27,13 @@ from attrs import define, field
 from interpolated_coordinates import InterpolatedSkyCoord
 
 # LOCAL
+from .path import Path, path_moments
 from .visualization import StreamArmTrackPlotDescriptor
 from trackstream.base import (
     FramedBase,
     frame_differential_type_factory,
     frame_representation_type_factory,
 )
-from trackstream.fit.path import Path, path_moments
 
 if TYPE_CHECKING:
     # LOCAL
@@ -55,7 +53,7 @@ __all__ = ["StreamArmTrackBase", "StreamArmTrack"]
 class StreamArmTrackBase:
     @property
     @abstractmethod
-    def stream(self) -> "StreamBase":
+    def stream(self) -> StreamBase:
         """The track's stream"""
 
 
@@ -90,20 +88,14 @@ class StreamArmTrack(StreamArmTrackBase, FramedBase):
 
     # ===============================================================
 
-    _stream_ref: weakref.ReferenceType = field(
-        converter=lambda x: weakref.ref(x)
-    )  # turned into `stream`
+    _stream_ref: weakref.ReferenceType = field(converter=lambda x: weakref.ref(x))  # turned into `stream`
     path: Path = field()
-    name: Optional[str] = field(kw_only=True)
+    name: str | None = field(kw_only=True)
     _meta: dict = field(factory=dict, kw_only=True)
 
     frame: BaseCoordinateFrame = field(init=False)
-    frame_representation_type: Type[BaseRepresentation] = field(
-        init=False, default=frame_representation_type_factory
-    )
-    frame_differential_type: Optional[Type[BaseDifferential]] = field(
-        init=False, default=frame_differential_type_factory
-    )
+    frame_representation_type: type[BaseRepresentation] = field(init=False, default=frame_representation_type_factory)
+    frame_differential_type: type[BaseDifferential] | None = field(init=False, default=frame_differential_type_factory)
 
     @frame.default
     def _frame_factory(self):
@@ -121,7 +113,7 @@ class StreamArmTrack(StreamArmTrackBase, FramedBase):
     # ===============================================================
 
     @property
-    def stream(self) -> "StreamArm":
+    def stream(self) -> StreamArm:
         """The `~trackstream.Stream`, or `None` if the weak reference is broken."""
         strm = self._stream_ref()
         if strm is None:
@@ -133,7 +125,7 @@ class StreamArmTrack(StreamArmTrackBase, FramedBase):
         return self.stream.origin
 
     @property
-    def full_name(self) -> Optional[str]:
+    def full_name(self) -> str | None:
         return self.name
 
     @property
@@ -168,7 +160,7 @@ class StreamArmTrack(StreamArmTrackBase, FramedBase):
     #######################################################
     # Math on the Track
 
-    def __call__(self, affine: Optional[Quantity] = None, *, angular: bool = False) -> path_moments:
+    def __call__(self, affine: Quantity | None = None, *, angular: bool = False) -> path_moments:
         """Get discrete points along interpolated stream track.
 
         Parameters
@@ -190,10 +182,10 @@ class StreamArmTrack(StreamArmTrackBase, FramedBase):
     def probability(
         self,
         point: SkyCoord,
-        background_model: Optional[Callable[[SkyCoord], Quantity[u.percent]]] = None,
+        background_model: Callable[[SkyCoord], Quantity[u.percent]] | None = None,
         *,
         angular: bool = False,
-        affine: Optional[Quantity] = None,
+        affine: Quantity | None = None,
     ) -> Quantity[u.percent]:
         """Probability point is part of the stream.
 

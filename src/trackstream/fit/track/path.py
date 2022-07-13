@@ -1,16 +1,13 @@
-# -*- coding: utf-8 -*-
-
 """Path are an affine-parameterized path."""
-
-__all__ = ["Path", "path_moments"]
-
 
 ##############################################################################
 # IMPORTS
 
+from __future__ import annotations
+
 # STDLIB
 import copy
-from typing import Any, Callable, Dict, NamedTuple, Optional, Tuple, Type, Union, cast
+from typing import Any, Callable, NamedTuple, cast
 
 # THIRD PARTY
 import astropy.coordinates as coord
@@ -38,11 +35,14 @@ from numpy.lib.recfunctions import recursive_fill_fields
 from scipy.optimize import OptimizeResult, minimize_scalar
 
 # LOCAL
-from trackstream._type_hints import CoordinateType, FrameLikeType
+from trackstream._typing import CoordinateType, FrameLikeType
 from trackstream.base import FramedBase
 from trackstream.utils.coord_utils import resolve_framelike
 from trackstream.utils.misc import is_structured
 from trackstream.visualization import PlotDescriptorBase
+
+__all__ = ["Path", "path_moments"]
+
 
 ##############################################################################
 # PARAMETERS
@@ -112,20 +112,20 @@ class Path(FramedBase):
     plot = PathPlotter()
 
     data: InterpolatedSkyCoord = field()
-    _width: Union[Quantity, Callable, None] = None
-    _amplitude: Optional[Callable] = None
+    _width: Quantity | Callable | None = None
+    _amplitude: Callable | None = None
 
-    name: Optional[str] = field(default=None, kw_only=True, converter=converters.optional(str))
+    name: str | None = field(default=None, kw_only=True, converter=converters.optional(str))
     _meta: dict = field(factory=dict, kw_only=True)
 
     frame: BaseCoordinateFrame = field(init=False, kw_only=True, converter=resolve_framelike)
-    frame_representation_type: Type[BaseRepresentation] = field(init=False, kw_only=True)
-    frame_differential_type: Optional[Type[BaseDifferential]] = field(init=False, kw_only=True)
+    frame_representation_type: type[BaseRepresentation] = field(init=False, kw_only=True)
+    frame_differential_type: type[BaseDifferential] | None = field(init=False, kw_only=True)
 
-    _width_interps: Optional[Dict[str, IUSU]] = field(init=False, default=None, repr=False)
-    _width_dtype: Optional[dtype] = field(init=False, default=None, repr=False)
-    _width_unit: Optional[StructuredUnit] = field(init=False, default=None, repr=False)
-    _original_width: Union[Quantity, Callable, None] = field(init=False, repr=False)
+    _width_interps: dict[str, IUSU] | None = field(init=False, default=None, repr=False)
+    _width_dtype: dtype | None = field(init=False, default=None, repr=False)
+    _width_unit: StructuredUnit | None = field(init=False, default=None, repr=False)
+    _original_width: Quantity | Callable | None = field(init=False, repr=False)
 
     _original_path: Any = field(init=False, repr=False)
 
@@ -136,11 +136,11 @@ class Path(FramedBase):
         return frame
 
     @frame_representation_type.default  # type: ignore
-    def _frame_representation_type_factory(self):
+    def _frame_representation_type_default(self):
         return self.frame.representation_type
 
     @frame_differential_type.default  # type: ignore
-    def _frame_differential_type_factory(self):
+    def _frame_differential_type_default(self):
         return self.frame.differential_type
 
     @_original_path.default
@@ -165,12 +165,12 @@ class Path(FramedBase):
     def from_skycoord(
         cls,
         data: SkyCoord,
-        width: Union[Quantity, Callable, None],
-        amplitude: Optional[Callable] = None,
+        width: Quantity | Callable | None,
+        amplitude: Callable | None = None,
         *,
         affine: Quantity,
-        name: Optional[str] = None,
-        meta: Optional[dict] = None,
+        name: str | None = None,
+        meta: dict | None = None,
     ):
         if isinstance(data, InterpolatedSkyCoord) and data.affine != affine:
             raise ValueError
@@ -186,13 +186,13 @@ class Path(FramedBase):
     @classmethod
     def from_frame(
         cls,
-        data: Union[BaseCoordinateFrame, InterpolatedCoordinateFrame],
-        width: Union[Quantity, Callable, None],
-        amplitude: Optional[Callable] = None,
+        data: BaseCoordinateFrame | InterpolatedCoordinateFrame,
+        width: Quantity | Callable | None,
+        amplitude: Callable | None = None,
         *,
         affine: Quantity,
-        name: Optional[str] = None,
-        meta: Optional[dict] = None,
+        name: str | None = None,
+        meta: dict | None = None,
     ):
         if isinstance(data, InterpolatedCoordinateFrame) and data.affine != affine:
             raise ValueError
@@ -200,21 +200,19 @@ class Path(FramedBase):
         data_if = InterpolatedCoordinateFrame(data, affine=affine)  # type: ignore
         data_sc = SkyCoord(data_if, copy=False)
 
-        return cls.from_skycoord(
-            data_sc, width=width, amplitude=amplitude, affine=affine, name=name, meta=meta
-        )
+        return cls.from_skycoord(data_sc, width=width, amplitude=amplitude, affine=affine, name=name, meta=meta)
 
     @classmethod
     def from_representation(
         cls,
-        data: Union[BaseRepresentation, InterpolatedRepresentation],
-        width: Union[Quantity, Callable, None],
-        amplitude: Optional[Callable] = None,
+        data: BaseRepresentation | InterpolatedRepresentation,
+        width: Quantity | Callable | None,
+        amplitude: Callable | None = None,
         *,
         frame: FrameLikeType,
         affine: Quantity,
-        name: Optional[str] = None,
-        meta: Optional[dict] = None,
+        name: str | None = None,
+        meta: dict | None = None,
     ):
         theframe = resolve_framelike(frame)
         rep_type = data.__class__
@@ -223,12 +221,8 @@ class Path(FramedBase):
         else:
             dif_type = None
 
-        data_f = theframe.realize_frame(
-            data, representation_type=rep_type, differential_type=dif_type
-        )
-        return cls.from_frame(
-            data_f, width=width, amplitude=amplitude, affine=affine, name=name, meta=meta
-        )
+        data_f = theframe.realize_frame(data, representation_type=rep_type, differential_type=dif_type)
+        return cls.from_frame(data_f, width=width, amplitude=amplitude, affine=affine, name=name, meta=meta)
 
     @property
     def affine(self) -> Quantity:
@@ -236,9 +230,9 @@ class Path(FramedBase):
         return self.data.affine
 
     @property
-    def _data_component_names(self) -> Dict[str, str]:
+    def _data_component_names(self) -> dict[str, str]:
         """Return dict[frame name, rep name]."""
-        cns: Dict[str, str] = self.data.get_representation_component_names()
+        cns: dict[str, str] = self.data.get_representation_component_names()
         if "s" in self.data.data.data.differentials:  # add diff, if exists
             cns.update(self.data.get_representation_component_names("s"))
         return cns
@@ -327,7 +321,7 @@ class Path(FramedBase):
     #################################################################
     # Math on the Track!
 
-    def __call__(self, affine: Optional[Quantity] = None, *, angular: bool = False) -> path_moments:
+    def __call__(self, affine: Quantity | None = None, *, angular: bool = False) -> path_moments:
         """Call.
 
         Parameters
@@ -359,8 +353,8 @@ class Path(FramedBase):
 
     def position(
         self,
-        affine: Optional[Quantity] = None,
-    ) -> Union[InterpolatedSkyCoord, SkyCoord]:
+        affine: Quantity | None = None,
+    ) -> InterpolatedSkyCoord | SkyCoord:
         """Return the position on the track.
 
         Parameters
@@ -383,7 +377,7 @@ class Path(FramedBase):
 
     # -----------------------
 
-    def width(self, affine: Optional[Quantity] = None) -> Quantity:
+    def width(self, affine: Quantity | None = None) -> Quantity:
         """Return the (1-sigma) width of the track at affine points.
 
         Parameters
@@ -408,7 +402,7 @@ class Path(FramedBase):
 
         return Quantity(out, self._width_unit)
 
-    def width_angular(self, affine: Optional[Quantity] = None) -> Quantity:
+    def width_angular(self, affine: Quantity | None = None) -> Quantity:
         """Return the (1-sigma) angular width of the track at affine points.
 
         Parameters
@@ -441,8 +435,8 @@ class Path(FramedBase):
         point: CoordinateType,
         *,
         interpolate: bool = True,
-        affine: Optional[Quantity] = None,
-    ) -> Union[coord.Angle, IUSU]:
+        affine: Quantity | None = None,
+    ) -> coord.Angle | IUSU:
         return self.data.separation(point, interpolate=interpolate, affine=affine)
 
     @format_doc(InterpolatedSkyCoord.separation_3d.__doc__)
@@ -451,14 +445,14 @@ class Path(FramedBase):
         point: CoordinateType,
         *,
         interpolate: bool = True,
-        affine: Optional[Quantity] = None,
-    ) -> Union[coord.Distance, IUSU]:
+        affine: Quantity | None = None,
+    ) -> coord.Distance | IUSU:
         return self.data.separation_3d(point, interpolate=interpolate, affine=affine)
 
     # -----------------------------------------------------
 
     def _closest_res_to_point(
-        self, point: CoordinateType, *, angular: bool = False, affine: Optional[Quantity] = None
+        self, point: CoordinateType, *, angular: bool = False, affine: Quantity | None = None
     ) -> OptimizeResult:
         """Closest to stream, ignoring width"""
         if angular:
@@ -475,7 +469,7 @@ class Path(FramedBase):
         return res
 
     def closest_affine_to_point(
-        self, point: CoordinateType, *, angular: bool = False, affine: Optional[Quantity] = None
+        self, point: CoordinateType, *, angular: bool = False, affine: Quantity | None = None
     ) -> Quantity:
         """Closest affine, ignoring width"""
         afn = self.affine if affine is None else affine
@@ -484,7 +478,7 @@ class Path(FramedBase):
         return pt_afn
 
     def closest_position_to_point(
-        self, point: CoordinateType, *, angular: bool = False, affine: Optional[Quantity] = None
+        self, point: CoordinateType, *, angular: bool = False, affine: Quantity | None = None
     ) -> SkyCoord:
         """Closest point, ignoring width"""
         return self.position(self.closest_affine_to_point(point, angular=angular, affine=affine))
@@ -494,7 +488,7 @@ class Path(FramedBase):
 
 
 def concatenate_paths(
-    paths: Tuple[Path, Path], /, *, name: Optional[str] = None, metadata_conflicts: str = "warn"
+    paths: tuple[Path, Path], /, *, name: str | None = None, metadata_conflicts: str = "warn"
 ) -> Path:
     """Concatenate `trackstream.utils.path.Path` instances.
 
@@ -530,9 +524,11 @@ def concatenate_paths(
 
     # get representations, uninterpolated
     nr = npth.data.data.data
-    nr.differentials["s"] = nr.differentials["s"].data
+    if "s" in nr.differentials:
+        nr.differentials["s"] = nr.differentials["s"].data
     pr = ppth.data.data.data
-    pr.differentials["s"] = pr.differentials["s"].data
+    if "s" in pr.differentials:
+        pr.differentials["s"] = pr.differentials["s"].data
     r = concatenate_representations((nr[::-1], pr))
     c = InterpolatedSkyCoord(npth.data.realize_frame(r, affine=affine))
 

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Progress bar, modified from :mod:`~emcee`."""
 
 ##############################################################################
@@ -9,7 +7,10 @@ from __future__ import annotations
 
 # STDLIB
 import logging
-from typing import Any, Union
+from typing import Any
+
+# THIRD PARTY
+from typing_extensions import Self
 
 # LOCAL
 from trackstream.setup_package import HAS_TQDM
@@ -30,7 +31,7 @@ __credits__ = ["emcee"]
 class _NoOpPBar:
     """This class implements the progress bar interface but does nothing."""
 
-    def __enter__(self, *_: Any, **__: Any) -> _NoOpPBar:
+    def __enter__(self: Self, *_: Any, **__: Any) -> Self:
         return self
 
     def __exit__(self, *_: Any, **__: Any) -> None:
@@ -40,7 +41,7 @@ class _NoOpPBar:
         pass
 
 
-def get_progress_bar(display: Union[bool, str], total: int) -> Union[_NoOpPBar, tqdm.tqdm]:
+def get_progress_bar(display: bool, total: int) -> _NoOpPBar | tqdm.tqdm:
     """Get a progress bar.
 
     If :mod:`tqdm` is not installed, this will return a no-op.
@@ -48,9 +49,8 @@ def get_progress_bar(display: Union[bool, str], total: int) -> Union[_NoOpPBar, 
 
     Parameters
     ----------
-    display : bool or str
+    display : boo
         Should the bar actually show the progress?
-        Or a string to indicate which tqdm bar to use.
     total : int
         The total size of the progress bar.
 
@@ -63,7 +63,5 @@ def get_progress_bar(display: Union[bool, str], total: int) -> Union[_NoOpPBar, 
     elif not HAS_TQDM:
         logging.warning("You must install the tqdm library to have progress bars.")
         return _NoOpPBar()
-    elif display is True:
-        return tqdm.tqdm(total=total)
-    else:
-        return getattr(tqdm, "tqdm_" + str(display))(total=total)
+
+    return tqdm.tqdm(total=total)

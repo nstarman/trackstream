@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Generate example data a la Palomar 5."""
 
 
@@ -22,7 +20,7 @@ from galpy.potential import LogarithmicHaloPotential
 from streamtools.df import streamspraydf
 
 # LOCAL
-from trackstream._type_hints import FullPathLike
+from trackstream._typing import FullPathLike
 
 __all__ = ["get_example_pal5"]
 
@@ -48,9 +46,7 @@ def make_stream_from_Vasiliev18(
     """
 
     # read data
-    table = QTable.read(
-        get_pkg_data_filename("Vasiliev18_table.ecsv", package="trackstream.example_data"),
-    )
+    table = QTable.read(get_pkg_data_filename("Vasiliev18_table.ecsv", package="trackstream.example_data"))
     table.add_index("Name")
 
     # get the Pal-5 subset
@@ -79,26 +75,10 @@ def make_stream_from_Vasiliev18(
 
     # Streamspray of the tidal arms
     # leading
-    spdf_l = streamspraydf(
-        progenitor_mass=mass,
-        progenitor=o,
-        pot=lp,
-        tdisrupt=tdisrupt,
-        leading=True,
-        ro=ro,
-        vo=vo,
-    )
+    spdf_l = streamspraydf(progenitor_mass=mass, progenitor=o, pot=lp, tdisrupt=tdisrupt, leading=True, ro=ro, vo=vo)
 
     # trailing
-    spdf_t = streamspraydf(
-        progenitor_mass=mass,
-        progenitor=o,
-        pot=lp,
-        tdisrupt=tdisrupt,
-        leading=False,
-        ro=ro,
-        vo=vo,
-    )
+    spdf_t = streamspraydf(progenitor_mass=mass, progenitor=o, pot=lp, tdisrupt=tdisrupt, leading=False, ro=ro, vo=vo)
 
     # make sample
     with NumpyRNGContext(4):
