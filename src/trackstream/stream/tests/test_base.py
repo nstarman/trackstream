@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # type: ignore
 
 """Testing :mod:`~trackstream.stream.base`."""
@@ -14,6 +13,7 @@ import numpy as np
 import pytest
 from astropy.coordinates import BaseCoordinateFrame, SkyCoord
 from astropy.table import QTable
+from attr import define
 
 # LOCAL
 from trackstream.stream.base import StreamBase, StreamBasePlotDescriptor
@@ -157,12 +157,14 @@ class Test_StreamBase(StreamBaseTest):
     def stream_cls(self):
         """Stream class."""
 
+        @define
         class StreamEx(StreamBase):
 
+            data: QTable
             _data_max_lines = 10
 
             def __init__(self, data) -> None:
-                self._data = data
+                object.__setattr__(self, "data", data)
 
             @property
             def data(self):
@@ -181,8 +183,8 @@ class Test_StreamBase(StreamBaseTest):
                 return super().coords_ord
 
             @property
-            def frame(self):
-                return super().frame
+            def system_frame(self):
+                return super().system_frame
 
             @property
             def name(self):
@@ -249,7 +251,6 @@ class Test_StreamBase(StreamBaseTest):
         """Test property ``full_name``."""
         assert False
 
-    def test_len(self, stream):
+    def test_len(self, stream, data_table):
         """Test ``len(stream)``"""
-        with pytest.raises(TypeError, match="data"):
-            len(stream)
+        assert len(stream) == len(data_table)

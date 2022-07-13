@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 #
 # Astropy documentation build configuration file.
@@ -116,12 +115,7 @@ numpydoc_xref_param_type = True
 # Words not to cross-reference. Most likely, these are common words used in
 # parameter type descriptions that may be confused for classes of the same
 # name. The base set comes from sphinx-astropy. We add more here.
-numpydoc_xref_ignore.update(
-    {
-        "mixin",
-        "Any",  # aka something that would be annotated with `typing.Any`
-    },
-)
+numpydoc_xref_ignore.update({"mixin", "Any"})  # aka something that would be annotated with `typing.Any`
 
 # Mappings to fully qualified paths (or correct ReST references) for the
 # aliases/shortcuts used when specifying the types of parameters.
@@ -140,18 +134,14 @@ numpydoc_xref_aliases.update(
         "Representation": ":class:`~astropy.coordinates.BaseRepresentation`",
         "Differential": ":class:`~astropy.coordinates.BaseDifferential`",
         "CoordinateFrame": ":class:`~astropy.coordinates.BaseCoordinateFrame`",
-    },
+    }
 )
 # Add from sphinx-astropy 1) glossary aliases 2) physical types.
 numpydoc_xref_aliases.update(numpydoc_xref_astropy_aliases)
 
 
 # extensions
-extensions += [
-    "nbsphinx",
-    "IPython.sphinxext.ipython_console_highlighting",
-    "sphinxcontrib.bibtex",
-]
+extensions += ["nbsphinx", "IPython.sphinxext.ipython_console_highlighting", "sphinxcontrib.bibtex"]
 
 # Show / hide TODO blocks
 todo_include_todos = True
@@ -180,7 +170,7 @@ bibtex_bibfiles = "refs.bib"
 # This does not *have* to match the package name, but typically does
 project = str(setup_cfg["name"])
 author = ", ".join(d["name"] for d in setup_cfg["authors"])  # type: ignore
-copyright = "{0}, {1}".format(datetime.datetime.now().year, author)
+copyright = f"{datetime.datetime.now().year}, {author}"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -245,7 +235,7 @@ html_theme_options = {
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
-html_title = "{0} v{1}".format(project, release)
+html_title = f"{project} v{release}"
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = project + "doc"
@@ -259,18 +249,14 @@ htmlhelp_basename = project + "doc"
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual])
-latex_documents = [
-    ("index", project + ".tex", project + " Documentation", author, "manual"),
-]
+latex_documents = [("index", project + ".tex", project + " Documentation", author, "manual")]
 
 
 # -- Options for manual page output -------------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    ("index", project.lower(), project + " Documentation", [author], 1),
-]
+man_pages = [("index", project.lower(), project + " Documentation", [author], 1)]
 
 
 # -- Resolving issue number to links in changelog -----------------------------

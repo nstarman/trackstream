@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # see LICENSE.rst
 
 """Initialization file.
@@ -9,11 +8,7 @@ This sub-module is destined for common non-package specific utility functions.
 
 __author__ = "Nathaniel Starkman"
 
-__all__ = [
-    "RotatedICRS",
-    "icrs_to_rotated",
-    "rotated_to_icrs",
-]
+__all__ = ["RotatedICRS", "icrs_to_rotated", "rotated_to_icrs"]
 
 
 ##############################################################################
@@ -93,7 +88,7 @@ class RotatedFrame(BaseCoordinateFrame):
             RepresentationMapping("lon", "phi1"),
             RepresentationMapping("lat", "phi2"),
             RepresentationMapping("distance", "distance"),
-        ],
+        ]
     }
 
 
@@ -112,21 +107,13 @@ ICRS_ROTATION = Quantity(135.7, u.deg)
 ICRS_ROT_MATRIX = reference_to_skyoffset_matrix(RA, DEC, ICRS_ROTATION)
 
 
-@frame_transform_graph.transform(
-    StaticMatrixTransform,
-    ICRS,
-    RotatedICRS,
-)
+@frame_transform_graph.transform(StaticMatrixTransform, ICRS, RotatedICRS)
 def icrs_to_rotated() -> ndarray:
     """Transformation matrix from ICRS Cartesian to rotated coordinates."""
     return ICRS_ROT_MATRIX
 
 
-@frame_transform_graph.transform(
-    StaticMatrixTransform,
-    RotatedICRS,
-    ICRS,
-)
+@frame_transform_graph.transform(StaticMatrixTransform, RotatedICRS, ICRS)
 def rotated_to_icrs() -> ndarray:
     """Transformation matrix from rotated coordinates to ICRS Cartesian."""
     matrix: ndarray = matrix_transpose(ICRS_ROT_MATRIX)
@@ -145,28 +132,16 @@ class RotatedGalactocentric(RotatedFrame):
 LON = Quantity(20, u.deg)
 LAT = Quantity(30, u.deg)
 GALACTOCENTRIC_ROTATION = Quantity(135.7, u.deg)
-GALACTOCENTRIC_ROT_MATRIX = reference_to_skyoffset_matrix(
-    LON,
-    LAT,
-    GALACTOCENTRIC_ROTATION,
-)
+GALACTOCENTRIC_ROT_MATRIX = reference_to_skyoffset_matrix(LON, LAT, GALACTOCENTRIC_ROTATION)
 
 
-@frame_transform_graph.transform(
-    StaticMatrixTransform,
-    Galactocentric,
-    RotatedGalactocentric,
-)
+@frame_transform_graph.transform(StaticMatrixTransform, Galactocentric, RotatedGalactocentric)
 def Galactocentric_to_rotated() -> ndarray:
     """Transformation matrix from GC Cartesian to rotated coordinates."""
     return GALACTOCENTRIC_ROT_MATRIX
 
 
-@frame_transform_graph.transform(
-    StaticMatrixTransform,
-    RotatedGalactocentric,
-    Galactocentric,
-)
+@frame_transform_graph.transform(StaticMatrixTransform, RotatedGalactocentric, Galactocentric)
 def rotated_to_Galactocentric() -> ndarray:
     """Transformation matrix from rotated coordinates to GC Cartesian."""
     matrix: ndarray = matrix_transpose(GALACTOCENTRIC_ROT_MATRIX)

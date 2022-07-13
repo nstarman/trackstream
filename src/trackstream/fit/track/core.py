@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Stream track fit result."""
 
 ##############################################################################
@@ -9,36 +7,41 @@ from __future__ import annotations
 
 # STDLIB
 import weakref
+from abc import abstractmethod
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
+from typing import TYPE_CHECKING, Callable
 
 # THIRD PARTY
 import astropy.units as u
 from astropy.coordinates import (
     BaseCoordinateFrame,
+    BaseDifferential,
+    BaseRepresentation,
     SkyCoord,
     UnitSphericalRepresentation,
 )
 from astropy.units import Quantity
 from astropy.utils.metadata import MetaAttribute, MetaData
 from astropy.utils.misc import indent
+from attrs import define, field
 from interpolated_coordinates import InterpolatedSkyCoord
-from numpy import ndarray
 
 # LOCAL
-from .kalman import FirstOrderNewtonianKalmanFilter
 from .path import Path, path_moments
-from .som import SelfOrganizingMap1DBase
-from .visualization import StreamTrackPlotDescriptor
-from trackstream.base import CommonBase
-from trackstream.utils.descriptors import TypedMetaAttribute
+from .visualization import StreamArmTrackPlotDescriptor
+from trackstream.base import (
+    FramedBase,
+    frame_differential_type_factory,
+    frame_representation_type_factory,
+)
 
 if TYPE_CHECKING:
     # LOCAL
-    from trackstream.stream import Stream  # noqa: E402
+    from trackstream.stream.base import StreamBase
+    from trackstream.stream.core import StreamArm
 
 
-__all__ = ["StreamTrack"]
+__all__ = ["StreamArmTrackBase", "StreamArmTrack"]
 
 
 ##############################################################################
@@ -46,7 +49,19 @@ __all__ = ["StreamTrack"]
 ##############################################################################
 
 
-class StreamTrack(CommonBase):
+@define(frozen=True, slots=False, init=False)
+class StreamArmTrackBase:
+    @property
+    @abstractmethod
+    def stream(self) -> StreamBase:
+        """The track's stream"""
+
+
+#####################################################################
+
+
+@define(frozen=True, slots=False, init=True)
+class StreamArmTrack(StreamArmTrackBase, FramedBase):
     """A stream track interpolation as function of arc length.
 
     The track is `callable`, returning a |Frame|.
@@ -55,8 +70,6 @@ class StreamTrack(CommonBase):
     ----------
     stream : `~trackstream.stream.Stream`
     path : `~trackstream.utils.path.Path`
-    origin : SkyCoord
-        The origin of the coordinate system (often the stream's progenitor)
 
     name : str or None, optional keyword-only
         The name of the track.
@@ -65,90 +78,73 @@ class StreamTrack(CommonBase):
         ``visit_order``, ``som``, and ``kalman``.
     """
 
-    _name: Optional[str]
-    _meta: Dict[str, Any]
     meta = MetaData()
+    plot = StreamArmTrackPlotDescriptor()
 
-    visit_order: TypedMetaAttribute = TypedMetaAttribute[ndarray]()
-    som: TypedMetaAttribute = TypedMetaAttribute[Dict[str, SelfOrganizingMap1DBase]]()
-    kalman: TypedMetaAttribute = TypedMetaAttribute[Dict[str, FirstOrderNewtonianKalmanFilter]]()
+    # MetaAttributes (not type annotated b/c attrs treats as field)
+    som = MetaAttribute()
+    visit_order = MetaAttribute()
+    kalman = MetaAttribute()
 
-    plot = StreamTrackPlotDescriptor()
+    # ===============================================================
 
-    def __init__(
-        self,
-        stream: "Stream",
-        path: Path,
-        origin: SkyCoord,
-        *,
-        name: Optional[str] = None,
-        **meta: Any,
-    ) -> None:
-        super().__init__(frame=path.frame, representation_type=None, differential_type=None)
-        self._name = name
-        self._stream_ref = weakref.ref(stream)  # reference to original stream
+    _stream_ref: weakref.ReferenceType = field(converter=lambda x: weakref.ref(x))  # turned into `stream`
+    path: Path = field()
+    name: str | None = field(kw_only=True)
+    _meta: dict = field(factory=dict, kw_only=True)
 
-        # validation of types
-        if not isinstance(path, Path):
-            raise TypeError("`path` must be <Path>.")
-        elif not isinstance(origin, (SkyCoord, BaseCoordinateFrame)):
-            raise TypeError("`origin` must be <|SkyCoord|, |Frame|>.")
+    frame: BaseCoordinateFrame = field(init=False)
+    frame_representation_type: type[BaseRepresentation] = field(init=False, default=frame_representation_type_factory)
+    frame_differential_type: type[BaseDifferential] | None = field(init=False, default=frame_differential_type_factory)
 
-        # assign
-        self._path: Path = path
-        self._origin = origin
+    @frame.default
+    def _frame_factory(self):
+        return self.path.frame
+
+    def __attrs_post_init__(self):
+        super().__attrs_post_init__()
 
         # set the MetaAttribute(s)
-        for attr in list(meta):
+        for attr in list(self._meta):
             descr = getattr(self.__class__, attr, None)
             if isinstance(descr, MetaAttribute):
-                setattr(self, attr, meta.pop(attr))
-        # and the meta
-        self._meta.update(meta)
+                descr.__set__(self, self._meta.pop(attr))
+
+    # ===============================================================
 
     @property
-    def stream(self) -> Optional["Stream"]:
+    def stream(self) -> StreamArm:
         """The `~trackstream.Stream`, or `None` if the weak reference is broken."""
-        return self._stream_ref()
+        strm = self._stream_ref()
+        if strm is None:
+            raise AttributeError("the reference to the stream is broken")
+        return strm
 
     @property
-    def name(self) -> Optional[str]:
-        """Return the stream-track name."""
-        return self._name
+    def origin(self):
+        return self.stream.origin
 
     @property
-    def full_name(self) -> Optional[str]:
-        return self._name
-
-    @property
-    def path(self) -> Path:
-        return self._path
+    def full_name(self) -> str | None:
+        return self.name
 
     @property
     def coords(self) -> InterpolatedSkyCoord:
         """The path's central track."""
-        return self._path.data
+        return self.path.data
 
     @property
     def coords_ord(self) -> InterpolatedSkyCoord:
         """The path's central track."""
-        return self._path.data
+        return self.path.data
 
     @property
     def affine(self) -> Quantity:
-        return self._path.affine
+        return self.path.affine
 
     @property
-    def origin(self) -> SkyCoord:
-        return self._origin
-
-    @property
-    def frame(self) -> BaseCoordinateFrame:
-        crds = self.coords
-        frame = crds.frame.replicate_without_data()
-        frame.representation_type = crds.representation_type
-        frame.differential_type = crds.differential_type
-        return frame
+    def system_frame(self):
+        return self.frame
 
     @cached_property
     def has_distances(self) -> bool:
@@ -164,7 +160,7 @@ class StreamTrack(CommonBase):
     #######################################################
     # Math on the Track
 
-    def __call__(self, affine: Optional[Quantity] = None, *, angular: bool = False) -> path_moments:
+    def __call__(self, affine: Quantity | None = None, *, angular: bool = False) -> path_moments:
         """Get discrete points along interpolated stream track.
 
         Parameters
@@ -186,10 +182,10 @@ class StreamTrack(CommonBase):
     def probability(
         self,
         point: SkyCoord,
-        background_model: Optional[Callable[[SkyCoord], Quantity[u.percent]]] = None,
+        background_model: Callable[[SkyCoord], Quantity[u.percent]] | None = None,
         *,
         angular: bool = False,
-        affine: Optional[Quantity] = None,
+        affine: Quantity | None = None,
     ) -> Quantity[u.percent]:
         """Probability point is part of the stream.
 
@@ -200,9 +196,9 @@ class StreamTrack(CommonBase):
         # Pb = background_model(point) if background_model is not None else 0.0
 
         # angular = False  # TODO: angular probability
-        # afn = self._path.closest_affine_to_point(point, angular=False, affine=affine)
-        # pt_w = getattr(self._path, "width_angular" if angular else "width")(afn)
-        # sep = getattr(self._path, "separation" if angular else "separation_3d")(
+        # afn = self.path.closest_affine_to_point(point, angular=False, affine=affine)
+        # pt_w = getattr(self.path, "width_angular" if angular else "width")(afn)
+        # sep = getattr(self.path, "separation" if angular else "separation_3d")(
         #     point,
         #     interpolate=False,
         #     affine=afn,
@@ -225,7 +221,7 @@ class StreamTrack(CommonBase):
         header: str = object.__repr__(self)
         frame_name = self.frame.__class__.__name__
         rep_name = self.coords.representation_type.__name__
-        header = header.replace("StreamTrack", f"StreamTrack ({frame_name}|{rep_name})")
+        header = header.replace("StreamArmTrack", f"StreamArmTrack ({frame_name}|{rep_name})")
         rs.append(header)
 
         # 1) name
@@ -233,9 +229,9 @@ class StreamTrack(CommonBase):
         rs.append("  Name: " + name)
 
         # 2) data
-        rs.append(indent(repr(self._path.data), width=2))
+        rs.append(indent(repr(self.path.data), width=2))
 
         return "\n".join(rs)
 
     def __len__(self) -> int:
-        return len(self._path)
+        return len(self.path)

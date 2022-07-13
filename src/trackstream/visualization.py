@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Utilities for :mod:`~trackstream.utils`."""
 
 ##############################################################################
@@ -8,14 +6,13 @@
 from __future__ import annotations
 
 # STDLIB
+import inspect
+from types import MappingProxyType
 from typing import (
     Any,
-    Dict,
     Literal,
-    Optional,
     Protocol,
     Sequence,
-    Tuple,
     TypeVar,
     Union,
     get_args,
@@ -35,11 +32,14 @@ from astropy.coordinates import (
 )
 from astropy.units import Quantity
 from astropy.visualization import quantity_support
+from attrs import define, field
+from attrs.converters import default_if_none
 from matplotlib.pyplot import Axes
 from typing_extensions import Unpack
 
 # LOCAL
-from trackstream._type_hints import CoordinateType, FrameLikeType
+from trackstream._typing import CoordinateType, FrameLikeType
+from trackstream.base import CollectionBaseT
 from trackstream.utils.coord_utils import resolve_framelike
 from trackstream.utils.descriptors import EnclType, InstanceDescriptor
 
@@ -55,24 +55,24 @@ DKindT = Union[Literal["positions"], Literal["kinematics"]]
 StreamLikeType = TypeVar("StreamLikeType", bound="StreamLike")
 
 
-# Axes labels
-AX_LABELS = {
-    "ra": "RA",
-    "dec": "Dec",
-    "pm_ra": r"$\mu_{\alpha}$",
-    "pm_ra_cosdec": r"$\mu_{\alpha}^{*}$",
-    "pm_dec": r"$\mu_{\delta}$",
-    "lon": r"$\ell$",
-    "lat": r"$b$",
-    "pm_lon": r"$\mu_{\ell}$",
-    "pm_lon_coslat": r"$\mu_{\ell}^{*}$",
-    "pm_lat": r"$\mu_{b}$",
-}
-
-
-# # docstrings
-# _DS: Dict[str, str] = dict()
-# _DSf: Dict[str, Callable[[int], str]] = dict()
+AX_LABELS = MappingProxyType(
+    {
+        "ra": "RA",
+        "dec": "Dec",
+        "pm_ra": r"$\mu_{\alpha}$",
+        "pm_ra_cosdec": r"$\mu_{\alpha}^{*}$",
+        "pm_dec": r"$\mu_{\delta}$",
+        "lon": r"$\ell$",
+        "lat": r"$b$",
+        "pm_lon": r"$\mu_{\ell}$",
+        "pm_lon_coslat": r"$\mu_{\ell}^{*}$",
+        "pm_lat": r"$\mu_{b}$",
+        "v_x": r"$v_x$",
+        "v_y": r"$v_y$",
+        "v_z": r"$v_z$",
+    }
+)
+"""`matplotlib.pyplot.Axes` label substitutions. Read only."""
 
 
 ##############################################################################
@@ -80,6 +80,7 @@ AX_LABELS = {
 ##############################################################################
 
 
+@define(frozen=False)
 class PlotDescriptorBase(InstanceDescriptor[EnclType]):
     """Plot descriptor base class.
 
@@ -89,17 +90,12 @@ class PlotDescriptorBase(InstanceDescriptor[EnclType]):
         Default keyword arguments for :func:`matplotlib.pyplot.scatter`.
     """
 
-    _default_scatter_kwargs: Dict[str, Any]
+    _default_scatter_kwargs: dict[str, Any] = field(default=None, converter=default_if_none(factory=dict))
 
-    def __init__(self, *, default_scatter_kwargs: Optional[Dict[str, Any]] = None) -> None:
-        super().__init__()
+    def __attrs_post_init__(self):
+        self._default_scatter_kwargs.setdefault("s", 3)
 
-        # Default scatter style
-        scatter_style = default_scatter_kwargs or {}
-        scatter_style.setdefault("s", 3)
-        self._default_scatter_kwargs = scatter_style
-
-    def _get_kw(self, kwargs: Optional[Dict[str, Any]] = None, **defaults: Any) -> Dict[str, Any]:
+    def _get_kw(self, kwargs: dict[str, Any] | None = None, **defaults: Any) -> dict[str, Any]:
         """Get plot options.
 
         Parameters
@@ -115,24 +111,26 @@ class PlotDescriptorBase(InstanceDescriptor[EnclType]):
             Mix of ``kwargs``, ``defaults``, and ``_default_scatter_kwargs``,
             preferring them in that order.
         """
-        kw: Dict[str, Any] = {**self._default_scatter_kwargs, **defaults, **(kwargs or {})}
+        kw: dict[str, Any] = {**self._default_scatter_kwargs, **defaults, **(kwargs or {})}
         return kw
 
     @overload
-    def _setup(self, *, ax: Axes) -> Tuple[EnclType, Axes, Unpack[Tuple[Any, ...]]]:
+    def _setup(self, *, ax: Axes) -> tuple[EnclType, Axes, Unpack[tuple[Any, ...]]]:
         ...
 
     @overload
-    def _setup(self, *, ax: None) -> Tuple[EnclType, Axes, Unpack[Tuple[Any, ...]]]:
+    def _setup(self, *, ax: None) -> tuple[EnclType, Axes, Unpack[tuple[Any, ...]]]:
         ...
 
     @overload
-    def _setup(self, *, ax: Literal[False]) -> Tuple[EnclType, None, Unpack[Tuple[Any, ...]]]:
+    def _setup(self, *, ax: Literal[False]) -> tuple[EnclType, None, Unpack[tuple[Any, ...]]]:
         ...
 
-    def _setup(
-        self, *, ax: Union[Axes, None, Literal[False]] = None
-    ) -> Tuple[EnclType, Optional[Axes], Unpack[Tuple[Any, ...]]]:
+    @overload
+    def _setup(self, *, ax: bool) -> tuple[EnclType, Axes, Unpack[tuple[Any, ...]]]:
+        ...
+
+    def _setup(self, *, ax: Axes | None | bool = None) -> tuple[EnclType, Axes | None, Unpack[tuple[Any, ...]]]:
         """Setup the plot.
 
         Parameters
@@ -149,14 +147,67 @@ class PlotDescriptorBase(InstanceDescriptor[EnclType]):
         # Stream
         parent = self._enclosing
         # Get matplotlib axes
+        _ax: Axes | None
         if ax is False:
             _ax = None
-        elif ax is None:
+        elif ax is True or ax is None:
             _ax = plt.gca()
         else:
             _ax = ax
 
-        return parent, _ax
+        return parent, _ax, None
+
+
+##############################################################################
+
+# todo: make a subclass of CollectionBase
+class PlotCollectionBase(InstanceDescriptor[CollectionBaseT]):
+    def __iter__(self):
+        enclosing = self._enclosing
+        yield from (enclosing[k].plot for k in enclosing.keys())
+
+    def __getitem__(self, key: str) -> PlotDescriptorBase:
+        return self._enclosing[key].plot
+
+    def __getattr__(self, key: str) -> Any:
+        try:
+            enclosing = self._enclosing
+        except ValueError as e:
+            raise AttributeError from e
+
+        k0 = tuple(enclosing.keys())[0]
+
+        # if getting a method, broadcast to each stream.
+        if not callable(getattr(self[k0], key)):
+            raise NotImplementedError
+
+        def apply(*args: Any, **kwargs: Any) -> dict[str, Any]:
+            # check the first
+            method = getattr(self[tuple(enclosing.keys())[0]], key)
+            sig = inspect.signature(method)
+            mainba = sig.bind_partial(*args, **kwargs)
+
+            # for all keyword-only, broadcast to the last plotter.
+            for n, v in mainba.arguments.items():
+                param = sig.parameters[n]
+                if param.kind >= 3 and not isinstance(v, dict):
+                    mainba.arguments[n] = {k: v for k in enclosing.keys()}
+
+            out = {}
+            for name in enclosing.keys():
+                method = getattr(self[name], key)
+                sig = inspect.signature(method)
+                ba = sig.bind_partial(*mainba.args, **mainba.kwargs)
+
+                for k, v in ba.arguments.items():
+                    if isinstance(v, dict) and name in v:
+                        ba.arguments[k] = v[name]
+
+                out[name] = method(*ba.args, **ba.kwargs)
+
+            return out
+
+        return apply
 
 
 ##############################################################################
@@ -167,7 +218,7 @@ class StreamLike(Protocol):
     """Stream-like Protocol."""
 
     @property
-    def full_name(self) -> Optional[str]:
+    def full_name(self) -> str | None:
         ...
 
     @property
@@ -175,10 +226,15 @@ class StreamLike(Protocol):
         ...
 
     @property
-    def frame(self) -> BaseCoordinateFrame:
+    def system_frame(self) -> BaseCoordinateFrame | None:
+        ...
+
+    @property
+    def origin(self) -> SkyCoord:
         ...
 
 
+@define(frozen=True)
 class StreamPlotDescriptorBase(PlotDescriptorBase[StreamLikeType]):
     """Plot descriptor base class.
 
@@ -188,14 +244,11 @@ class StreamPlotDescriptorBase(PlotDescriptorBase[StreamLikeType]):
         Default keyword arguments for :func:`matplotlib.pyplot.scatter`.
     """
 
-    def __init__(self, *, default_scatter_kwargs: Optional[Dict[str, Any]] = None) -> None:
-        # Default scatter style
-        scatter_style = default_scatter_kwargs or {}
-        scatter_style.setdefault("marker", "*")
+    def __attrs_post_init__(self):
+        super().__attrs_post_init__()
+        self._default_scatter_kwargs.setdefault("marker", "*")
 
-        super().__init__(default_scatter_kwargs=scatter_style)
-
-    def _parse_frame(self, frame: FrameLikeType, /) -> Tuple[BaseCoordinateFrame, str]:
+    def _parse_frame(self, frame: FrameLikeType, /) -> tuple[BaseCoordinateFrame, str]:
         """Return the frame and its name.
 
         Parameters
@@ -220,16 +273,17 @@ class StreamPlotDescriptorBase(PlotDescriptorBase[StreamLikeType]):
         # must be a str
         elif frame.lower() == "stream":
             frame_name = "Stream"
-            frame = self._enclosing.frame
+            maybeframe = self._enclosing.system_frame
+            if maybeframe is None:
+                raise ValueError("must fit stream")
+            frame = maybeframe
         else:
             frame = resolve_framelike(frame)
             frame_name = frame.__class__.__name__
 
         return frame, frame_name
 
-    def _to_frame(
-        self, crds: CoordinateType, frame: Optional[FrameLikeType] = None
-    ) -> Tuple[CoordinateType, str]:
+    def _to_frame(self, crds: CoordinateType, frame: FrameLikeType | None = None) -> tuple[CoordinateType, str]:
         """Transform coordinates to a frame.
 
         Parameters
@@ -257,15 +311,20 @@ class StreamPlotDescriptorBase(PlotDescriptorBase[StreamLikeType]):
         c = SkyCoord(crds, copy=False).frame.transform_to(theframe)
 
         if name == "Stream":
-            c.representation_type = SphericalRepresentation
-            c.differential_type = SphericalDifferential
+            system_frame = self._enclosing.system_frame
+
+            if system_frame is None:
+                raise ValueError("need to fit a frame")
+
+            c.representation_type = system_frame.representation_type
+            c.differential_type = system_frame.differential_type
         elif name == "ICRS":
             c.representation_type = SphericalRepresentation
             c.differential_type = SphericalDifferential
 
         return c, name
 
-    def _get_xy_names(self, frame: CoordinateType, kind: DKindT) -> Tuple[str, str]:
+    def _get_xy_names(self, frame: CoordinateType, kind: DKindT) -> tuple[str, str]:
         """Get names of 2D plotting coordinates.
 
         Parameters
@@ -292,9 +351,7 @@ class StreamPlotDescriptorBase(PlotDescriptorBase[StreamLikeType]):
 
         return xn, yn
 
-    def _get_xy(
-        self, crds: CoordinateType, /, kind: DKindT
-    ) -> Tuple[Tuple[Quantity, str], Tuple[Quantity, str]]:
+    def _get_xy(self, crds: CoordinateType, /, kind: DKindT) -> tuple[tuple[Quantity, str], tuple[Quantity, str]]:
         """Get 2D plotting coordinates and names.
 
         Parameters
@@ -336,7 +393,7 @@ class StreamPlotDescriptorBase(PlotDescriptorBase[StreamLikeType]):
         """
         ax.set_xlabel(f"{AX_LABELS.get(x, x)} ({frame}) [{ax.get_xlabel()}]", fontsize=13)
         ax.set_ylabel(f"{AX_LABELS.get(y, y)} ({frame}) [{ax.get_ylabel()}]", fontsize=13)
-        ax.grid(True)
+        # ax.grid(True)
         ax.legend()
 
     # def _wrap_lon_order(
@@ -378,8 +435,8 @@ class StreamPlotDescriptorBase(PlotDescriptorBase[StreamLikeType]):
         frame: str = "ICRS",
         kind: DKindT = "positions",
         *,
-        ax: Optional[Axes] = None,
-        format_ax: bool = True,
+        ax: Axes | None = None,
+        format_ax: bool = False,
         **kwargs: Any,
     ) -> Axes:
         """Plot stream in an |ICRS| frame.
@@ -418,12 +475,10 @@ class StreamPlotDescriptorBase(PlotDescriptorBase[StreamLikeType]):
 
     def origin(
         self,
-        origin: CoordinateType,
-        /,
-        frame: Optional[FrameLikeType] = None,
+        frame: FrameLikeType | None = None,
         kind: DKindT = "positions",
         *,
-        ax: Optional[Axes],
+        ax: Axes | None = None,
         format_ax: bool = True,
     ) -> Axes:
         """Label the origin on the plot.
@@ -450,9 +505,9 @@ class StreamPlotDescriptorBase(PlotDescriptorBase[StreamLikeType]):
         -------
         |Axes|
         """
-        _, _ax, *_ = self._setup(ax=ax)
+        obj, _ax, *_ = self._setup(ax=ax)
 
-        c, _ = self._to_frame(origin, frame=frame)
+        c, _ = self._to_frame(obj.origin, frame=frame)
         (x, _), (y, _) = self._get_xy(c, kind=kind)
 
         # Plot the central point

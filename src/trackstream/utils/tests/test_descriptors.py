@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Testing :mod:`~trackstream.utils.descriptors`."""
 
 
@@ -7,8 +5,6 @@
 # IMPORTS
 
 # STDLIB
-import sys
-import weakref
 
 # THIRD PARTY
 import pytest
@@ -67,16 +63,6 @@ class Test_InstanceDescriptor:
 
     # ===============================================================
     # Method Tests
-
-    @pytest.mark.skipif(sys.version_info < (3, 9), reason="requires py3.9+")
-    def test_expected_attributes(self, descriptor):
-        """Test the desciptor expects the right attributes."""
-        annot = descriptor.__annotations__
-        assert annot["_enclosing_attr"] is str
-        assert type(None) in annot["_enclosing_ref"].__args__
-        assert annot["_enclosing_ref"].__args__[0].__origin__ is weakref.ReferenceType
-
-        # todo? test these are the ONLY attributes expected?
 
     def test_init(self, descriptor_cls):
         """Test the descriptor initialization."""

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Testing :mod:`~trackstream.utils.coord_utils`."""
 
 
@@ -90,12 +88,7 @@ class Test_resolve_framelike:
 @pytest.mark.parametrize("output_frame", [FK5, LSR])
 def test_deep_transform_to(crd, frame, output_frame, reptype, diftype):
     """Test :func:`trackstream.utils.coord_utils.deep_transform_to`."""
-    c = deep_transform_to(
-        crd,
-        frame=output_frame,
-        representation_type=reptype,
-        differential_type=diftype,
-    )
+    c = deep_transform_to(crd, frame=output_frame, representation_type=reptype, differential_type=diftype)
 
     frame = c.frame if hasattr(c, "frame") else c
 
@@ -133,11 +126,7 @@ def test_position_angle(lon1, lat1, lon2, lat2, expected):
 
 @pytest.mark.parametrize(
     ("lon", "lat", "posang", "distance", "expected"),
-    [
-        (0, 0, pi, 1, (0, -1)),
-        (0, 0, 0, pi, (pi, 0)),
-        (0, 0, [pi, 0], [1, pi], ([0, pi], [-1, 0])),
-    ],
+    [(0, 0, pi, 1, (0, -1)), (0, 0, 0, pi, (pi, 0)), (0, 0, [pi, 0], [1, pi], ([0, pi], [-1, 0]))],
 )
 def test_offset_by(lon, lat, posang, distance, expected):
     """Test `trackstream.utils.coord_utils.offset_by`."""

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # type: ignore
 
 """Testing :mod:`~trackstream.stream.core`."""
@@ -14,7 +13,7 @@ from typing import TypeVar
 import pytest
 
 # LOCAL
-from trackstream.stream.arm import StreamArmDescriptor
+from trackstream.stream.arm import StreamArm
 from trackstream.stream.base import StreamBase
 from trackstream.stream.core import Stream
 
@@ -27,11 +26,11 @@ S = TypeVar("S", bound=StreamBase)
 
 class StreamArmTestMixin:
     @pytest.fixture(params=["arm1"])
-    def arm(self, stream: Stream, request) -> StreamArmDescriptor:
+    def arm(self, stream: Stream, request) -> StreamArm:
         return getattr(stream, request.param)
 
     @pytest.fixture
-    def arm_attr_name(self, arm: StreamArmDescriptor) -> str:
+    def arm_attr_name(self, arm: StreamArm) -> str:
         return arm._enclosing_attr
 
     # ===============================================================
@@ -58,9 +57,9 @@ class StreamArmTestMixin:
 
         assert arm.full_name == expected
 
-    def test_arm_index(self, arm, arm_attr_name, stream: S) -> None:
-        expected = stream.data["tail"] == arm_attr_name
-        assert all(arm.index == expected)
+    # def test_arm_index(self, arm, arm_attr_name, stream: S) -> None:
+    #     expected = stream.data["tail"] == arm_attr_name
+    #     assert all(arm.index == expected)
 
     def test_arm_has_data(self, arm, arm_attr_name, stream: S) -> None:
         expected = any(stream.data["tail"] == arm_attr_name)
@@ -71,15 +70,13 @@ class StreamArmTestMixin:
             with pytest.raises(Exception, match=f"no {arm.name}"):
                 arm.data
         else:
-            index = stream.data["tail"] == arm_attr_name
-            expected = stream.data[index]
-            assert all(arm.data == expected)
+            assert all(arm.data == stream.data.loc[arm_attr_name])
 
     def test_arm_data_frame(self, arm, stream: S) -> None:
         assert arm.data_frame is stream.data_frame
 
-    def test_arm_frame(self, arm, stream: S) -> None:
-        assert arm.frame is stream.frame
+    def test_arm_system_frame(self, arm, stream: S) -> None:
+        assert arm.system_frame is stream.system_frame
 
     def test_arm_origin(self, arm, stream: S) -> None:
         assert arm.origin == stream.origin
@@ -93,8 +90,8 @@ class StreamArmTestMixin:
         assert arm._data_max_lines is stream._data_max_lines
 
 
-# class TestStreamArmDescriptor(StreamArmTestMixin, StreamBaseTest):
-#     """Test `trackstream.stream.arm.StreamArmDescriptor`.
+# class TestStreamArm(StreamArmTestMixin, StreamBaseTest):
+#     """Test `trackstream.stream.arm.StreamArm`.
 
 #     Most of the relevant tests are covered in `streamtrack.stream.tests.test_core.Test_Stream`.
 #     """

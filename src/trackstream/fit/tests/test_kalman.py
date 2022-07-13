@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Testing :mod:`~trackstream.visualization`."""
 
 

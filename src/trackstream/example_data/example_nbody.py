@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Example NBody Data."""
 
 __author__ = "Nathaniel Starkman"
@@ -55,11 +53,7 @@ def get_nbody(subsample: slice = slice(100, None, 400)) -> BaseCoordinateFrame:
     full_data: QTable = _load_nbody()
     sub_data: QTable = full_data[subsample][["x", "y", "z"]]
 
-    data: BaseCoordinateFrame = Galactocentric(
-        x=sub_data["x"],
-        y=sub_data["y"],
-        z=sub_data["z"],
-    )
+    data: BaseCoordinateFrame = Galactocentric(x=sub_data["x"], y=sub_data["y"], z=sub_data["z"])
 
     return data
 

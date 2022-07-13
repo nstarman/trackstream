@@ -1,23 +1,13 @@
-# -*- coding: utf-8 -*-
-
 """Coordinates Utilities."""
-
-
-__all__ = [
-    "reference_to_skyoffset_matrix",
-    "resolve_framelike",
-    "deep_transform_to",
-    "position_angle",
-    "offset_by",
-]
-
 
 ##############################################################################
 # IMPORTS
 
+from __future__ import annotations
+
 # STDLIB
 import functools
-from typing import Any, Literal, Optional, Tuple, Type, TypeVar, Union, cast, overload
+from typing import Any, Literal, Type, TypeVar, cast, overload
 
 # THIRD PARTY
 from astropy.coordinates import BaseCoordinateFrame as BaseFrame
@@ -30,7 +20,15 @@ from astropy.units import Quantity
 from numpy import arcsin, arctan2, broadcast_to, cos, ndarray, pi, sin
 
 # LOCAL
-from trackstream._type_hints import CoordinateType
+from trackstream._typing import CoordinateLikeType
+
+__all__ = [
+    "reference_to_skyoffset_matrix",
+    "resolve_framelike",
+    "deep_transform_to",
+    "position_angle",
+    "offset_by",
+]
 
 ##############################################################################
 # PARAMETERS
@@ -46,11 +44,7 @@ _DT = TypeVar("_DT", bound=BaseDif)
 ##############################################################################
 
 
-def reference_to_skyoffset_matrix(
-    lon: Union[float, Quantity],
-    lat: Union[float, Quantity],
-    rotation: Union[float, Quantity],
-) -> ndarray:
+def reference_to_skyoffset_matrix(lon: float | Quantity, lat: float | Quantity, rotation: float | Quantity) -> ndarray:
     """Convert a reference coordinate to an sky offset frame [astropy].
 
     Cartesian to Cartesian matrix transform.
@@ -117,7 +111,7 @@ def _resolve_framelike(frame: Any, type_error: bool = True) -> BaseFrame:
         raise TypeError(
             "input coordinate frame must be an astropy "
             "coordinates frame subclass *instance*, not a "
-            "'{}'".format(frame.__class__.__name__),
+            "'{}'".format(frame.__class__.__name__)
         )
     return frame
 
@@ -134,8 +128,7 @@ def resolve_framelike(frame: str, type_error: bool = True) -> BaseFrame:  # noqa
 @_resolve_framelike.register
 def resolve_framelike(frame: BaseFrame, type_error: bool = True) -> BaseFrame:
     out: BaseFrame = frame.replicate_without_data(
-        representation_type=frame.representation_type,
-        differential_type=frame.differential_type,
+        representation_type=frame.representation_type, differential_type=frame.differential_type
     )
     return out
 
@@ -150,15 +143,12 @@ def resolve_framelike(frame: SkyCoord, type_error: bool = True) -> BaseFrame:  #
     return out
 
 
-def resolve_framelike(  # type: ignore
-    frame: Union[str, BaseFrame, SkyCoord],
-    type_error: bool = True,
-) -> BaseFrame:  # noqa: F811
+def resolve_framelike(frame: CoordinateLikeType, type_error: bool = True) -> BaseFrame:  # type: ignore  # noqa: F811
     """Determine the frame and return a blank instance.
 
     Parameters
     ----------
-    frame : frame-like instance or None (optional)
+    frame : frame-like instance (optional)
         If BaseCoordianteFrame, replicates without data.
         If str, uses astropy parsers to determine frame class
 
@@ -186,8 +176,8 @@ def resolve_framelike(  # type: ignore
 def deep_transform_to(
     crd: BaseFrame,
     frame: _FT,
-    representation_type: Type[BaseRep],
-    differential_type: Optional[Type[BaseDif]] = None,
+    representation_type: type[BaseRep],
+    differential_type: type[BaseDif] | None = None,
 ) -> _FT:
     ...
 
@@ -196,18 +186,18 @@ def deep_transform_to(
 def deep_transform_to(
     crd: SkyCoord,
     frame: BaseFrame,
-    representation_type: Type[BaseRep],
-    differential_type: Optional[Type[BaseDif]] = None,
+    representation_type: type[BaseRep],
+    differential_type: type[BaseDif] | None = None,
 ) -> SkyCoord:
     ...
 
 
 def deep_transform_to(
-    crd: Union[SkyCoord, BaseFrame],
+    crd: SkyCoord | BaseFrame,
     frame: _FT,
-    representation_type: Type[_RT],
-    differential_type: Union[Type[_DT], None, Literal["base"]] = "base",
-) -> Union[SkyCoord, _FT]:
+    representation_type: type[_RT],
+    differential_type: type[BaseDif] | None | Literal["base"] = "base",
+) -> SkyCoord | _FT:
     """Transform a coordinate to a frame and representation type.
 
     For speed, Astropy transformations can be shallow. This function does
@@ -231,18 +221,14 @@ def deep_transform_to(
     crd : SkyCoord or BaseCoordinateFrame
         Transformed to ``frame`` and ``representation_type``.
     """
-    c: CoordinateType = crd.transform_to(frame)
-    r: _RT = c.represent_as(representation_type, s=differential_type)  # type: ignore
+    tcrd = crd.frame if isinstance(crd, SkyCoord) else crd
+    f: _FT = tcrd.transform_to(frame)
+    r: _RT = tcrd.represent_as(representation_type, s=differential_type)  # type: ignore
 
-    dt = differential_type if differential_type != "base" else type(c.data.differentials["s"])
+    dt = differential_type if differential_type != "base" else type(r.differentials["s"])
     data = cast(
         _FT,
-        c.realize_frame(
-            r,
-            representation_type=representation_type,
-            differential_type=dt,
-            copy=False,
-        ),
+        f.realize_frame(r, representation_type=representation_type, differential_type=dt, copy=False),
     )
     out = SkyCoord(data, copy=False) if isinstance(crd, SkyCoord) else data
 
@@ -281,12 +267,7 @@ def position_angle(lon1: ndarray, lat1: ndarray, lon2: float, lat2: float) -> nd
     return pa
 
 
-def offset_by(
-    lon: ndarray,
-    lat: ndarray,
-    posang: ndarray,
-    distance: ndarray,
-) -> Tuple[ndarray, ndarray]:
+def offset_by(lon: ndarray, lat: ndarray, posang: ndarray, distance: ndarray) -> tuple[ndarray, ndarray]:
     """Point with the given offset from the given point.
 
     Parameters

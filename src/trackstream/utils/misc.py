@@ -1,23 +1,13 @@
-# -*- coding: utf-8 -*-
-
 """Utilities for :mod:`~trackstream.utils`."""
-
-
-__all__ = [
-    "intermix_arrays",
-    "make_shuffler",
-    "abstract_attribute",
-    "is_structured",
-    "covariance_ellipse",
-]
 
 
 ##############################################################################
 # IMPORTS
 
+from __future__ import annotations
+
 # STDLIB
-from abc import ABCMeta
-from typing import Any, Callable, Optional, Sequence, Tuple, Type, TypeVar, Union, cast
+from typing import Any, Callable, Sequence, TypeVar
 
 # THIRD PARTY
 import astropy.units as u
@@ -26,8 +16,7 @@ from numpy import any, arange, arctan2, asanyarray, ndarray, sqrt, vectorize
 from numpy.random import Generator, RandomState, default_rng
 from scipy.linalg import svd
 
-# LOCAL
-from trackstream._type_hints import AbstractAttribute
+__all__ = ["intermix_arrays", "make_shuffler", "is_structured", "covariance_ellipse"]
 
 ##############################################################################
 # PARAMETERS
@@ -40,7 +29,7 @@ R = TypeVar("R")  # return variable
 ##############################################################################
 
 
-def intermix_arrays(*arrs: Union[Sequence, ndarray], axis: int = -1) -> ndarray:
+def intermix_arrays(*arrs: Sequence | ndarray, axis: int = -1) -> ndarray:
     """Intermix arrays.
 
     Parameters
@@ -95,10 +84,7 @@ def intermix_arrays(*arrs: Union[Sequence, ndarray], axis: int = -1) -> ndarray:
 # -------------------------------------------------------------------
 
 
-def make_shuffler(
-    length: int,
-    rng: Optional[Union[Generator, RandomState]] = None,
-) -> Tuple[ndarray, ndarray]:
+def make_shuffler(length: int, rng: Generator | RandomState | None = None) -> tuple[ndarray, ndarray]:
     """Shuffle and un-shuffle arrays.
 
     Parameters
@@ -130,67 +116,6 @@ def make_shuffler(
 # -------------------------------------------------------------------
 
 
-class ABCwAMeta(ABCMeta):
-    """:class:`abc.ABCMeta` supporting abstract attributes.
-
-    References
-    ----------
-    .. [1] https://stackoverflow.com/a/50381071
-    """
-
-    def __call__(cls: Type[R], *args: Any, **kwargs: Any) -> R:
-        instance = super().__call__(*args, **kwargs)  # type: ignore
-
-        # Add abstract attribute check
-        abstract_attributes = set()
-        for name in dir(instance):
-            try:
-                attr = getattr(instance, name)
-            except Exception:  # Some things error. Can't be helped.
-                continue  # Assume they are not abstract.
-            # Test attribute for abstractness
-            isabs = getattr(attr, "__is_abstract_attribute__", False)
-            if isabs:
-                abstract_attributes.add(name)
-
-        if abstract_attributes:
-            raise NotImplementedError(
-                f"cannot instantiate abstract class {cls.__name__} "
-                f"with abstract attributes: {', '.join(abstract_attributes)}",
-            )
-        return cast(R, instance)
-
-
-def abstract_attribute(obj: Optional[Callable[[Any], R]] = None, /) -> R:
-    """Make an instance attribute abstract.
-
-    The class must be of type :class:`trackstream.utils.misc.ABCwAMeta`.
-
-    Parameters
-    ----------
-    obj : callable or None, optional
-        Attribute or method to make abstract, by default `None`.
-        If a method it must return one variable.
-
-    Returns
-    -------
-    R
-        The one return variable.
-
-    References
-    ----------
-    .. [1] https://stackoverflow.com/a/50381071
-    """
-    _obj = cast(Any, obj)  # prevent complaint about assigning attributes
-    if obj is None:
-        _obj = AbstractAttribute()
-    _obj.__is_abstract_attribute__ = True
-    return cast(R, _obj)
-
-
-# -------------------------------------------------------------------
-
-
 def is_structured(x: Any, /) -> bool:
     """Return whether ``x`` is a structured array."""
     return getattr(getattr(x, "dtype", None), "names", None) is not None
@@ -207,7 +132,7 @@ svd_vec: Callable = vectorize(
 )
 
 
-def covariance_ellipse(P: ndarray, *, nstd: Union[int, ndarray] = 1) -> Tuple[Quantity, ndarray]:
+def covariance_ellipse(P: ndarray, *, nstd: int | ndarray = 1) -> tuple[Quantity, ndarray]:
     """
     Returns a tuple defining the ellipse representing the 2 dimensional
     covariance matrix P.

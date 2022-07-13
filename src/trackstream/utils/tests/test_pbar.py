@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Testing :mod:`~trackstream.utils.pbar`."""
 
 
@@ -22,6 +20,21 @@ if HAS_TQDM:
 ##############################################################################
 
 
+class Test_NoOpPBar:
+    """Test :func:`trackstream.utils.pbar._NoOpPBar`."""
+
+    def test_init(self):
+        pbar = _NoOpPBar()
+        assert isinstance(pbar, _NoOpPBar)
+
+    def test_running(self):
+        with _NoOpPBar() as pbar:
+            for i in range(10):
+                pbar.update(1)
+
+        assert isinstance(pbar, _NoOpPBar)
+
+
 @pytest.mark.skipif(HAS_TQDM, reason="testing when tqdm is not installed.")
 def test_get_progress_bar_tqdm_not_installed(caplog):
     """Test ``get_progress_bar`` when :mod:`tqdm` is NOT installed."""
@@ -41,21 +54,3 @@ def test_get_progress_bar_():
 
     pbar = get_progress_bar(display=True, total=100)
     assert isinstance(pbar, tqdm.tqdm)
-
-    # pbar = get_progress_bar(display="gui", total=100)
-    # assert isinstance(pbar, tqdm.tqdm_gui)
-
-
-class Test_NoOpPBar:
-    """Test :func:`trackstream.utils.pbar._NoOpPBar`."""
-
-    def test_init(self):
-        pbar = _NoOpPBar()
-        assert isinstance(pbar, _NoOpPBar)
-
-    def test_running(self):
-        with _NoOpPBar() as pbar:
-            for i in range(10):
-                pbar.update(1)
-
-        assert isinstance(pbar, _NoOpPBar)
