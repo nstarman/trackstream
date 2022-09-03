@@ -1,0 +1,542 @@
+"""Kalman Filter code."""
+
+##############################################################################
+# IMPORTS
+
+from __future__ import annotations
+
+# STDLIB
+import warnings
+from copy import deepcopy
+from dataclasses import dataclass
+from functools import singledispatchmethod
+from typing import ClassVar, NamedTuple, NoReturn, cast, final
+
+# THIRD PARTY
+import astropy.units as u
+import numpy as np
+import numpy.lib.recfunctions as rfn
+from numpy import dot
+from numpy.linalg import inv
+from scipy.linalg import block_diag
+from typing_extensions import Self
+
+# LOCAL
+from trackstream.stream.core import StreamArm
+from trackstream.track.fit.errors import EXCEPT_NO_KINEMATICS
+from trackstream.track.fit.kalman.utils import intermix_arrays
+from trackstream.track.fit.utils import FrameInfo, f2q
+from trackstream.track.utils import is_structured
+from trackstream.track.width.plural import Widths
+from trackstream.utils.unit_utils import merge_units
+
+__all__: list[str] = []
+
+##############################################################################
+# PARAMETERS
+
+
+class kalman_output(NamedTuple):
+    timesteps: np.ndarray
+    x: np.ndarray
+    P: np.ndarray
+
+
+@final
+@dataclass(frozen=True)
+class KFInfo(FrameInfo):
+    REGISTRY: ClassVar[dict[type, KFInfo]] = {}
+
+
+##############################################################################
+# CODE
+##############################################################################
+
+
+@dataclass(frozen=True)
+class FONKFBase:
+    """First-order Newtonian Kalman filter class.
+
+    Parameters
+    ----------
+    x0 : (D,) BaseRepresentation
+        Initial position.
+    P0 : (2D, 2D) ndarray
+        Initial covariance. Must be in the same coordinate representation
+        as `x0`.
+
+    frame : BaseCoordinateFrame, keyword-only
+        The frame of the data, without
+    kfv0 : ndarray
+        Initial filter 'velocity'.
+
+    Q0 : ndarray callable or None, optional keyword-only
+    R0 : ndarray callable or None, optional keyword-only
+    """
+
+    x0: np.ndarray
+    """Positions."""
+
+    P0: np.ndarray
+    """Covariance."""
+
+    Q0: np.ndarray | None
+    """Process noise."""
+
+    info: ClassVar[KFInfo]  # for typing
+    """Information for interfacing with frame information."""
+
+    def __post_init__(self) -> None:
+        # validating
+        self._x0_validate(None, self.x0)
+        self._P0_validate(None, self.P0)
+
+        # H
+        self.H: np.ndarray
+        # component of block diagonal
+        h = np.array([[1, 0], [0, 0]])
+        # full matrix is for all components
+        # and reduce down to `dim_z` of Kalman Filter, skipping velocity rows
+        H: np.ndarray = block_diag(*([h] * self.nfeature))[::2]
+        object.__setattr__(self, "H", H)
+
+        # I
+        self._I: np.ndarray
+        object.__setattr__(self, "_I", np.eye(2 * self.nfeature))
+
+    def _x0_validate(self, _, value: np.ndarray) -> None:
+        if len(value.shape) != 1:
+            raise ValueError("x0 must be 1D")
+        elif len(value) % 2 != 0:
+            raise ValueError("x0 must have an even number of dimensions.")
+
+        nd = self.nfeature
+        if nd < 2 or nd > 6:
+            raise ValueError(f"x0 must have 2 <= x0 <= 6 components, not {nd}")
+
+    def _P0_validate(self, _, value: np.ndarray) -> None:
+        if len(value.shape) != 2:
+            raise ValueError("P0 must be 2D")
+        if not np.all(np.array(value.shape) % 2 == 0):
+            raise ValueError("P0 must have an even number of dimensions.")
+
+    # ===============================================================
+
+    @singledispatchmethod
+    @classmethod
+    def from_format(
+        cls,
+        arm: object,
+        *,
+        kinematics: bool | None = None,
+        width0: None | Widths = None,
+    ) -> NoReturn:
+        raise NotImplementedError("not dispatched")
+
+    @from_format.register(StreamArm)
+    @classmethod
+    def _from_format_streamarm(
+        cls: type[Self],
+        arm: StreamArm,
+        *,
+        kinematics: bool | None = None,
+        width0: None | u.Quantity = None,
+    ) -> Self:
+        """Make Kalman Filter from a stream.
+
+        Parameters
+        ----------
+        arm : `trackstream.stream.StreamArm`
+            The stream (arm) from which to build the Kalman filter
+
+        Returns
+        -------
+        `trackstream.fit.kalman.FONKFBase`
+        """
+        # flags
+        if kinematics is None:
+            kinematics = arm.has_kinematics
+        elif kinematics is True and not arm.has_kinematics:
+            raise EXCEPT_NO_KINEMATICS
+
+        if arm.frame is None:
+            # LOCAL
+            from trackstream.stream.base import FRAME_NONE_ERR
+
+            raise FRAME_NONE_ERR
+
+        # Setup
+        info = cls.info  # all necessary info to extract data
+        nfeature = len(info.components(kinematics))  # index for slicing
+
+        crds = arm.coords
+        crds.representation_type = info.representation_type
+        crds.differential_type = info.differential_type
+        svs = f2q(crds, flatten=True)
+        # vs = rfn.structured_to_unstructured(f2q(crds).to_value(info.units))[:, :nfeature]
+
+        orgn = arm.origin.transform_to(arm.frame)
+        orgn.representation_type = info.representation_type
+        orgn.differential_type = info.differential_type
+        ov = rfn.structured_to_unstructured(f2q(orgn).to_value(info.units))[:nfeature]
+
+        # -------------------
+        # Initial Conditions
+        # now that everything is in the right frame, we just need to construct
+        # the matrices.
+        #
+        # Starting Position
+        # starting from the origin. It might be better to start from a locus of
+        # points on the stream, near the origin. Or the Lagrange point. But we
+        # don't have that info.
+        # Corresponding kalman `velocity`
+        kfv0 = np.array([0] * nfeature)
+        # Initial conditions
+        x0 = intermix_arrays(ov, kfv0)
+
+        # Initial Uncertainty and Stream Width
+        # This is less important to get exactly correct.
+        flat_units = merge_units(info.units)
+
+        if isinstance(width0, u.Quantity) and is_structured(width0):
+            pass
+        elif width0 is None:
+            width0 = u.Quantity(np.zeros((), dtype=[(n, float) for n in flat_units.field_names]), flat_units)
+        else:
+            raise ValueError
+
+        ws: list[np.ndarray] = []
+        ps: list[np.ndarray] = []
+        for rn, fn in zip(info.components(kinematics), svs.dtype.names):
+            # ^ relying on zip-shortest to cut off svs iter b/c that always
+            # includes the kinematics.
+            unit = flat_units[rn]
+            if rn in width0.dtype.names:
+                wn0 = cast(u.Quantity, width0[rn]).to_value(unit).item()
+            elif fn in width0.dtype.names:
+                wn0 = cast(u.Quantity, width0[fn]).to_value(unit).item()
+            else:
+                msg = f"{rn}/{fn} is not in the stream data, setting the width to 0."
+                wn0 = 0
+
+            ws.append(np.array([[wn0**2, 0], [0, 0]]))
+
+            # The R contribution to the error
+            # there are 2 options, the frame or the rep component name.
+            if (fne := f"{fn}_err") in arm.data.columns:
+                rn0 = arm.data[fne][:3].mean().to_value(unit)
+            elif (rne := f"{rn}_err") in arm.data.columns:
+                rn0 = arm.data[rne][:3].mean().to_value(unit)
+            else:
+                msg = f"{fne}/{rne} are not in the stream data, setting the error to the width."
+                warnings.warn(msg)
+                rn0 = 0
+
+            # combine data error with stream width
+            pn = rn0**2 + wn0**2
+
+            # covariance block
+            # p = np.array([[pn, 0], [0, 10 * pn]])
+            p = np.array([[pn, 0], [0, pn]])
+            ps.append(p)
+
+        P0 = block_diag(*ps)  # Covariance matrix
+        Q0 = np.zeros_like(P0)  # Process Noise Model
+
+        return cls(x0=x0, P0=P0, Q0=Q0)
+
+    # ---------------------------------------------------------------
+
+    @property
+    def nfeature(self) -> int:
+        """Total number of dimensions of the Kalman Filter."""
+        return len(self.x0) // 2
+
+    # ---------------------------------------------------------------
+    # Initial Conditions
+
+    def state_transition_model(self, dt: np.ndarray) -> np.ndarray:
+        """Make Transition Matrix.
+
+        Parameters
+        ----------
+        dt : scalar or (N,)
+            Time step or array thereof. Must be a structured ndarray with fields
+            ``positions`` and ``kinematics`` (if
+            `~trackstream.fit.kalman.FONKFBase.kinematics` is `True`).
+
+        Returns
+        -------
+        F : ndarray
+            Block diagonal transition matrix. The shape will be (1, nfeature,
+            nfeature) or (N, nfeature, nfeature), depending if ``dt`` was scalar or of
+            length ``N``.
+        """
+        if len(np.shape(dt)) == 1:
+            dt = np.c_[dt, dt]
+
+        # # make single block of F matrix
+        # # [[position to position, position from velocity]
+        # #  [velocity from position, velocity to velocity]]
+        # f = np.array([[1.0, dt], [0, 1.0]])
+        # # F block-diagonal array
+        # F: ndarray = block_diag(*([f] * self.nfeature))
+        # return F
+        nd = self.nfeature
+        F = np.zeros((len(dt), 2 * nd, 2 * nd))
+        idx = np.arange(2 * nd, dtype=int)[::2]
+
+        F[:, idx, idx] = 1  # positions
+        F[:, idx + 1, idx + 1] = 1  # kf `velocities'
+        # off diagonals
+        ik = nd // 2  # assuming same number off q & p
+        F[:, idx[:ik], idx[:ik] + 1] = dt[:, 0][:, None]
+        F[:, idx[ik:], idx[ik:] + 1] = dt[:, 1][:, None]
+
+        return F
+
+    def process_noise_model(self, dt: np.ndarray, var: float = 1.0) -> np.ndarray:
+        """Process noise.
+
+        Parameters
+        ----------
+        dt : (N, K) ndarray
+            N data points of K types (1 if positions, 2 if also kinematics)
+        var : float
+
+        Returns
+        -------
+        (D, D) ndarray
+            The ``Q`` term of a Kalman filter.
+        """
+        if len(np.shape(dt)) == 1:
+            dt = np.c_[dt, dt]
+
+        nd = self.nfeature
+        Q = np.zeros((np.shape(dt)[0], 2 * nd, 2 * nd))
+
+        # Fill in block-diagonal
+        # single-component of Q matrix
+        #     [[0.25 * dt**4, 0.5 * dt**3],  # 1,1 is position
+        #      [0.5 * dt**3, dt**2]]  # 2,2 is kf-`velocity'
+        idx = np.arange(2 * nd, dtype=int)[::2]
+        ik = nd // 2
+        Q[:, idx[:ik], idx[:ik]] = 0.25 * dt[:, 0][:, None] ** 4
+        Q[:, idx[:ik], idx[:ik] + 1] = 0.5 * dt[:, 0][:, None] ** 3
+        Q[:, idx[:ik] + 1, idx[:ik]] = 0.5 * dt[:, 0][:, None] ** 3
+        Q[:, idx[:ik] + 1, idx[:ik] + 1] = dt[:, 0][:, None] ** 2
+
+        Q[:, idx[ik:], idx[ik:]] = 0.25 * dt[:, 1][:, None] ** 4
+        Q[:, idx[ik:], idx[ik:] + 1] = 0.5 * dt[:, 1][:, None] ** 3
+        Q[:, idx[ik:] + 1, idx[ik:]] = 0.5 * dt[:, 1][:, None] ** 3
+        Q[:, idx[ik:] + 1, idx[ik:] + 1] = dt[:, 1][:, None] ** 2
+
+        return var * Q
+
+    # ---------------------------------------------------------------
+    # Hooks for subclasses.
+
+    def _wrap_residual(self, x: np.ndarray) -> np.ndarray:
+        return x
+
+    def _wrap_posterior(self, x: np.ndarray) -> np.ndarray:
+        return x
+
+    #######################################################
+    # Math (2 phase + smoothing)
+
+    def _math_predict_and_update(
+        self, x: np.ndarray, P: np.ndarray, F: np.ndarray, Q: np.ndarray, z: np.ndarray, R: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Predict prior using Kalman filter transition functions.
+        Then add a new measurement to the Kalman filter.
+
+        Parameters
+        ----------
+        x : ndarray
+            State.
+        P : ndarray
+            Covariance matrix for state.
+        F : ndarray
+            Transition matrix.
+        Q : ndarray, optional
+            Process noise matrix. Gets added to covariance matrix.
+        z : (D, 1) ndarray
+            Measurement.
+        R : (D, D) ndarray
+            Measurement noise matrix.
+
+        Returns
+        -------
+        x : ndarray
+            Prior state vector. The 'predicted' state.
+        P : ndarray
+            Prior covariance matrix. The 'predicted' covariance.
+        """
+        # -------------------
+        # Prior Prediction
+
+        # if i >= 1006:
+        #     import pdb; pdb.set_trace()
+
+        # predict position (not including a control matrix)
+        x = dot(F, x)
+
+        # & covariance matrix
+        P = dot(dot(F, P), F.T) + Q
+
+        # -------------------
+        # Posterior
+
+        S = dot(dot(self.H, P), self.H.T) + R  # system uncertainty in measurement space
+        K = dot(dot(P, self.H.T), inv(S))  # Kalman gain
+
+        predict = dot(self.H, x)  # prediction in measurement space
+        residual = z - predict  # measurement and prediction residual
+        residual = self._wrap_residual(residual)
+
+        x = x + dot(K, residual)  # predict new x using Kalman gain
+        x = self._wrap_posterior(x)
+
+        KH = dot(K, self.H)
+        ImKH = self._I - KH
+        # stable representation using Joseph equation (from Filterpy)
+        # P = (1 - KH)P(1 - KH)' + KRK'
+        P = dot(dot(ImKH, P), ImKH.T) + dot(dot(K, R), K.T)
+
+        return x, P
+
+    def _rts_smoother(
+        self, Xs: np.ndarray, Ps: np.ndarray, Fs: np.ndarray, Qs: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Run Rauch-Tung-Striebel Kalman smoother on Kalman filter series.
+
+        Implemented to be compatible with `filterpy`.
+
+        Parameters
+        ----------
+        Xs : ndarray
+           array of the means (state variable x) of the output of a Kalman
+           filter.
+        Ps : ndarray
+            array of the covariances of the output of a kalman filter.
+        Fs : Sequence of ndarray
+            State transition matrix of the Kalman filter at each time step.
+        Qs : Sequence of ndarray
+            Process noise of the Kalman filter at each time step.
+
+        Returns
+        -------
+        x : ndarray
+           Smoothed state.
+        P : ndarray
+           Smoothed state covariances.
+        """
+        # copy
+        x = deepcopy(Xs)
+        P = deepcopy(Ps)
+        Pp = deepcopy(Ps)
+
+        # Initialize parameters
+        n, dims_x = Xs.shape
+        K = np.zeros((n, dims_x, dims_x))
+
+        # Iterate through, running Kalman system again.
+        # for i in reversed(range(n - 1)):  # [n-2, ..., 0]
+        for k in range(n - 2, -1, -1):
+            F = Fs[k]
+
+            # prediction
+            Pp[k] = dot(dot(F, P[k]), F.T) + Qs[k]
+            # Kalman gain
+            K[k] = dot(dot(P[k], F.T), inv(Pp[k]))
+
+            # update position and covariance
+            x_prior = dot(F, x[k])
+            residual = x[k + 1] - x_prior
+            residual = self._wrap_residual(residual)
+
+            x[k] += dot(K[k], residual)
+            P[k] += dot(dot(K[k], P[k + 1] - Pp[k]), K[k].T)
+
+            x[k][:] = self._wrap_posterior(x[k])
+
+        return x, P
+
+    #######################################################
+    # Fit
+
+    def fit(
+        self, data: np.ndarray, /, errors: np.ndarray, widths: np.ndarray, timesteps: np.ndarray
+    ) -> tuple[kalman_output, kalman_output]:
+        """Run Kalman Filter with updates on each step.
+
+        Parameters
+        ----------
+        data : (N,) SkyCoord, position-only
+            The data to fit with the Kalman filter.
+        errors : (N,) Quantity
+        width : (N,) Quantity
+        timesteps: (N,) ndarray
+            Must be start and end-point inclusive.
+
+        Returns
+        -------
+        path : `~trackstream.fit.path.Path`
+        """
+        # ------ setup ------
+
+        # Get the time deltas from the time steps.
+        # Checking the time steps are compatible with the data.
+        if len(timesteps) != len(data):
+            raise ValueError(f"len(timesteps)={len(timesteps)} is not {len(data)}")
+        elif np.any(timesteps < 0):
+            raise ValueError("timesteps must be >= 0")
+
+        # Error matrix
+        #
+        # TODO! it would be great to be able to transform errors as well. For
+        # now, the errors must be in kalman filter's rep/diff type and units
+        idx = np.arange(self.nfeature)  # diagonal indices
+        Rs = np.zeros((len(errors), self.nfeature, self.nfeature))
+        Rs[:, idx, idx] = errors**2  # assign to diagonal
+
+        # Widths
+        Ws = np.zeros((len(errors), self.nfeature))
+        Ws[:] = widths**2
+
+        # ------ IC (i-1) ------
+
+        x, P = self.x0, self.P0  # KF
+
+        # initialize arrays
+        Xs = np.empty((len(data), *np.shape(x)))
+        Ps = np.empty((len(data), *np.shape(P)))
+
+        # Make the transition model and process noise model
+        Fs = self.state_transition_model(timesteps)
+        Qs = self.process_noise_model(timesteps, var=1)
+
+        # ------ run ------
+        # iterate predict & update steps
+        z: np.ndarray
+        for i, (z, R, F, Q) in enumerate(zip(data, Rs, Fs, Qs)):
+            # F_(i-1, i)
+            R[idx, idx] += Ws[i]  # add stream width to uncertainty
+            # TODO! this is at the previous step! need to
+            # do it during predict / update, not before
+            # predict & update
+            x, P = self._math_predict_and_update(x=x, P=P, F=F, Q=Q, z=z, R=R)
+
+            # append results
+            Xs[i], Ps[i] = x, P
+
+        # results
+        result = kalman_output(timesteps, Xs, Ps)
+
+        # smoothed
+        Xs, Ps = self._rts_smoother(Xs, Ps, Fs, Qs)
+        smooth = kalman_output(timesteps, Xs, Ps)
+
+        return result, smooth

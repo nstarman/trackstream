@@ -53,13 +53,6 @@ setup_cfg = dict(toml["project"])  # type: ignore
 # By default, highlight as Python 3.
 highlight_language = "python3"
 
-# If your documentation needs a minimal Sphinx version, state it here.
-# needs_sphinx = '1.2'
-
-# To perform a Sphinx version check that needs to be more specific than
-# major.minor, call `check_sphinx_version("x.y.z")` here.
-# check_sphinx_version("1.2.1")
-
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 exclude_patterns.append("_templates")

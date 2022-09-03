@@ -21,15 +21,12 @@
     "Topic :: Scientific/Engineering :: Physics",
   ]
   dependencies = [
-    "attrs",
     "astropy>=5.0",
-    "galpy",
+    "galpy>=1.8",
     "interpolated_coordinates  @ git+https://github.com/GalOrrery/interpolated-coordinates.git",
     "matplotlib",
     "numpy>=1.18",
     "scipy>1.3",
-    "sklearn>1.0",
-    "streamtools @ git+https://github.com/jobovy/streamtools.git",
     "typing_extensions>=4.2",
   ]
 
@@ -60,6 +57,13 @@
   homepage = "https://trackstream.readthedocs.io"
   repository = "https://github.com/nstarman/trackstream"
   documentation = "https://trackstream.readthedocs.io"
+
+
+[project.entry-points."trackstream.io.StreamArm.from_format"]
+  astropy_table = "trackstream.io.builtin.table:register_StreamArm_from_format"
+
+[project.entry-points."trackstream.stream.mixin"]
+  frame_streamarm = "trackstream.frame.stream_mixin:register_StreamArm"
 
 
 [build-system]

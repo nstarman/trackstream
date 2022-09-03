@@ -10,62 +10,45 @@ Note that this is not (necessarily) static typing.
 from __future__ import annotations
 
 # STDLIB
-import os
-from typing import Protocol, Union
+from typing import TYPE_CHECKING, Protocol, TypeVar, Union
 
 # THIRD PARTY
-import astropy.units as u
-import numpy as np
-from astropy.coordinates import BaseCoordinateFrame, BaseRepresentation, SkyCoord
+from astropy.coordinates import BaseCoordinateFrame, SkyCoord
+from numpy import floating
+from numpy.typing import NBitBase, NDArray
 
-__all__ = [
-    "EllipsisType",
-    "FullPathLike",
-    "ArrayLike",
-    "CoordinateType",
-    "CoordinateLikeType",
-    "FrameLikeType",
-    # units
-    "UnitType",
-    "UnitLikeType",
-]
+if TYPE_CHECKING:
+    # THIRD PARTY
+    from typing_extensions import TypeAlias
 
-__credits__ = ["Astropy"]
+
+__all__: list[str] = []
+
 
 ##############################################################################
 # TYPES
 ##############################################################################
 
+# -------------------------------------
+# Python types
 
 EllipsisType = type(Ellipsis)
-FullPathLike = Union[str, bytes, os.PathLike]
-
 
 # -------------------------------------
 # NumPy types
 
-ArrayLike = Union[float, np.ndarray]  # np.generic isn't compatible
+N1 = TypeVar("N1", bound=NBitBase)
+N2 = TypeVar("N2", bound=NBitBase)
+
+NDFloat = NDArray[floating[N1]]
 
 
 # -------------------------------------
 # Astropy types
 
-RepresentationLikeType = Union[BaseRepresentation, str]
+CoordinateType: TypeAlias = Union[BaseCoordinateFrame, SkyCoord]
 
-CoordinateType = Union[BaseCoordinateFrame, SkyCoord]
-"""|Frame| or |SkyCoord|"""
-
-CoordinateLikeType = Union[CoordinateType, str]
-"""|Frame| or |SkyCoord| or `str`"""
-
-FrameLikeType = Union[BaseCoordinateFrame, str]
-"""|Frame| or str"""
-
-UnitType = Union[u.Unit, u.IrreducibleUnit, u.UnitBase, u.FunctionUnitBase]
-"""|Unit| or :class:`~astropy.units.FunctionUnitBase`"""
-
-UnitLikeType = Union[UnitType, str]
-"""|Unit| or :class:`~astropy.units.FunctionUnitBase` or str"""
+FrameLikeType: TypeAlias = Union[BaseCoordinateFrame, str]
 
 
 class HasFrame(Protocol):

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 # STDLIB
 import os
-from typing import Any, cast
+from typing import Any
 
 # THIRD PARTY
 import astropy.coordinates as coord
@@ -27,12 +27,14 @@ from interpolated_coordinates import (
 from numpy import linspace
 
 # LOCAL
-from trackstream.fit.path import Path
+from trackstream.track.path import Path
+
+__all__: list[str] = []
+
 
 try:
     # THIRD PARTY
-    from pytest_astropy_header.display import PYTEST_HEADER_MODULES  # type: ignore
-    from pytest_astropy_header.display import TESTED_VERSIONS  # type: ignore
+    from pytest_astropy_header.display import PYTEST_HEADER_MODULES, TESTED_VERSIONS
 
     ASTROPY_HEADER = True
 except ImportError:
@@ -46,28 +48,29 @@ def pytest_configure(config: pytest.Config) -> None:
     ----------
     config : pytest configuration
     """
-    if ASTROPY_HEADER:
+    if not ASTROPY_HEADER:
+        return
 
-        config.option.astropy_header = True
+    config.option.astropy_header = True
 
-        # Customize the following lines to add/remove entries from the list of
-        # packages for which version numbers are displayed when running the
-        # tests.
-        PYTEST_HEADER_MODULES.pop("Pandas", None)
-        PYTEST_HEADER_MODULES["scikit-image"] = "skimage"
+    # Customize the following lines to add/remove entries from the list of
+    # packages for which version numbers are displayed when running the
+    # tests.
+    PYTEST_HEADER_MODULES.pop("Pandas", None)
 
-        # LOCAL
-        from . import __version__  # type: ignore
+    # STDLIB
+    # from trackstream import __version__  # type: ignore
+    from importlib.metadata import version
 
-        packagename = os.path.basename(os.path.dirname(__file__))
-        TESTED_VERSIONS[packagename] = __version__
+    packagename = os.path.basename(os.path.dirname(__file__))
+    TESTED_VERSIONS[packagename] = version(packagename)
 
 
 # ------------------------------------------------------
 # doctest fixtures
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(autouse=True)  # type: ignore
 def add_numpy(doctest_namespace: dict[str, Any]) -> None:
     """Add NumPy to Pytest.
 
@@ -83,7 +86,7 @@ def add_numpy(doctest_namespace: dict[str, Any]) -> None:
     doctest_namespace["np"] = numpy
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(autouse=True)  # type: ignore
 def add_astropy(doctest_namespace: dict[str, Any]) -> None:
     """Add Astropy stuff to Pytest.
 
@@ -93,11 +96,11 @@ def add_astropy(doctest_namespace: dict[str, Any]) -> None:
 
     """
     # THIRD PARTY
-    import astropy.coordinates as coord
+    import astropy.coordinates as coords
     import astropy.units
 
     # add to namespace
-    doctest_namespace["coord"] = coord
+    doctest_namespace["coords"] = coords
     doctest_namespace["u"] = astropy.units
 
     # extras
@@ -108,7 +111,7 @@ def add_astropy(doctest_namespace: dict[str, Any]) -> None:
     time_support()
 
 
-# ------------------------------------------------------
+#####################################################################
 
 
 @pytest.fixture(scope="session")
@@ -236,17 +239,11 @@ def index_on() -> int:
 @pytest.fixture(scope="session")
 def affine_on(affine: coord.Angle, index_on: int) -> coord.Angle:
     """Fixture returning the affine parameter at one point."""
-    return cast(coord.Angle, affine[index_on])
+    return affine[index_on]
 
 
 @pytest.fixture(scope="session")
 def point_on(crd: coord.BaseCoordinateFrame, index_on: int) -> coord.BaseCoordinateFrame:
     """Fixture returning the coordinate at one point."""
-    c = cast(coord.BaseCoordinateFrame, crd[index_on])
+    c = crd[index_on]
     return c
-
-
-# @pytest.fixture
-# def point_off(affine):
-#     i = affine[10]
-#     return crd[i]

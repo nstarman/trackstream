@@ -1,9 +1,6 @@
-# see LICENSE.rst
-
-"""This module contains class and functions for working with stellar streams."""
-
 # LOCAL
-from .core import StreamArm
-from .plural import Stream, StreamArms
+from trackstream.stream.core import StreamArm
+from trackstream.stream.plural import StreamArms
+from trackstream.stream.stream import Stream
 
-__all__ = ["StreamArm", "Stream", "StreamArms"]
+__all__ = ["StreamArm", "StreamArms", "Stream"]

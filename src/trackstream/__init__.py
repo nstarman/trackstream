@@ -1,22 +1,30 @@
 # see LICENSE.rst
 
-"""Construct Stream Tracks."""
-
-##############################################################################
-# IMPORTS
-
-from __future__ import annotations
+"""This module contains class and functions for working with stellar streams."""
 
 # LOCAL
-from .fit import FitterStreamArmTrack
+from trackstream import utils  # noqa: F401
+from trackstream.stream.core import StreamArm
+from trackstream.stream.stream import Stream
 
-# from . import example_data as examples
-from .stream import Stream
+__all__ = ["StreamArm", "Stream"]
 
-# keep this content at the top.
-from ._astropy_init import *  # noqa: F401, F403  # isort:skip
 
-__all__ = ["Stream", "FitterStreamArmTrack"]
+# ===================================================================
 
-__author__ = "Nathaniel Starkman"
-__copyright__ = "Copyright 2020"
+# Fill in attrs, etc.
+# isort: split
+# LOCAL
+from trackstream import frame  # noqa: F401
+from trackstream import setup_package  # noqa: F401
+
+# ===================================================================
+# Register I/O
+
+# isort: split
+# LOCAL
+from trackstream.io.register import UnifiedIOEntryPointRegistrar
+
+UnifiedIOEntryPointRegistrar(data_class=StreamArm, group="trackstream.io.StreamArm.from_format", which="reader").run()
+# clean up
+del UnifiedIOEntryPointRegistrar
