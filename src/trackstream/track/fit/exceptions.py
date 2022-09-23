@@ -8,5 +8,5 @@ EXCEPT_3D_NO_DISTANCES = ValueError(
 
 
 EXCEPT_NO_KINEMATICS = ValueError(
-    "this stream does not have kinematic information; " "cannot compute track with velocities.",
+    "this stream does not have kinematic information; cannot compute track with velocities.",
 )

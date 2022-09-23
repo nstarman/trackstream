@@ -13,15 +13,9 @@ from typing import TYPE_CHECKING, Any, Literal, cast, overload
 import astropy.units as u
 import matplotlib.pyplot as plt
 import numpy as np
-from astropy.units import Quantity
 from matplotlib.collections import EllipseCollection
-from matplotlib.figure import Figure
-from matplotlib.pyplot import Axes
-from numpy import ndarray
-from typing_extensions import Unpack
 
 # LOCAL
-from trackstream._typing import FrameLikeType
 from trackstream.stream.visualization import DKindT, StreamPlotDescriptorBase
 from trackstream.track.fit.kalman.core import FirstOrderNewtonianKalmanFilter
 from trackstream.track.fit.som import SelfOrganizingMap
@@ -30,7 +24,15 @@ from trackstream.track.utils import covariance_ellipse
 from trackstream.utils.visualization import PlotCollectionBase
 
 if TYPE_CHECKING:
+    # THIRD PARTY
+    from astropy.units import Quantity
+    from matplotlib.figure import Figure
+    from matplotlib.pyplot import Axes  # type: ignore
+    from numpy import ndarray
+    from typing_extensions import Unpack
+
     # LOCAL
+    from trackstream._typing import FrameLikeType
     from trackstream.stream.base import StreamBase
     from trackstream.track.core import StreamArmTrack
     from trackstream.track.plural import StreamArmsTrackBase  # noqa: F401
@@ -151,8 +153,8 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
         origin: bool = True,
         connect: bool = True,
         initial_prototypes: bool = False,
-        x_offset: Quantity | Literal[0] = 0,
-        y_offset: Quantity | Literal[0] = 0,
+        x_offset: u.Quantity | Literal[0] = 0,
+        y_offset: u.Quantity | Literal[0] = 0,
         ax: Axes | None = None,
         format_ax: bool = False,
     ) -> Axes:
@@ -192,7 +194,6 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
         som = cast(SelfOrganizingMap, track.som)
         xn, yn = "", ""  # default labels. updated from data.
 
-        # Plot arm 1
         if som is not None:
             ps1, _ = self._to_frame(som.prototypes, theframe)
             (x, xn), (y, yn) = self._get_xy(ps1, kind=kind)
@@ -281,10 +282,7 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
         kalman = cast(FirstOrderNewtonianKalmanFilter, track.kalman)
 
         # Subselect from covariance matrix
-        if kind == "positions":  # x, y
-            start = 0
-        elif kind == "kinematics":  # v_x, v_y
-            start = kalman.ndims // 2
+        start = 0 if kind == "positions" else kalman.nfeature
         slc = (slice(None), slice(start, start + 4, 2), slice(start, start + 4, 2))
 
         crd = _v2c(kalman, np.array(track.path._meta["smooth"].x[:, ::2]))
@@ -294,7 +292,6 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
 
         nstd = kwargs.get("std", 1)
         if connect:
-            print(_ax)
             _ax.plot(x.value, y.value, label=f"track {track.name} : {nstd} std", zorder=100, c=kwargs.get("c"))
         else:
             # still need to auto-set the axes bounds since an EllipseCollection does not.
@@ -390,7 +387,7 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
             The matplotlib figure axes.
         """
         _, _ax, stream, *_ = self._setup(ax=ax)
-        kw = self._get_kw(kwargs)
+        kw = self._get_kw(kwargs, c=np.arange(len(stream.coords)))
         theframe, frame_name = self._parse_frame(frame)
         xn, yn = self._get_xy_names(theframe, kind=kind)
 
@@ -402,7 +399,6 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
         stream.plot.in_frame(
             frame=frame,
             kind=kind,
-            c=np.arange(len(stream.coords)),
             ax=_ax,
             format_ax=False,
             origin=False,
@@ -427,8 +423,8 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
         *,
         connect: bool = True,
         initial_prototypes: bool = False,
-        prototypes_x_offset: Quantity | Literal[0] = 0,
-        prototypes_y_offset: Quantity | Literal[0] = 0,
+        prototypes_x_offset: u.Quantity | Literal[0] = 0,
+        prototypes_y_offset: u.Quantity | Literal[0] = 0,
         origin: bool = True,
         axes: tuple[Axes, Axes] | None = None,
         format_ax: bool = True,
@@ -470,7 +466,7 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
         # Plot 1 : Stream in ICRS frame
         # Plot 2 : + SOM
         stream.plot.in_frame(
-            frame="ICRS",
+            frame="icrs",
             kind="positions",
             c=np.arange(len(stream.coords)),
             ax=ax1,
@@ -531,7 +527,7 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
         """
         track, _, stream, *_ = self._setup(ax=False)
 
-        ORIGIN_HAS_VS = "s" in stream.origin.data.differentials
+        ORIGIN_HAS_VS = "s" in stream.origin.data.differentials  # type: ignore
         full_name = stream.full_name or ""
 
         # Plot setup
@@ -544,7 +540,7 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
             plot_vs = stream.has_kinematics
             ncols = 2 if plot_vs else 1
             figwidth = 16 if plot_vs else 8
-            fig, axs = plt.subplots(3, ncols, figsize=(figwidth, 12))
+            fig, axs = plt.subplots(3, ncols, figsize=(figwidth, 12))  # type: ignore
             if len(axs.shape) == 1:
                 axs.shape = (-1, 1)
 
@@ -553,7 +549,7 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
         in_frame_kw.setdefault("label", full_name)
         in_frame_kw.setdefault("format_ax", format_ax)
         in_frame_kw.setdefault("origin", origin)
-        in_frame_kw.pop("title", True)  # todo! use
+        in_frame_kw.pop("title", True)  # TODO! use
         stream.plot.in_frame(frame="stream", kind="positions", ax=axs[0, 0], **in_frame_kw)
         if plot_vs:
             stream.plot.in_frame(
@@ -565,7 +561,8 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
             )
 
         # SOM plot
-        self(
+        som_in_frame_kw = (som_kw or {}).pop("in_frame_kw", {})
+        self.__call__(
             ax=axs[1, 0],
             frame="stream",
             kind="positions",
@@ -574,6 +571,7 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
             som=True,
             som_kw=som_kw,
             kalman=False,
+            **som_in_frame_kw,
         )
         if track.has_kinematics:
             self(
@@ -581,13 +579,16 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
                 frame="stream",
                 kind="kinematics",
                 format_ax=format_ax,
-                origin=origin and "s" in stream.origin.data.differentials,
-                som=False,  # SOM not run on kinematics!
+                origin=origin and "s" in stream.origin.data.differentials,  # type: ignore
+                som=True,
+                som_kw=som_kw,
                 kalman=False,
+                **som_in_frame_kw,
             )
 
         # Kalman filter plot
         kalman_kw = {"std": 3} if kalman_kw is None else kalman_kw
+        kalman_in_frame_kw = (kalman_kw or {}).pop("in_frame_kw", {})
         self(
             ax=axs[2, 0],
             frame="stream",
@@ -597,6 +598,7 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
             som=False,
             kalman=True,
             kalman_kw=kalman_kw,
+            **kalman_in_frame_kw,
         )
         if track.has_kinematics:
             self(
@@ -604,10 +606,11 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
                 frame="stream",
                 kind="kinematics",
                 format_ax=format_ax,
-                origin=origin and "s" in stream.origin.data.differentials,
+                origin=origin and "s" in stream.origin.data.differentials,  # type: ignore
                 som=False,
                 kalman=True,
                 kalman_kw=kalman_kw,
+                **kalman_in_frame_kw,
             )
 
         if format_ax:

@@ -1,5 +1,3 @@
-# Licensed under a 3-clause BSD style license - see LICENSE.rst
-
 ##############################################################################
 # IMPORTS
 
@@ -16,7 +14,7 @@ if TYPE_CHECKING:
     from trackstream.stream.core import StreamArm
 
 
-__all__ = ["StreamArmRead", "StreamArmWrite", "StreamArmFromFormat", "StreamArmToFormat"]
+__all__: list[str] = []
 __doctest_skip__ = __all__
 
 
@@ -99,8 +97,8 @@ class StreamArmRead(UnifiedReadWrite):  # type: ignore
 
         arm = self.registry.read(self._cls, *args, **kwargs)
 
-        if not isinstance(arm, StreamArm):  # TODO! this should type narrow
-            raise OSError()
+        if not isinstance(arm, StreamArm):
+            raise TypeError("arm is not an instance of StreamArm")
 
         return arm  # type: ignore
 

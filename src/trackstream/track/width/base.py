@@ -8,7 +8,7 @@ from abc import abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass, fields, replace
 from functools import singledispatchmethod
-from typing import Any, ClassVar, NoReturn, TypeVar
+from typing import Any, ClassVar, TypeVar
 
 # THIRD PARTY
 import astropy.units as u
@@ -82,7 +82,7 @@ class WidthBase:
 
     @singledispatchmethod
     @classmethod
-    def from_format(cls, data: object) -> NoReturn:
+    def from_format(cls, data: object) -> Any:  # https://github.com/python/mypy/issues/11727
         """Construct this width instance from data of given type."""
         raise NotImplementedError("not dispatched")
 

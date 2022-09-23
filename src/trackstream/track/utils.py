@@ -6,13 +6,16 @@
 from __future__ import annotations
 
 # STDLIB
-from typing import Any, Callable, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, TypeVar
 
 # THIRD PARTY
 import astropy.units as u
-from astropy.units import Quantity
 from numpy import any, arctan2, ndarray, pi, sqrt, vectorize
 from scipy.linalg import svd
+
+if TYPE_CHECKING:
+    # THIRD PARTY
+    from astropy.units import Quantity
 
 __all__: list[str] = []
 
@@ -69,7 +72,7 @@ def covariance_ellipse(P: ndarray, *, nstd: int | ndarray = 1) -> tuple[Quantity
     """
     U, s, _ = svd_vec(P)  # requires (d1, d2) matrix
 
-    orientation = arctan2(U[..., 1, 0], U[..., 0, 0]) * u.rad
+    orientation = arctan2(U[..., 1, 0], U[..., 0, 0]) << u.rad
     wh = nstd * sqrt(s[..., :2])
 
     if any(wh[..., 1] > wh[..., 0]):

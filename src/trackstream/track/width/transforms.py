@@ -6,15 +6,18 @@ from __future__ import annotations
 # STDLIB
 from dataclasses import replace
 from functools import singledispatch
-from typing import Any, Callable, NoReturn, Protocol, TypeVar
-
-# THIRD PARTY
-from astropy.coordinates import BaseRepresentation
+from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeVar
 
 # LOCAL
-from trackstream.track.width.base import WidthBase
 from trackstream.track.width.core import BaseWidth
 from trackstream.track.width.interpolated import InterpolatedWidth
+
+if TYPE_CHECKING:
+    # THIRD PARTY
+    from astropy.coordinates import BaseRepresentation
+
+    # LOCAL
+    from trackstream.track.width.base import WidthBase
 
 __all__: list[str] = []
 
@@ -33,18 +36,20 @@ BW = TypeVar("BW", bound="BaseWidth")
 
 
 @singledispatch
-def represent_as(w1: object, w2type: type[W2], point: BaseRepresentation) -> NoReturn:
+def represent_as(
+    w1: object, w2type: type[W2], point: BaseRepresentation
+) -> Any:  # https://github.com/python/mypy/issues/11727
     raise NotImplementedError("not dispatched")
 
 
-@represent_as.register
+@represent_as.register(BaseWidth)
 def _represent_as_plainwidth(w1: BaseWidth, w2type: type[W2], point: BaseRepresentation) -> W2:
     func = WIDTH_TRANSFORMATIONS[(w1.__class__, w2type)]
-    attrs = func(w1, point)
-    return w2type(**attrs)
+    w2 = func(w1, point)
+    return w2
 
 
-@represent_as.register
+@represent_as.register(InterpolatedWidth)
 def _represent_as_interpolatedwidth(
     w1: InterpolatedWidth, w2type: type[BW], point: BaseRepresentation
 ) -> InterpolatedWidth[BW]:
@@ -55,16 +60,16 @@ def _represent_as_interpolatedwidth(
 # ===================================================================
 
 
-WIDTH_TRANSFORMATIONS: dict[tuple[type, type], Callable[[Any, BaseRepresentation], Any]] = {}  # TODO! not Any
+WIDTH_TRANSFORMATIONS: dict[tuple[type, type], Callable[[Any, BaseRepresentation], Any]] = {}
 
 
-class Transformer(Protocol):
-    def __call__(self, cw: WidthBase, point: BaseRepresentation) -> dict[str, Any]:  # TODO! typeddict
+class Transformer(Protocol[W1, W2]):
+    def __call__(self, cw: W1, point: BaseRepresentation) -> W2:
         ...
 
 
-def register_transformation(w1type: type[W1], w2type: type[W2]) -> Callable[[Transformer], Transformer]:
-    def decorator(func: Transformer) -> Transformer:
+def register_transformation(w1type: type[W1], w2type: type[W2]) -> Callable[[Transformer[W1, W2]], Transformer[W1, W2]]:
+    def decorator(func: Transformer[W1, W2]) -> Transformer[W1, W2]:
         WIDTH_TRANSFORMATIONS[(w1type, w2type)] = func
         return func
 

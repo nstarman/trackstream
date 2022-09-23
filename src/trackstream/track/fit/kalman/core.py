@@ -8,29 +8,34 @@ from __future__ import annotations
 # STDLIB
 from dataclasses import dataclass
 from functools import singledispatchmethod
-from typing import Any, NoReturn, cast
+from typing import TYPE_CHECKING, Any, cast
 
 # THIRD PARTY
 import astropy.coordinates as coords
 import astropy.units as u
 import numpy as np
 import numpy.lib.recfunctions as rfn
-from typing_extensions import Self
 
 # LOCAL
 from trackstream.stream.base import FRAME_NONE_ERR
 from trackstream.stream.core import StreamArm
-from trackstream.track.fit.errors import EXCEPT_3D_NO_DISTANCES
-from trackstream.track.fit.kalman.base import FONKFBase, KFInfo
+from trackstream.track.fit.exceptions import EXCEPT_3D_NO_DISTANCES
 from trackstream.track.fit.kalman.cartesian import CartesianFONKF
 from trackstream.track.fit.kalman.sphere import USphereFONKF
-from trackstream.track.fit.timesteps.plural import Times
 from trackstream.track.fit.utils import _c2v, _v2c
 from trackstream.track.path import Path
 from trackstream.track.width.core import BASEWIDTH_REP as _PW_REP
 from trackstream.track.width.core import LENGTH, SPEED
 from trackstream.track.width.plural import Widths
 from trackstream.utils.unit_utils import merge_units
+
+if TYPE_CHECKING:
+    # THIRD PARTY
+    from typing_extensions import Self
+
+    # LOCAL
+    from trackstream.track.fit.kalman.base import FONKFBase, KFInfo
+    from trackstream.track.fit.timesteps.plural import Times
 
 __all__: list[str] = []
 
@@ -116,8 +121,7 @@ class FirstOrderNewtonianKalmanFilter:
         kinematics: bool | None = None,
         *,
         width0: None | Widths = None,
-        **options: Any,
-    ) -> NoReturn:
+    ) -> Any:  # https://github.com/python/mypy/issues/11727
         raise NotImplementedError("not dispatched")
 
     @from_format.register(StreamArm)
@@ -129,7 +133,6 @@ class FirstOrderNewtonianKalmanFilter:
         kinematics: bool | None = None,
         *,
         width0: None | Widths = None,
-        **options: Any,
     ) -> Self:
         """Make Kalman Filter from a stream.
 
@@ -224,12 +227,11 @@ class FirstOrderNewtonianKalmanFilter:
         ws = np.c_[_ws]
 
         # timesteps
-        qu = self.kf.info.units[0][0]
-        _dts = (np.tile(np.array(timesteps["length"].to_value(qu))[:, None], (1, D)),)
         if self.kinematics:
-            pu = self.kf.info.units[1][0]
-            _dts += (np.tile(np.array(timesteps["speed"].to_value(pu))[:, None], (1, D)),)
-        dts = np.c_[_dts]
+            tu = u.StructuredUnit((self.kf.info.units[0][0], self.kf.info.units[1][0]))
+        else:
+            tu = self.kf.info.units[0][0]
+        dts = rfn.structured_to_unstructured(timesteps.to_format(u.Quantity).to_value(tu))
 
         result, smooth = self.kf.fit(Zs, errors=errs, widths=ws, timesteps=dts)
 

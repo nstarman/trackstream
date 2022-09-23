@@ -52,7 +52,9 @@ Attribution
 
 Copyright 2020- Nathaniel Starkman.
 
-``trackstream`` is free software made available under the BSD-3 License. For details see the `LICENSE <https://github.com/nstarman/Thesis/blob/master/LICENSE.rst>`_ file.
+``trackstream`` is free software made available under the BSD-3 License. For
+details see the `LICENSE
+<https://github.com/nstarman/trackstream/blob/master/LICENSE.rst>`_ file.
 
 If you make use of this code, please cite the Zenodo DOI as a software citation
 

@@ -151,6 +151,8 @@
     # tomlkit
     "ignore:The config value `project' has type `String', defaults to `str'.",
     "ignore:The config value `htmlhelp_basename' has type `String', defaults to `str'.",
+    # distutils
+    "ignore:distutils Version classes are deprecated. Use packaging.version instead.:DeprecationWarning"
   ]
 
 [tool.coverage]

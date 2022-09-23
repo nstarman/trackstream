@@ -23,6 +23,9 @@ from trackstream.track.fit.som.base import SOM1DBase, SOMInfo
 from trackstream.track.fit.som.utils import _decay_function, _respace_bins, wrap_at
 from trackstream.track.fit.utils import offset_by, position_angle
 
+twopi = 2 * pi
+halfpi = pi / 2
+
 
 @final
 @dataclass(frozen=True)
@@ -33,8 +36,12 @@ class USphereSOM(SOM1DBase):
 
     Parameters
     ----------
-    nlattice : int
-        Number of lattice points (prototypes) in the 1D SOM.
+    prototypes : (N, F) ndarray
+        The N prototype vectors of F features.
+        F can be:
+
+        - 2: (longitude, latitude)
+        - 4: (longitude, latitude, d_longitude, d_latitude)
 
     sigma : float, optional (default=1.0)
         Spread of the neighborhood function, needs to be adequate to the
@@ -45,12 +52,6 @@ class USphereSOM(SOM1DBase):
         where T is #num_iteration/2)
     rng : int, optional keyword-only (default=None)
         Random seed to use.
-
-    representation_type : `astropy.coordinates.BaseRepresentation` or None, optional keyword-only
-        The representation type in which to return coordinates.
-        The representation type in which the SOM is fit is either
-        `astropy.coordinates.CartesianRepresentation` if `onsky` is `False`
-        or `astropy.coordinates.UnitSphericalRepresentation` if `onsky` is `True`.
 
     Notes
     -----
@@ -115,9 +116,9 @@ class USphereSOM(SOM1DBase):
             if groups and angular_separation(min(x0), 0, max(x1), 0) < t:
                 idx = label == lesser
 
-                x[idx] = x[idx] + 2 * np.pi
-                # xq[idx] = xq[idx] + 2 * np.pi * u.rad  # x is a view
-                data[idx, 0] = data[idx, 0] + 2 * np.pi
+                x[idx] = x[idx] + 2 * pi
+                # xq[idx] = xq[idx] + 2 * pi * u.rad  # x is a view
+                data[idx, 0] = data[idx, 0] + 2 * pi
 
         # Create equi-frequency bins
         # https://www.statology.org/equal-frequency-binning-python/
@@ -142,7 +143,7 @@ class USphereSOM(SOM1DBase):
         prototypes: ndarray = res.statistic.T
 
         # When there is no data in a bin, it is set to NaN.
-        # This is replaced with the interplation from nearby points.
+        # This is replaced with the interpolation from nearby points.
         for j, d in enumerate(prototypes.T):
             mask = np.isnan(d)
             prototypes[mask, j] = np.interp(np.flatnonzero(mask), np.flatnonzero(~mask), d[~mask])
@@ -172,10 +173,10 @@ class USphereSOM(SOM1DBase):
         pd: ndarray = angular_separation(*x[:2], *w.T[:2, :])
 
         # velocity distance
-        # FIXME! have to transform to cartesian and then back.
         if len(x) <= 2 * 2:
             vd = 0
         else:
+            # FIXME! have to transform to cartesian and then back.
             _, xv = s2pv(theta=x[0], phi=x[1], r=1, td=x[2], pd=x[3], rd=0)
             _, wv = s2pv(theta=w[:, 0], phi=w[:, 1], r=1, td=w[:, 2], pd=w[:, 3], rd=0)
             vd = norm(subtract(xv, wv), axis=-1)
@@ -205,13 +206,16 @@ class USphereSOM(SOM1DBase):
         ps = self.prototypes
         separation = angular_separation(ps[:, 0], ps[:, 1], x[0], x[1])
         posang = position_angle(ps[:, 0], ps[:, 1], x[0], x[1])
-        nlon, nlat = offset_by(ps[:, 0], ps[:, 1], posang=posang, distance=g * separation)
-        q = np.c_[nlon, nlat]  # same shape
-        self.prototypes[:, :2] = q  # gets around frozen assignment
+        newlon, newlat = offset_by(ps[:, 0], ps[:, 1], posang=posang, distance=g * separation)
+        # keep in correct phase lon (-pi, pi), lat (-pi/2, pi/2)
+        # TODO! check that can do these separately. Might need to do simultaneously.
+        newlon = (newlon + pi) % twopi - pi
+        newlat = (newlat + halfpi) % pi - halfpi
+        self.prototypes[:, :2] = np.c_[newlon, newlat]  # assign on view (works around frozen)
 
         # TODO! better treatment of on-sphere
         # w_new = eta * neighborhood_function * (x-w)
-        if ps.shape[1] > 2:  # has kinematics
+        if ps.shape[1] > 2:  # kinematics
             self.prototypes[:, 2:] += g[:, None] * (x[2:] - ps[:, 2:])  # type: ignore
 
     # ---------------------------------------------------------------
@@ -253,7 +257,7 @@ class USphereSOM(SOM1DBase):
         # Correct for possible phase wraps
         # TODO! more general correction for arbitrary number of phase wraps
         crd = crd[:, 0][ordering]
-        discont = np.pi / 2  # [rad]
+        discont = pi / 2  # [rad]
         jumps = np.where(np.diff(crd) >= discont)[0]
         if len(jumps) == 1:
             i = jumps[0] + 1

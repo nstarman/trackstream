@@ -7,19 +7,30 @@ from __future__ import annotations
 
 # STDLIB
 from dataclasses import dataclass
-from typing import Any, ClassVar, Generic, MutableMapping, Protocol, TypeVar
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    ClassVar,
+    Generic,
+    MutableMapping,
+    Protocol,
+    TypeVar,
+)
 
 # THIRD PARTY
 import astropy.coordinates as coords
 import astropy.units as u
 import numpy as np
 import numpy.lib.recfunctions as rfn
-from astropy.coordinates import BaseCoordinateFrame, SkyCoord
-from numpy import arcsin, arctan2, broadcast_to, cos, dtype, empty, ndarray, pi, sin
-from numpy.lib.recfunctions import merge_arrays
+from numpy import arcsin, arctan2, broadcast_to, cos, ndarray, pi, sin
 
 # LOCAL
-from trackstream.utils.coord_utils import deep_transform_to
+from trackstream._typing import SupportsFrame
+from trackstream.utils.coord_utils import deep_transform_to, f2q
+
+if TYPE_CHECKING:
+    # THIRD PARTY
+    from astropy.coordinates import BaseCoordinateFrame, SkyCoord
 
 __all__: list[str] = []
 
@@ -76,7 +87,7 @@ class FrameInfo(Generic[T]):
         return np.dtype([("length", ldt), ("speed", sdt)])
 
 
-class SupportsFrameAndInfo(Protocol):
+class HasFrameAndInfo(SupportsFrame, Protocol):
     @property
     def frame(self) -> BaseCoordinateFrame:
         ...
@@ -90,7 +101,7 @@ class SupportsFrameAndInfo(Protocol):
         ...
 
 
-def _c2v(obj: SupportsFrameAndInfo, c: coords.SkyCoord, /) -> np.ndarray:
+def _c2v(obj: HasFrameAndInfo, c: SkyCoord, /) -> ndarray:
     """Return unstructured array from coordinates.
 
     Parameters
@@ -106,12 +117,16 @@ def _c2v(obj: SupportsFrameAndInfo, c: coords.SkyCoord, /) -> np.ndarray:
     return v
 
 
-def _v2c(obj: SupportsFrameAndInfo, arr: np.ndarray, /) -> coords.BaseCoordinateFrame:
+def _v2c(obj: HasFrameAndInfo, arr: ndarray, /) -> BaseCoordinateFrame:
     # Position
     i: int = 0
     q: dict[str, u.Quantity] = {}
-    for i, n in enumerate(getattr(obj.info.representation_type, "attr_classes").keys()):
-        q[n] = arr[:, i] << obj.info.units[0][n]
+    for i, (n, acls) in enumerate(getattr(obj.info.representation_type, "attr_classes").items()):
+        v = arr[:, i] << obj.info.units[0][n]
+        # Need to special case constrained classes
+        if acls is coords.Latitude:  # map into (-90, 90)
+            v = (((v.to_value(u.deg) + 90) % 180 - 90) << u.deg).to(v.unit)
+        q[n] = v
     i += 1
 
     # The shape of arr determines if there are differentials!
@@ -223,68 +238,3 @@ def offset_by(lon: ndarray, lat: ndarray, posang: ndarray, distance: ndarray) ->
     outlat = arcsin(cos_b)
 
     return outlon, outlat
-
-
-def _f2q_helper(crds: BaseCoordinateFrame | SkyCoord, which: str) -> u.Quantity:
-
-    rcls = crds.get_representation_cls(which)
-    comps = tuple(
-        c for c, rc in crds.get_representation_component_names(which).items() if rc in getattr(rcls, "attr_classes")
-    )
-
-    dt = dtype([(c, float) for c in comps])
-    arr = empty(crds.shape, dtype=dt)
-    us = [None] * len(comps)
-    for i, c in enumerate(comps):
-        v = getattr(crds, c)
-        arr[c] = v
-        us[i] = v.unit
-
-    su = u.StructuredUnit(tuple(us))
-
-    return u.Quantity(arr, dtype=dt, unit=su)
-
-
-def f2q(crds: BaseCoordinateFrame | SkyCoord, flatten: bool = False) -> u.Quantity:
-    """Return coordinate as a structured, flattened Quantity.
-
-    Parameters
-    ----------
-    crds : Frame or SkyCoord
-        Coordinates.
-    flatten : bool, optional
-        Whether to flatten, by default `False`.
-
-    Returns
-    -------
-    Quantity
-        Fllattened coordinates.
-    """
-    q = _f2q_helper(crds, "base")
-
-    # Velocities
-    if "s" not in crds.data.differentials:
-        HAS_V = False
-    else:
-        HAS_V = True
-
-    # Output
-    if flatten and not HAS_V:
-        out = q
-    elif flatten and HAS_V:
-        p = _f2q_helper(crds, "s")
-        out = merge_arrays((q, p), flatten=True)
-    elif HAS_V:
-        p = _f2q_helper(crds, "s")
-        su = u.StructuredUnit((q.unit, p.unit))
-        arr = empty(crds.shape, dtype=[("length", q.dtype), ("speed", p.dtype)])
-        out = u.Quantity(arr, unit=su)
-        out["length"] = q
-        out["speed"] = p
-
-    else:
-        su = u.StructuredUnit((q.unit,))
-        out = u.Quantity(empty(crds.shape, dtype=[("length", q.dtype)]), unit=su)
-        out["length"] = q
-
-    return out

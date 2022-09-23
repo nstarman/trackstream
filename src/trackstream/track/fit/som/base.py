@@ -10,7 +10,7 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from functools import singledispatchmethod
 from math import pi
-from typing import Any, ClassVar, NoReturn, final
+from typing import Any, ClassVar, final
 
 # THIRD PARTY
 import astropy.units as u
@@ -22,9 +22,10 @@ from numpy.random import Generator, default_rng
 # LOCAL
 from trackstream.stream.core import StreamArm
 from trackstream.stream.plural import StreamArmsBase
-from trackstream.track.fit.errors import EXCEPT_NO_KINEMATICS
+from trackstream.track.fit.exceptions import EXCEPT_NO_KINEMATICS
 from trackstream.track.fit.som.utils import project_data_on_som
-from trackstream.track.fit.utils import FrameInfo, f2q
+from trackstream.track.fit.utils import FrameInfo
+from trackstream.utils.coord_utils import f2q
 from trackstream.utils.pbar import get_progress_bar
 
 __all__: list[str] = []
@@ -56,8 +57,8 @@ class SOM1DBase:
 
     Parameters
     ----------
-    nlattice : int
-        Number of lattice points (prototypes) in the 1D SOM.
+    prototypes : (N, F) ndarray
+        The N prototype vectors of F features.
 
     sigma : float, optional (default=1.0)
         Spread of the neighborhood function, needs to be adequate to the
@@ -68,9 +69,6 @@ class SOM1DBase:
         where T is #num_iteration/2)
     rng : int, optional keyword-only (default=None)
         Random seed to use.
-
-    prototypes : ndarray, optional
-        The prototype vectors
 
     Notes
     -----
@@ -87,8 +85,8 @@ class SOM1DBase:
     .. [frankenz] Josh Speagle. Frankenz: a photometric redshift monstrosity.
     """
 
-    # _: KW_ONLY
     prototypes: ndarray
+    # _: KW_ONLY
     rng: Generator = default_rng()
     sigma: float = 0.3
     learning_rate: float = 0.3
@@ -115,10 +113,12 @@ class SOM1DBase:
 
     @property
     def nlattice(self) -> int:
+        """Number of lattice points."""
         return self.prototypes.shape[0]
 
     @property
     def nfeature(self) -> int:
+        """Number of features."""
         return self.prototypes.shape[1]
 
     @staticmethod
@@ -143,7 +143,7 @@ class SOM1DBase:
         learning_rate: float = 0.3,
         rng: Generator | int | None = None,
         prototype_kw: dict[str, Any] = {},
-    ) -> NoReturn:
+    ) -> Any:  # https://github.com/python/mypy/issues/11727
         raise NotImplementedError("not dispatched")
 
     @from_format.register(StreamArm)
@@ -260,6 +260,10 @@ class SOM1DBase:
 
         progress : bool (default=False)
             If True, show a progress bar
+
+        Returns
+        -------
+        None
         """
         # Number of cycles through the data
         iterations = np.arange(num_iteration) % len(data)
@@ -308,10 +312,8 @@ class SOM1DBase:
 
         Parameters
         ----------
-        data : ndarray
+        data : ndarray, positional-only
             This will generally be the same data used to train the SOM.
-        split : int or None
-            TODO! deprecate when figure out velocity projection problem.
 
         Returns
         -------

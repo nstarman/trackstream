@@ -8,24 +8,31 @@ from __future__ import annotations
 # STDLIB
 import weakref
 from abc import abstractmethod
-from dataclasses import InitVar
 from functools import cached_property
-from typing import Any, Callable, Generic
+from typing import TYPE_CHECKING, Any, Callable, Generic
 
 # THIRD PARTY
 import astropy.coordinates as coords
 import astropy.units as u
-from astropy.units import Quantity
 from astropy.utils.metadata import MetaAttribute, MetaData
 from astropy.utils.misc import indent
-from interpolated_coordinates import InterpolatedSkyCoord
 
 # LOCAL
 from trackstream.stream.base import StreamLikeT
-from trackstream.track.path import Path, path_moments
 from trackstream.track.visualization import StreamArmTrackPlotDescriptor
 
-__all__ = ["StreamArmTrackBase", "StreamArmTrack"]
+if TYPE_CHECKING:
+    # STDLIB
+    from dataclasses import InitVar
+
+    # THIRD PARTY
+    from astropy.units import Quantity
+    from interpolated_coordinates import InterpolatedSkyCoord
+
+    # LOCAL
+    from trackstream.track.path import Path, path_moments
+
+__all__: list[str] = []
 
 
 ##############################################################################

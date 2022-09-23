@@ -16,6 +16,7 @@ from typing import (
     Sequence,
     TypeVar,
     Union,
+    cast,
     get_args,
     overload,
 )
@@ -32,16 +33,18 @@ from astropy.coordinates import (
 )
 from astropy.units import Quantity
 from astropy.visualization import quantity_support
-from matplotlib.pyplot import Axes
-from typing_extensions import Unpack
 
 # LOCAL
-from trackstream._typing import CoordinateType, FrameLikeType
 from trackstream.utils.coord_utils import parse_framelike
 from trackstream.utils.descriptors.bound import BndTo, BoundDescriptor
 
 if TYPE_CHECKING:
+    # THIRD PARTY
+    from matplotlib.pyplot import Axes  # type: ignore
+    from typing_extensions import Unpack
+
     # LOCAL
+    from trackstream._typing import CoordinateType, FrameLikeType
     from trackstream.common import CollectionBase
 
 
@@ -109,7 +112,7 @@ class PlotDescriptorBase(BoundDescriptor[BndTo]):
         kwargs : dict[str, Any]
             Plot options.
         **defaults: Any
-            Default plot options
+            Default plot options. ``kwargs`` takes precedence.
 
         Returns
         -------
@@ -117,6 +120,12 @@ class PlotDescriptorBase(BoundDescriptor[BndTo]):
             Mix of ``kwargs``, ``defaults``, and ``default_scatter_kwargs``,
             preferring them in that order.
         """
+        # c and color overlap
+        if "c" in defaults and "color" in kwargs:
+            defaults.pop("c")
+        elif "color" in defaults and "c" in kwargs:
+            defaults.pop("color")
+
         kw: dict[str, Any] = {**self.default_scatter_kwargs, **defaults, **(kwargs or {})}
         return kw
 
@@ -185,8 +194,9 @@ class PlotDescriptorBase(BoundDescriptor[BndTo]):
         else:
             raise ValueError(f"kind must be in {get_args(DKindT)}, not {kind!r}")
 
-        # todo reps with 1 dim, like RadialRepresentation
-        xn, yn, *_ = tuple(frame.get_representation_component_names(which).keys())
+        # TODO! reps with 1 dim, like RadialRepresentation
+        namedict = cast(dict, getattr(frame, "get_representation_component_names")(which))
+        xn, yn, *_ = tuple(namedict.keys())
 
         return xn, yn
 
@@ -212,20 +222,21 @@ class PlotDescriptorBase(BoundDescriptor[BndTo]):
         x = getattr(crds, xn)
         if isinstance(x, Angle):
             x = x.wrap_at(Angle(180, u.deg))
+        x = cast(Quantity, x)
 
-        y = getattr(crds, yn)
+        y = cast(Quantity, getattr(crds, yn))
 
         return (x, xn), (y, yn)
 
 
 @dataclass(frozen=True)
 class CommonPlotDescriptorBase(PlotDescriptorBase[BndTo]):
-    def _parse_frame(self, frame: FrameLikeType, /) -> tuple[BaseCoordinateFrame, str]:
+    def _parse_frame(self, framelike: FrameLikeType, /) -> tuple[BaseCoordinateFrame, str]:
         """Return the frame and its name.
 
         Parameters
         ----------
-        frame : |Frame| or str, positional-only
+        framelike : |Frame| or str, positional-only
             A frame instance or its name (a `str`, the default).
             Also supported is "stream", which is the stream frame
             of the enclosing instance.
@@ -237,18 +248,18 @@ class CommonPlotDescriptorBase(PlotDescriptorBase[BndTo]):
         frame_name : str
             The name of the parsed frame.
         """
-        if not isinstance(frame, (BaseCoordinateFrame, str)):
-            raise ValueError(f"{frame} is not a BaseCoordinateFrame or str")
+        if not isinstance(framelike, (BaseCoordinateFrame, str)):
+            raise ValueError(f"{framelike} is not a BaseCoordinateFrame or str")
 
-        if isinstance(frame, BaseCoordinateFrame):
-            frm = frame
-            frame_name = frame.__class__.__name__
+        if isinstance(framelike, BaseCoordinateFrame):
+            frame = framelike
+            frame_name = framelike.__class__.__name__
         # must be a str
         else:
-            frm = parse_framelike(frame)
-            frame_name = frm.__class__.__name__
+            frame = parse_framelike(framelike)
+            frame_name = frame.__class__.__name__
 
-        return frm, frame_name
+        return frame, frame_name
 
     def _to_frame(self, crds: CoordinateType, frame: FrameLikeType | None = None) -> tuple[CoordinateType, str]:
         """Transform coordinates to a frame.
@@ -278,7 +289,7 @@ class CommonPlotDescriptorBase(PlotDescriptorBase[BndTo]):
         c = SkyCoord(crds, copy=False).frame.transform_to(theframe)
 
         # known shortcut
-        if name == "ICRS":
+        if name == "icrs":
             c.representation_type = SphericalRepresentation
             c.differential_type = SphericalDifferential
 

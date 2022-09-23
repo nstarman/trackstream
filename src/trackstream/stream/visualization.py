@@ -7,17 +7,26 @@ from __future__ import annotations
 
 # STDLIB
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 # THIRD PARTY
-from astropy.coordinates import BaseCoordinateFrame
-from matplotlib.pyplot import Axes
+from astropy.coordinates import (
+    BaseCoordinateFrame,
+    SkyOffsetFrame,
+    frame_transform_graph,
+)
 
 # LOCAL
-from trackstream._typing import CoordinateType, FrameLikeType
 from trackstream.utils.coord_utils import parse_framelike
 from trackstream.utils.descriptors.base import BndTo
 from trackstream.utils.visualization import AX_LABELS, CommonPlotDescriptorBase, DKindT
+
+if TYPE_CHECKING:
+    # THIRD PARTY
+    from matplotlib.pyplot import Axes  # type: ignore
+
+    # LOCAL
+    from trackstream._typing import CoordinateType, FrameLikeType
 
 __all__: list[str] = []
 
@@ -66,17 +75,21 @@ class StreamPlotDescriptorBase(CommonPlotDescriptorBase[BndTo]):
             frame_name = frame.__class__.__name__
         # must be a str
         elif frame.lower() == "stream":
-            frame_name = "Stream"
             maybeframe = self.enclosing.frame
             if maybeframe is None:
                 # LOCAL
-                from .base import FRAME_NONE_ERR
+                from trackstream.stream.base import FRAME_NONE_ERR
 
                 raise FRAME_NONE_ERR
             theframe = maybeframe
+
+            if isinstance(theframe, SkyOffsetFrame) or frame_transform_graph.lookup_name(theframe.name) is None:
+                frame_name = "Stream"
+            else:
+                frame_name = theframe.name.capitalize()
         else:
             theframe = parse_framelike(frame)
-            frame_name = frame.__class__.__name__
+            frame_name = theframe.__class__.__name__
 
         return theframe, frame_name
 
@@ -100,12 +113,12 @@ class StreamPlotDescriptorBase(CommonPlotDescriptorBase[BndTo]):
         """
         c, name = super()._to_frame(crds, frame=frame)
 
-        if name == "Stream":
+        if name.lower() == "stream":
             frame = self.enclosing.frame
 
             if frame is None:
                 # LOCAL
-                from .base import FRAME_NONE_ERR
+                from trackstream.stream.base import FRAME_NONE_ERR
 
                 raise FRAME_NONE_ERR
 
@@ -133,38 +146,6 @@ class StreamPlotDescriptorBase(CommonPlotDescriptorBase[BndTo]):
         # ax.grid(True)
         ax.legend()
 
-    # def _wrap_lon_order(
-    #     self,
-    #     lon: Angle,
-    #     cut_at: Angle = Angle(100, u.deg),
-    #     wrap_by: Angle = Angle(-360, u.deg),
-    # ) -> Tuple[Angle, np.ndarray]:
-    #     """Wrap the stream by `~astropy.coordinates.Longitude`.
-
-    #     Parameters
-    #     ----------
-    #     lon : Angle
-    #         Longitude.
-    #     cut_at : Angle, optional
-    #         Angle at which to cut, by default Angle(100, u.deg)
-    #     wrap_by : Angle, optional
-    #         Angle at which to wrap, by default Angle(-360, u.deg)
-
-    #     Returns
-    #     -------
-    #     Angle
-    #         The Longitude.
-    #     ndarray
-    #         The order for re-ordering other coordinates.
-    #     """
-    #     lt = np.where(lon < cut_at)[0]
-    #     gt = np.where(lon > cut_at)[0]
-
-    #     order = np.concatenate((gt, lt))
-    #     lon = np.concatenate((lon[gt] + wrap_by, lon[lt]))
-
-    #     return lon, order
-
     # ===============================================================
 
     def in_frame(
@@ -174,6 +155,7 @@ class StreamPlotDescriptorBase(CommonPlotDescriptorBase[BndTo]):
         *,
         ax: Axes | None = None,
         format_ax: bool = False,
+        origin: bool = False,
         **kwargs: Any,
     ) -> Axes:
         """Plot stream in an |ICRS| frame.
@@ -204,6 +186,9 @@ class StreamPlotDescriptorBase(CommonPlotDescriptorBase[BndTo]):
         (x, xn), (y, yn) = self._get_xy(sc, kind)
 
         _ax.scatter(x, y, **kw)
+
+        if origin:
+            self.origin(frame=frame, kind=kind, ax=_ax, format_ax=False)
 
         if format_ax:  # Axes settings
             self._format_ax(_ax, frame=frame_name, x=xn, y=yn)

@@ -19,11 +19,11 @@ from typing import TYPE_CHECKING, Any, ClassVar, TypeVar, cast
 import numpy as np
 from astropy.coordinates import BaseCoordinateFrame, SkyCoord
 from astropy.io.registry import UnifiedReadWriteMethod
-from astropy.units import Quantity
 from numpy.lib.recfunctions import structured_to_unstructured
 from typing_extensions import TypedDict
 
 # LOCAL
+from trackstream._typing import SupportsFrame
 from trackstream.clean import OUTLIER_DETECTOR_CLASSES, OutlierDetectorBase
 from trackstream.io import (
     StreamArmFromFormat,
@@ -31,18 +31,19 @@ from trackstream.io import (
     StreamArmToFormat,
     StreamArmWrite,
 )
-from trackstream.stream.base import StreamBase, SupportsFrame
-from trackstream.utils.coord_utils import get_frame, parse_framelike
+from trackstream.stream.base import StreamBase
+from trackstream.utils.coord_utils import f2q, get_frame, parse_framelike
 
 if TYPE_CHECKING:
     # THIRD PARTY
     from astropy.table import QTable
+    from astropy.units import Quantity
     from numpy.typing import NDArray
 
     # LOCAL
     from trackstream.frame import FrameOptimizeResult
+    from trackstream.track.core import StreamArmTrack
     from trackstream.track.fit.core import FitterStreamArmTrack
-    from trackstream.trackc.core import StreamArmTrack
 
 
 __all__ = ["StreamArm"]
@@ -164,23 +165,28 @@ class StreamArm(StreamBase):
     # ===============================================================
     # Cleaning Data
 
-    # TODO! change to added property
     def mask_outliers(
-        self, outlier_method: str | OutlierDetectorBase = "scipyKDTreeLOF", *, verbose: bool = False, **kwargs: Any
+        self,
+        outlier_method: str | OutlierDetectorBase = "scipyKDTreeLOF",
+        # kinematics: bool = False,
+        *,
+        verbose: bool = False,
+        **kwargs: Any,
     ) -> None:
         """Detect and label outliers, masking their Pmemb and order.
 
         This is done on the ``data_coords`` with minPmemb mask info.
         """
-        mask = self.get_mask(include_order=False)
-        data_coords = self.data["coords"][~mask]
-        # TODO! more complete, including velocity data
-        data = structured_to_unstructured(data_coords.data._values)
-
         if isinstance(outlier_method, str):
             outlier_method = OUTLIER_DETECTOR_CLASSES[outlier_method]()
         elif not isinstance(outlier_method, OutlierDetectorBase):
             raise TypeError("outlier_method must be a str or OutlierDetectorBase subclass instance")
+
+        mask = self.get_mask(include_order=False)
+        data_coords = self.data["coords"][~mask]
+        # TODO! more complete, with units
+        # data = structured_to_unstructured(data_coords.data._values)
+        data = structured_to_unstructured(f2q(data_coords, flatten=True).value)
 
         # step 1: predict outlier
         isoutlier = outlier_method.fit_predict(data, data, **kwargs)
@@ -224,7 +230,6 @@ class StreamArm(StreamBase):
         fitter: bool | FitterStreamArmTrack = True,
         tune: bool = True,
         force: bool = False,
-        # minPmemb: Quantity[u.percent] = Quantity(80, u.percent),
         **kwargs: Any,
     ) -> StreamArmTrack:
         r"""Fit `~trackstream.fit.StreamArmTrack` to this stream.
@@ -252,7 +257,7 @@ class StreamArm(StreamBase):
             If a track has already been fit and ``force`` is not `True`.
         """
         # Check if already fit
-        if not force and self._cache["track"] is not None:
+        if not force and self.cache["track"] is not None:
             raise ValueError("already fit. use ``force`` to re-fit.")
 
         # LOCAL
@@ -277,14 +282,13 @@ class StreamArm(StreamBase):
 
         # FIT
         track = thefitter.fit(self, **kwargs)
-        # minPmemb=minPmemb,
 
         # Cache
         self._cache["track_fitter"] = thefitter
         self._cache["track"] = track
 
         # Add ordering to data table
-        order = thefitter.cache["visit_order"]
+        order = track.visit_order
         use = ~self.mask
 
         self.data["order"][use] = order
@@ -311,7 +315,7 @@ class StreamArm(StreamBase):
 def _get_frame_streamarm(stream: StreamArm, /) -> BaseCoordinateFrame:
     if stream.frame is None:
         # LOCAL
-        from .base import FRAME_NONE_ERR
+        from trackstream.stream.base import FRAME_NONE_ERR
 
         raise FRAME_NONE_ERR
 

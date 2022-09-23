@@ -9,11 +9,11 @@ from __future__ import annotations
 from dataclasses import InitVar, dataclass
 from functools import singledispatchmethod
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Literal,
     NamedTuple,
-    NoReturn,
     Sequence,
     cast,
     overload,
@@ -25,18 +25,25 @@ import astropy.units as u
 import interpolated_coordinates as icoords
 import numpy as np
 from astropy.utils.decorators import format_doc
-from astropy.utils.metadata import MetaData, merge
-from interpolated_coordinates.utils import InterpolatedUnivariateSplinewithUnits as IUSU
+from astropy.utils.metadata import MetaData
 from scipy.optimize import OptimizeResult, minimize_scalar
 
 # LOCAL
-from trackstream._typing import CoordinateType, FrameLikeType
 from trackstream.track.width.core import BaseWidth
 from trackstream.track.width.interpolated import InterpolatedWidths
-from trackstream.track.width.plural import Widths
 from trackstream.utils.coord_utils import get_frame, parse_framelike
 from trackstream.utils.numpy_overload import NumPyOverloader
 from trackstream.utils.visualization import PlotDescriptorBase
+
+if TYPE_CHECKING:
+    # THIRD PARTY
+    from interpolated_coordinates.utils import (
+        InterpolatedUnivariateSplinewithUnits as IUSU,
+    )
+
+    # LOCAL
+    from trackstream._typing import CoordinateType, FrameLikeType
+    from trackstream.track.width.plural import Widths
 
 __all__ = ["Path", "path_moments"]
 
@@ -146,7 +153,7 @@ class Path:
         name: str | None = None,
         metadata: dict | None = None,
         **kwargs: Any,
-    ) -> NoReturn:
+    ) -> Any:  # https://github.com/python/mypy/issues/11727
         raise NotImplementedError("not dispatched")
 
     @from_format.register(coords.SkyCoord)
@@ -432,6 +439,9 @@ def concatenate(
     dtype: np.dtype | None = None,
     casting: str = "same_kind",
 ) -> Path:
+    # ----------------------------------------
+    # Validation
+
     N = len(seqpaths)
     if N == 0:
         raise ValueError("need at least one array to concatenate")
@@ -449,6 +459,8 @@ def concatenate(
         return seqpaths[0]
     # else:  N == 2
 
+    # ----------------------------------------
+
     npth, ppth = seqpaths
     if npth.frame != ppth.frame:
         raise ValueError("the paths must have the same frame")
@@ -458,8 +470,8 @@ def concatenate(
     affine = cast(u.Quantity, np.concatenate((-npth.affine[::-1], ppth.affine)))
 
     # get representations, uninterpolated
-    # TODO! add concatnated to InterpolatedSkyCoord
-    nr = npth.data.data.data
+    # TODO! add concatenated to InterpolatedSkyCoord
+    nr = npth.data.data.data  # Representation
     if "s" in nr.differentials:
         nr.differentials["s"] = nr.differentials["s"].data
     pr = ppth.data.data.data
@@ -484,7 +496,9 @@ def concatenate(
     name = ppth.name if (npth.name == ppth.name) else f"{npth.name} | {ppth.name}"
 
     # Metadata
-    metadata = merge(npth.meta, ppth.meta, metadata_conflicts="warn")
+    # TODO! a better merge
+    # metadata = merge(npth.meta, ppth.meta, metadata_conflicts="warn")
+    metadata = {"npth": npth.meta, "ppth": ppth.meta}
 
     # TODO! amplitude
     return Path(c, width=width, amplitude=None, name=name, metadata=metadata)

@@ -1,10 +1,5 @@
 """Bound classes."""
 
-# TODO!
-# 1. compile this with mypyc when https://github.com/python/mypy/issues/13231 is resolved
-# 2. clean up shim when py3.9+
-# 3. decide __selfref__ or __self_ref__ or ...
-
 ##############################################################################
 # IMPORTS
 
@@ -20,8 +15,7 @@ __all__ = ["BoundClass", "BoundClassRef"]
 ##############################################################################
 # PARAMETERS
 
-Self = TypeVar("Self")
-# TODO ``from typing_extensions import Self`` when supported
+Self = TypeVar("Self")  # from typing_extensions import Self
 
 BndTo = TypeVar("BndTo")
 

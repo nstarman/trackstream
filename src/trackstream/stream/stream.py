@@ -1,7 +1,6 @@
 """Stream arm classes.
 
 Stream arms are descriptors on a `trackstrea.Stream` class.
-
 """
 
 ##############################################################################
@@ -10,6 +9,7 @@ Stream arms are descriptors on a `trackstrea.Stream` class.
 from __future__ import annotations
 
 # STDLIB
+import copy
 from dataclasses import asdict, dataclass, field, fields
 from types import MappingProxyType
 from typing import (
@@ -29,10 +29,8 @@ from typing import (
 from astropy.coordinates import BaseCoordinateFrame, SkyCoord
 from astropy.coordinates import concatenate as concatenate_coords
 from astropy.table import Column, QTable
-from matplotlib.axes import Axes
 
 # LOCAL
-from trackstream.common import CollectionBase
 from trackstream.stream.base import Flags, StreamBase
 from trackstream.stream.core import StreamArm
 from trackstream.stream.plural import StreamArms, StreamArmsBase
@@ -42,9 +40,13 @@ from trackstream.utils.descriptors.cache import CacheProperty
 from trackstream.utils.visualization import DKindT, PlotCollectionBase
 
 if TYPE_CHECKING:
+    # THIRD PARTY
+    from matplotlib.axes import Axes
+
     # LOCAL
     from trackstream._typing import CoordinateType, FrameLikeType
     from trackstream.clean.base import OutlierDetectorBase
+    from trackstream.common import CollectionBase
     from trackstream.frame.fit.result import FrameOptimizeResult
     from trackstream.track.core import StreamArmTrack
     from trackstream.track.fit import FitterStreamArmTrack
@@ -90,7 +92,6 @@ class StreamArmsDescriptor(StreamArms, BoundDescriptor["Stream"]):
         raise AttributeError
 
 
-# todo? inherit from StreamBasePlotDescriptor
 @dataclass(frozen=True)
 class StreamPlotDescriptor(PlotCollectionBase["Stream"]):
     # todo move to StreamPlotCollection (DNE)
@@ -342,6 +343,8 @@ class Stream(StreamArmsBase, StreamBase):
 
         Parameters
         ----------
+
+
         force : bool, optional keyword-only
             Whether to force a fit, even if already fit.
 
@@ -375,15 +378,15 @@ class Stream(StreamArmsBase, StreamBase):
         if len(self._data) > 2:
             raise NotImplementedError("TODO")
 
-        # broadcast bool -> Dict[arm_name, bool]
+        # Broadcast bool -> Dict[arm_name, bool]
         if not isinstance(fitters, Mapping):
             fitters = {k: fitters for k in self.keys()}
 
         # Fit all tracks
         tracks = {}
         for k, arm in self.items():
-            tracks[k] = arm.fit_track(fitter=fitters.get(k, True), tune=tune, force=force, **kwargs)
-
+            kw = copy.deepcopy(kwargs)  # ensure kwargs are decoupled
+            tracks[k] = arm.fit_track(fitter=fitters.get(k, True), tune=tune, force=force, **kw)
         # -------------------
         # Currently only two arms are supported, so the tracks can be combined
         # together into a single path. One arm needs to be in reverse order to
@@ -429,7 +432,7 @@ class Stream(StreamArmsBase, StreamBase):
 def _get_frame_stream(stream: Stream, /) -> BaseCoordinateFrame:
     if stream.frame is None:
         # LOCAL
-        from .base import FRAME_NONE_ERR
+        from trackstream.stream.base import FRAME_NONE_ERR
 
         raise FRAME_NONE_ERR
 

@@ -8,14 +8,14 @@ from __future__ import annotations
 # STDLIB
 from dataclasses import asdict, replace
 from functools import singledispatch
-from typing import Any, Callable, NoReturn, TypeVar
+from typing import Any, Callable, TypeVar
 
 # THIRD PARTY
 import astropy.units as u
-from astropy.utils.decorators import format_doc
 
 # LOCAL
-from trackstream.stream.core import StreamArm, SupportsFrame
+from trackstream._typing import SupportsFrame
+from trackstream.stream.core import StreamArm
 from trackstream.stream.plural import StreamArms, StreamArmsBase
 from trackstream.stream.stream import Stream, StreamArmsDescriptor
 
@@ -33,7 +33,7 @@ Self = TypeVar("Self", bound=SupportsFrame)
 ##############################################################################
 
 
-def add_method_to_cls(cls: type, attr: str | None) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+def _add_method_to_cls(cls: type, attr: str | None) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Add a method to a class.
 
     .. todo::
@@ -84,7 +84,7 @@ def fit_stream(
     *,
     force: bool = False,
     **kwargs: Any,
-) -> NoReturn:
+) -> Any:  # https://github.com/python/mypy/issues/11727
     """Convenience method to fit a frame to a stream.
 
     The frame is an on-sky rotated frame. To prevent a frame from being fit, the
@@ -105,7 +105,7 @@ def fit_stream(
     Returns
     -------
     object
-        A copy, with `frame` replaced.
+        A copy of the stream, with `frame` replaced.
 
     Raises
     ------
@@ -116,45 +116,47 @@ def fit_stream(
     raise NotImplementedError("not dispatched")
 
 
-@add_method_to_cls(StreamArm, "fit_frame")
+@_add_method_to_cls(StreamArm, "fit_frame")
 @fit_stream.register(StreamArm)
-@format_doc(fit_stream.__doc__)
 def _fit_stream_StreamArm(
-    self: StreamArm,
+    arm: StreamArm,
     rot0: u.Quantity[u.deg] | None = u.Quantity(0, u.deg),
     *,
     force: bool = False,
     **kwargs: Any,
 ) -> StreamArm:
-    if self.frame is not None and not force:
+    if arm.frame is not None and not force:
         raise TypeError("a system frame was given at initialization. Use ``force`` to re-fit.")
 
     # LOCAL
     from trackstream.frame.fit import fit_frame
 
     # fit_frame uses single-dispatch to get the correct output type
-    result = fit_frame(self, rot0=rot0, **kwargs)
+    result = fit_frame(arm, rot0=rot0, **kwargs)
 
     # Make new stream(arm)
-    newstream = replace(self, frame=result.frame)
+    newstream = replace(arm, frame=result.frame, origin=arm.origin.transform_to(result.frame))
     newstream._cache["frame_fit_result"] = result
-    newstream.flags.set(**asdict(self.flags))
+    newstream.flags.set(**asdict(arm.flags))
 
     return newstream
 
 
-@add_method_to_cls(StreamArmsBase, "fit_frame")
+_fit_stream_StreamArm.__doc__ = fit_stream.__doc__
+# NOTE: `format_doc` is untyped, so untypes wrapped funcs
+
+
+@_add_method_to_cls(StreamArmsBase, "fit_frame")
 @fit_stream.register(StreamArmsBase)
-@format_doc(fit_stream.__doc__)
 def _fit_stream_StreamArmsBase(
-    self: StreamArmsBase,
+    arms: StreamArmsBase,
     rot0: u.Quantity[u.deg] | None = u.Quantity(0, u.deg),
     *,
     force: bool = False,
     **kwargs: Any,
 ) -> StreamArmsBase:
     if not force:
-        for n, f in self.frame.items():
+        for n, f in arms.frame.items():
             if f is not None:
                 raise TypeError(f"a system frame was given for {n} at initialization. Use ``force`` to re-fit.")
 
@@ -162,62 +164,70 @@ def _fit_stream_StreamArmsBase(
     from trackstream.frame.fit import fit_frame
 
     # fit_frame uses single-dispatch to get the correct output type
-    results = fit_frame(self, rot0=rot0, **kwargs)
+    results = fit_frame(arms, rot0=rot0, **kwargs)
 
     # New Stream, with frame set. Need to set for each contained arm.
     data = {}
-    for k, arm in self.items():
-        newarm = replace(arm, frame=results[k].frame)
+    for k, arm in arms.items():
+        newarm = replace(arm, frame=results[k].frame, origin=arm.origin.transform_to(results[k].frame))
         newarm._cache["frame_fit_result"] = results[k]
         newarm.flags.set(**asdict(arm.flags))
         data[k] = newarm
 
-    newstream = type(self)(data)
+    newstream = type(arms)(data)
 
     return newstream
 
 
-@add_method_to_cls(StreamArmsDescriptor, "fit_frame")
+_fit_stream_StreamArmsBase.__doc__ = fit_stream.__doc__
+# NOTE: `format_doc` is untyped, so untypes wrapped funcs
+
+
+@_add_method_to_cls(StreamArmsDescriptor, "fit_frame")
 @fit_stream.register(StreamArmsDescriptor)
 def _fit_stream_StreamArmsDescriptor(
-    self: StreamArmsDescriptor,
+    arms_descr: StreamArmsDescriptor,
     rot0: u.Quantity[u.deg] | None = u.Quantity(0, u.deg),
     *,
     force: bool = False,
     **kwargs: Any,
 ) -> StreamArms:
-    return fit_stream(StreamArms(dict(self.items())), rot0=rot0, force=force, **kwargs)
+    """Fit StreamArmsDescriptor as a StreamArms (a collection of arms)."""
+    return fit_stream(StreamArms(dict(arms_descr.items())), rot0=rot0, force=force, **kwargs)
 
 
-@add_method_to_cls(Stream, "fit_frame")
+@_add_method_to_cls(Stream, "fit_frame")
 @fit_stream.register(Stream)
-@format_doc(fit_stream.__doc__)
 def _fit_stream_Stream(
-    self: Stream,
+    stream: Stream,
     rot0: u.Quantity[u.deg] | None = u.Quantity(0, u.deg),
     *,
     force: bool = False,
     **kwargs: Any,
 ) -> Stream:
-    if self.frame is not None and not force:
+    if stream.frame is not None and not force:
         raise TypeError("a system frame was given at initialization. Use ``force`` to re-fit.")
 
     # LOCAL
     from trackstream.frame.fit import fit_frame
 
     # fit_frame uses single-dispatch to get the correct output type
-    result = fit_frame(self, rot0=rot0, **kwargs)
+    result = fit_frame(stream, rot0=rot0, **kwargs)
 
     # New Stream, with frame set. Need to set for each contained arm.
     data = {}
-    for k, arm in self.items():
-        newarm = replace(arm, frame=result.frame)
+    for k, arm in stream.items():
+        newarm = replace(arm, frame=result.frame, origin=stream.origin.transform_to(result.frame))
         newarm._cache["frame_fit_result"] = result
         newarm.flags.set(**asdict(arm.flags))
         data[k] = newarm
 
-    newstream = type(self)(data, name=self.name)
+    newstream = type(stream)(data, name=stream.name)
     newstream._cache["frame_fit_result"] = result
-    newstream.flags.set(**self.flags.asdict())
+    newstream.flags.set(**stream.flags.asdict())
 
     return newstream
+
+
+_fit_stream_Stream.__doc__ = fit_stream.__doc__
+# NOTE: `format_doc` is untyped, so untypes wrapped funcs

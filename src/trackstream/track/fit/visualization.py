@@ -10,10 +10,12 @@ from typing import TYPE_CHECKING, Any, cast
 
 # THIRD PARTY
 import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
 from numpy import ndarray
 
 if TYPE_CHECKING:
+    # THIRD PARTY
+    from matplotlib.figure import Figure
+
     # LOCAL
     from trackstream.fit.track.core import StreamArmTrack
     from trackstream.stream.base import StreamBase
@@ -62,7 +64,7 @@ def fit_frame_multipanel(
     Exception
         If the stream does not have a fit frame.
     """
-    return stream.cache["frame_fit"].plot.multipanel(
+    return stream.cache["frame_fit_result"].plot.multipanel(
         stream=stream, origin=origin, axes=axes, format_ax=format_ax, **kwargs
     )
 
@@ -71,7 +73,8 @@ def full_multipanel(
     track: StreamArmTrack,
     *,
     origin: bool = True,
-    frame_kw: dict[str, Any] | None = None,
+    from_frame_kw: dict[str, Any] | None = None,
+    in_frame_kw: dict[str, Any] | None = None,
     som_kw: dict[str, Any] | None = None,
     kalman_kw: dict[str, Any] | None = None,
     format_ax: bool = True,
@@ -83,7 +86,7 @@ def full_multipanel(
     origin : bool, optional keyword-only
         Whether to plot the origin, by default `True`.
 
-    frame_kw : dict[str, Any] or None, optional keyword-only
+    in_frame_kw : dict[str, Any] or None, optional keyword-only
         Options passed to ``.in_frame()``.
     som_kw : dict[str, Any] or None, optional keyword-only
         Options passed to ``.som()``.
@@ -110,11 +113,14 @@ def full_multipanel(
         axs.shape = (-1, 1)
 
     # Plot frame fit
-    fit_frame_multipanel(stream, axes=axs[:3, :], format_ax=format_ax, origin=origin, **(frame_kw or {}))
+    fit_frame_multipanel(stream, axes=axs[:3, :], format_ax=format_ax, origin=origin, **(from_frame_kw or {}))
+
+    axs[2, 0].clear()
+    axs[2, 1].clear()
 
     track.plot.full_multipanel(
         origin=origin,
-        in_frame_kw=frame_kw,
+        in_frame_kw=in_frame_kw,
         som_kw=som_kw,
         kalman_kw=kalman_kw,
         axes=axs[2:, :],

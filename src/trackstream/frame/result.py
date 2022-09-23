@@ -1,4 +1,4 @@
-"""Fit a Rotated reference frame."""
+"""Fit a rotated reference frame to stream data."""
 
 ##############################################################################
 # IMPORTS
@@ -8,15 +8,13 @@ from __future__ import annotations
 # STDLIB
 from dataclasses import dataclass
 from functools import singledispatchmethod
-from typing import TYPE_CHECKING, Any, Generic, Mapping, Sequence, TypeVar, final
+from typing import TYPE_CHECKING, Any, Generic, Mapping, Sequence, TypeVar, cast, final
 
 # THIRD PARTY
 import astropy.coordinates as coords
 import astropy.units as u
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.axes import Axes
-from matplotlib.figure import Figure
 from scipy.optimize import OptimizeResult
 
 # LOCAL
@@ -26,11 +24,13 @@ from trackstream.utils.visualization import PlotDescriptorBase
 if TYPE_CHECKING:
     # THIRD PARTY
     from astropy.units import Quantity
+    from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
 
     # LOCAL
     from trackstream.stream.base import StreamBase
 
-__all__ = ["FrameOptimizeResult"]
+__all__: list[str] = []
 
 
 ##############################################################################
@@ -76,7 +76,7 @@ class FrameOptimizeResultPlotDescriptor(PlotDescriptorBase["FrameOptimizeResult"
         rotation_angles = np.linspace(-180, 180, num=1_000, dtype=float)
         r = fr.origin.data
         xyz = (
-            stream.data_coords.represent_as(coords.UnitSphericalRepresentation)
+            stream.data_coords.represent_as(coords.UnitSphericalRepresentation)  # type: ignore
             .represent_as(coords.CartesianRepresentation)
             .xyz.value
         )
@@ -119,14 +119,14 @@ class FrameOptimizeResultPlotDescriptor(PlotDescriptorBase["FrameOptimizeResult"
         plot_vs: bool,
         kwargs: Mapping[str, Any],
     ) -> None:
-        stream.plot.in_frame(frame="ICRS", kind="positions", ax=axs[0], origin=origin, **kwargs)
+        stream.plot.in_frame(frame="icrs", kind="positions", ax=axs[0], origin=origin, **kwargs)
         if format_ax and set_title:
             axs[0].set_title("Stream Star Positions")
 
         if plot_vs:
-            ORIGIN_HAS_VS = "s" in stream.origin.data.differentials
+            ORIGIN_HAS_VS = "s" in stream.origin.data.differentials  # type: ignore
 
-            stream.plot.in_frame(frame="ICRS", kind="kinematics", ax=axs[1], origin=origin and ORIGIN_HAS_VS, **kwargs)
+            stream.plot.in_frame(frame="icrs", kind="kinematics", ax=axs[1], origin=origin and ORIGIN_HAS_VS, **kwargs)
             if format_ax and set_title:
                 axs[1].set_title("Stream Star Kinematics")
 
@@ -136,7 +136,7 @@ class FrameOptimizeResultPlotDescriptor(PlotDescriptorBase["FrameOptimizeResult"
         fr: FrameOptimizeResult,
         *,
         origin: bool,
-        kwargs: Mapping[str, Any],
+        kwargs: dict[str, Any],
         axs: Sequence[Axes],
         plot_vs: bool,
     ) -> None:
@@ -155,7 +155,7 @@ class FrameOptimizeResultPlotDescriptor(PlotDescriptorBase["FrameOptimizeResult"
         stream.plot.in_frame(frame="stream", kind="positions", c=c, ax=axs[0], label=label, origin=origin, **kwargs)
 
         if plot_vs:
-            ORIGIN_HAS_VS = "s" in stream.origin.data.differentials
+            ORIGIN_HAS_VS = "s" in stream.origin.data.differentials  # type: ignore
 
             stream.plot.in_frame(
                 frame="stream",
@@ -251,6 +251,9 @@ class FrameOptimizeResultPlotDescriptor(PlotDescriptorBase["FrameOptimizeResult"
         return fig, axs
 
 
+# ===================================================================
+
+
 @final
 @dataclass(frozen=True, repr=True)
 class FrameOptimizeResult(Generic[R]):
@@ -258,61 +261,83 @@ class FrameOptimizeResult(Generic[R]):
 
     Parameters
     ----------
-    origin : `~astropy.coordinates.SkyCoord`
-        The location of point on sky about which to rotate.
-    rotation : Quantity['angle']
-        The rotation about the ``origin``.
-    **kwargs : Any
-        Fit results. See `~scipy.optimize.OptimizeResult`.
+    frame : |Frame|
+        The fit frame.
+    result : object
+        Fit results, e.g. `~scipy.optimize.OptimizeResult` if the frame was fit
+        using :mod:`scipy`.
     """
 
     plot = FrameOptimizeResultPlotDescriptor()
 
+    # ===============================================================
+
     frame: coords.SkyOffsetFrame
     result: R
-
-    @singledispatchmethod
-    @classmethod
-    def from_result(
-        cls: type[FrameOptimizeResult[Any]], optimize_result: object, from_frame: coords.BaseCoordinateFrame
-    ) -> FrameOptimizeResult[R]:
-        if not isinstance(optimize_result, cls):
-            raise NotImplementedError(f"optimize_result type {type(optimize_result)} is not known.")
-
-        # overload + Self is implemented here until it works
-        if from_frame is not None and optimize_result.frame != from_frame:
-            raise ValueError
-        return cls(optimize_result.frame, optimize_result.result)
-
-    @from_result.register(OptimizeResult)
-    @classmethod
-    def _from_result_scipyoptresult(
-        cls: type[FrameOptimizeResult[Any]], optimize_result: OptimizeResult, from_frame: coords.BaseCoordinateFrame
-    ) -> FrameOptimizeResult[OptimizeResult]:
-        # Get coordinates
-        optimize_result.x <<= u.deg
-        fit_rot, fit_lon, fit_lat = optimize_result.x
-        # create SkyCoord
-        r = coords.UnitSphericalRepresentation(lon=fit_lon, lat=fit_lat)
-        origin = coords.SkyCoord(
-            from_frame.realize_frame(r, representation_type=from_frame.representation_type), copy=False
-        )
-        # transform to offset frame
-        fit_frame = origin.skyoffset_frame(rotation=fit_rot)
-        fit_frame.representation_type = from_frame.representation_type
-        return cls(fit_frame, optimize_result)
 
     # ===============================================================
 
     @property
     def rotation(self) -> Quantity:
         """The rotation of point on sky."""
-        return self.frame.rotation
+        return cast(u.Quantity, self.frame.rotation)
 
     @property
     def origin(self) -> coords.BaseCoordinateFrame:
         """The location of point on sky."""
-        return self.frame.origin
+        return cast(coords.BaseCoordinateFrame, self.frame.origin)
+
+    # ===============================================================
+
+    @singledispatchmethod
+    @classmethod
+    def from_result(
+        cls: type[FrameOptimizeResult[Any]], optimize_result: object, frame: coords.BaseCoordinateFrame | None
+    ) -> FrameOptimizeResult[R]:
+        """Construct from object.
+
+        Parameters
+        ----------
+        optimize_result : object
+            Instantiation is single-dispatched on the object type.
+        frame : Frame | None
+            The fit frame.
+
+        Returns
+        -------
+        FrameOptimizeResult
+            With attribute ``result`` determed by ``optimize_result``.
+
+        Raises
+        ------
+        NotImplementedError
+            If there is no dispatched method.
+        ValueError
+            If the frame is not `None` and not equal to the frame in ``optimize_result``.
+        """
+        if not isinstance(optimize_result, cls):
+            raise NotImplementedError(f"optimize_result type {type(optimize_result)} is not known.")
+
+        # overload + Self is implemented here until it works
+        if frame is not None and frame != optimize_result.frame:
+            raise ValueError("frame must be None or the same as optimize_result's frame")
+        return cls(frame=optimize_result.frame, result=optimize_result.result)
+
+    @from_result.register(OptimizeResult)
+    @classmethod
+    def _from_result_scipyoptresult(
+        cls: type[FrameOptimizeResult[Any]], optimize_result: OptimizeResult, frame: coords.BaseCoordinateFrame
+    ) -> FrameOptimizeResult[OptimizeResult]:
+        # Get coordinates
+        optimize_result.x <<= u.deg
+        fit_rot, fit_lon, fit_lat = optimize_result.x
+        # create SkyCoord
+        r = coords.UnitSphericalRepresentation(lon=fit_lon, lat=fit_lat)
+        origin = coords.SkyCoord(frame.realize_frame(r, representation_type=frame.representation_type), copy=False)
+        # transform to offset frame
+        fit_frame = origin.skyoffset_frame(rotation=fit_rot)
+        fit_frame.representation_type = frame.representation_type
+        return cls(fit_frame, optimize_result)
 
     # ===============================================================
 
@@ -322,14 +347,15 @@ class FrameOptimizeResult(Generic[R]):
         Parameters
         ----------
         data : (N,) `~astropy.coordinates.SkyCoord`
+            The data for which to calculate the residual.
         scalar : bool
-            Whether to sum the results.
+            Whether to sum the results to a scalar value.
 
         Returns
         -------
-        `~astropy.units.Quantity`
+        Quantity
             Scalar if ``scalar``, else length N.
         """
-        ur = data.transform_to(self.frame).represent_as(coords.UnitSphericalRepresentation)
+        ur = data.transform_to(self.frame).represent_as(coords.UnitSphericalRepresentation)  # type: ignore
         res: Quantity = np.abs(ur.lat - 0.0 * u.rad)
         return np.sum(res) if scalar else res

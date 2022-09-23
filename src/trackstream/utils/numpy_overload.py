@@ -7,18 +7,21 @@ from __future__ import annotations
 import inspect
 from dataclasses import dataclass, field
 from functools import singledispatch
-from types import MappingProxyType
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Iterator,
     KeysView,
     Mapping,
-    NoReturn,
     TypeVar,
     ValuesView,
     final,
 )
+
+if TYPE_CHECKING:
+    # STDLIB
+    from types import MappingProxyType
 
 __all__ = ["NumPyOverloader", "TypeInfo"]
 
@@ -111,7 +114,7 @@ class Dispatcher:
 
     def __init__(self) -> None:
         @singledispatch
-        def dispatcher(obj: object) -> NoReturn:
+        def dispatcher(obj: object) -> Any:  # https://github.com/python/mypy/issues/11727
             raise NotImplementedError("not dispatched")
 
         self._dispatcher = dispatcher

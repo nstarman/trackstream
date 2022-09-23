@@ -7,18 +7,13 @@ from __future__ import annotations
 
 # STDLIB
 import functools
-from typing import TYPE_CHECKING, Any, Callable, Mapping, Tuple, TypedDict, Union
+from typing import TYPE_CHECKING, Any, Callable, Mapping, Tuple, TypedDict, Union, cast
 
 # THIRD PARTY
+import astropy.coordinates as coords
 import astropy.units as u
 import numpy as np
 import scipy.optimize as opt
-from astropy.coordinates import (
-    BaseCoordinateFrame,
-    CartesianRepresentation,
-    SkyCoord,
-    UnitSphericalRepresentation,
-)
 from astropy.coordinates.matrix_utilities import rotation_matrix
 from astropy.units import Quantity
 from erfa import ufunc as erfa_ufunc
@@ -36,7 +31,7 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
     from typing_extensions import TypeAlias
 
-__all__ = ["fit_frame"]
+__all__: list[str] = []
 
 
 ##############################################################################
@@ -147,8 +142,8 @@ _default_minimize = opt.minimize
 
 
 class _FitFrameNeededInfo(TypedDict):
-    data: BaseCoordinateFrame | SkyCoord
-    origin: BaseCoordinateFrame | SkyCoord
+    data: coords.BaseCoordinateFrame | coords.SkyCoord
+    origin: coords.BaseCoordinateFrame | coords.SkyCoord
 
 
 @functools.singledispatch
@@ -171,19 +166,22 @@ def _fit_frame_dict(
 
     # Represent that data in unitless on-unit-sphere Cartesian coordinates.
     # Routing through UnitSphericalRepresentation to strip units and be on unit sphere.
-    xyz: Quantity = info["data"].represent_as(UnitSphericalRepresentation).represent_as(CartesianRepresentation).xyz
+    usrep: coords.UnitSphericalRepresentation
+    usrep = info["data"].represent_as(coords.UnitSphericalRepresentation)  # type: ignore
+
+    crep = cast(coords.CartesianRepresentation, usrep.represent_as(coords.CartesianRepresentation))
+    xyz: Quantity = crep.xyz
 
     # Put origin in same frame as the data.
-    orep: UnitSphericalRepresentation = (
-        info["origin"].transform_to(from_frame).represent_as(UnitSphericalRepresentation)
-    )
+    orep: coords.UnitSphericalRepresentation
+    orep = getattr(info["origin"], "transform_to")(from_frame).represent_as(coords.UnitSphericalRepresentation)
 
     # Run minimizer
     x0 = Quantity([rot0, orep.lon, orep.lat], unit=u.deg).value
     optresult = run_minimizer(minimizer, data=xyz, x0=x0, minimizer_kwargs=minimizer_kwargs)
 
     # store and return minimizer results
-    result: FrameOptimizeResult[Any] = FrameOptimizeResult.from_result(optresult, from_frame=from_frame)
+    result: FrameOptimizeResult[Any] = FrameOptimizeResult.from_result(optresult, frame=from_frame)
     return result
 
 
@@ -195,6 +193,7 @@ def _fit_frame_StreamArm(
     minimizer: str | Callable[..., Any] = _default_minimize,
     **minimizer_kwargs: Any,
 ) -> FrameOptimizeResult[Any]:
+    """Fit Frame to a stream arm."""
     # Make dictionary of needed info
     info = _FitFrameNeededInfo(data=stream.data_coords, origin=stream.origin)
     # Fit frame
@@ -211,6 +210,7 @@ def _fit_frame_StreamArmsBase(
     minimizer: str | Callable[..., Any] = _default_minimize,
     **minimizer_kwargs: Any,
 ) -> dict[str, FrameOptimizeResult[Any]]:
+    """Fit Frame as many arms."""
     results = {}
     for k, v in streams.items():
         results[k] = fit_frame(v, rot0=rot0, minimizer=minimizer, **minimizer_kwargs)
@@ -225,6 +225,7 @@ def _fit_frame_Stream(
     minimizer: str | Callable[..., Any] = _default_minimize,
     **minimizer_kwargs: Any,
 ) -> FrameOptimizeResult[Any]:
+    """Fit Frame as one, not many arms."""
     # Make dictionary of needed info
     info = _FitFrameNeededInfo(data=stream.data_coords, origin=stream.origin)
     # Fit frame

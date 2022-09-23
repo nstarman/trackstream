@@ -10,7 +10,7 @@ import warnings
 from copy import deepcopy
 from dataclasses import dataclass
 from functools import singledispatchmethod
-from typing import ClassVar, NamedTuple, NoReturn, cast, final
+from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple, cast, final
 
 # THIRD PARTY
 import astropy.units as u
@@ -19,16 +19,22 @@ import numpy.lib.recfunctions as rfn
 from numpy import dot
 from numpy.linalg import inv
 from scipy.linalg import block_diag
-from typing_extensions import Self
 
 # LOCAL
 from trackstream.stream.core import StreamArm
-from trackstream.track.fit.errors import EXCEPT_NO_KINEMATICS
+from trackstream.track.fit.exceptions import EXCEPT_NO_KINEMATICS
 from trackstream.track.fit.kalman.utils import intermix_arrays
-from trackstream.track.fit.utils import FrameInfo, f2q
+from trackstream.track.fit.utils import FrameInfo
 from trackstream.track.utils import is_structured
-from trackstream.track.width.plural import Widths
+from trackstream.utils.coord_utils import f2q
 from trackstream.utils.unit_utils import merge_units
+
+if TYPE_CHECKING:
+    # THIRD PARTY
+    from typing_extensions import Self
+
+    # LOCAL
+    from trackstream.track.width.plural import Widths
 
 __all__: list[str] = []
 
@@ -130,7 +136,7 @@ class FONKFBase:
         *,
         kinematics: bool | None = None,
         width0: None | Widths = None,
-    ) -> NoReturn:
+    ) -> Any:  # https://github.com/python/mypy/issues/11727
         raise NotImplementedError("not dispatched")
 
     @from_format.register(StreamArm)
@@ -260,7 +266,7 @@ class FONKFBase:
 
         Parameters
         ----------
-        dt : scalar or (N,)
+        dt : (N,) or (N, 2) array
             Time step or array thereof. Must be a structured ndarray with fields
             ``positions`` and ``kinematics`` (if
             `~trackstream.fit.kalman.FONKFBase.kinematics` is `True`).
@@ -272,8 +278,10 @@ class FONKFBase:
             nfeature) or (N, nfeature, nfeature), depending if ``dt`` was scalar or of
             length ``N``.
         """
-        if len(np.shape(dt)) == 1:
+        if len(dt.shape) == 1 or dt.shape[1] == 1:
             dt = np.c_[dt, dt]
+        elif len(dt.shape) > 2:
+            raise ValueError
 
         # # make single block of F matrix
         # # [[position to position, position from velocity]
@@ -309,8 +317,10 @@ class FONKFBase:
         (D, D) ndarray
             The ``Q`` term of a Kalman filter.
         """
-        if len(np.shape(dt)) == 1:
+        if len(dt.shape) == 1 or dt.shape[1] == 1:
             dt = np.c_[dt, dt]
+        elif len(dt.shape) > 2:
+            raise ValueError
 
         nd = self.nfeature
         Q = np.zeros((np.shape(dt)[0], 2 * nd, 2 * nd))
@@ -376,9 +386,6 @@ class FONKFBase:
         """
         # -------------------
         # Prior Prediction
-
-        # if i >= 1006:
-        #     import pdb; pdb.set_trace()
 
         # predict position (not including a control matrix)
         x = dot(F, x)
@@ -478,7 +485,7 @@ class FONKFBase:
             The data to fit with the Kalman filter.
         errors : (N,) Quantity
         width : (N,) Quantity
-        timesteps: (N,) ndarray
+        timesteps: (N,) or (N, 2) ndarray
             Must be start and end-point inclusive.
 
         Returns
@@ -487,32 +494,39 @@ class FONKFBase:
         """
         # ------ setup ------
 
+        N = len(data)
+
         # Get the time deltas from the time steps.
         # Checking the time steps are compatible with the data.
-        if len(timesteps) != len(data):
-            raise ValueError(f"len(timesteps)={len(timesteps)} is not {len(data)}")
+        if len(timesteps) != N:
+            raise ValueError(f"len(timesteps)={len(timesteps)} is not {N}")
+        elif len(widths) != N:
+            raise ValueError(f"len(widths)={len(widths)} is not {N}")
+        elif len(errors) != N:
+            raise ValueError(f"len(errors)={len(errors)} is not {N}")
         elif np.any(timesteps < 0):
             raise ValueError("timesteps must be >= 0")
+
+        # Widths
+        Ws = np.zeros((N, self.nfeature))
+        Ws[:] = widths**2
 
         # Error matrix
         #
         # TODO! it would be great to be able to transform errors as well. For
         # now, the errors must be in kalman filter's rep/diff type and units
         idx = np.arange(self.nfeature)  # diagonal indices
-        Rs = np.zeros((len(errors), self.nfeature, self.nfeature))
+        Rs = np.zeros((N, self.nfeature, self.nfeature))
         Rs[:, idx, idx] = errors**2  # assign to diagonal
-
-        # Widths
-        Ws = np.zeros((len(errors), self.nfeature))
-        Ws[:] = widths**2
+        # Rs[:, idx, idx] += Ws[:]  # add stream width to uncertainty
 
         # ------ IC (i-1) ------
 
         x, P = self.x0, self.P0  # KF
 
         # initialize arrays
-        Xs = np.empty((len(data), *np.shape(x)))
-        Ps = np.empty((len(data), *np.shape(P)))
+        Xs = np.empty((N, *np.shape(x)))
+        Ps = np.empty((N, *np.shape(P)))
 
         # Make the transition model and process noise model
         Fs = self.state_transition_model(timesteps)

@@ -8,7 +8,7 @@
 # STDLIB
 import copy
 from copyreg import pickle
-from typing import Any, Dict, Iterator, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional, Type, TypeVar
 
 # THIRD PARTY
 import pytest
@@ -20,11 +20,14 @@ from attr import evolve
 from .test_base import StreamBaseTest
 from trackstream.base import StreamBase
 from trackstream.core import Stream
-from trackstream.stream.arm import StreamArm
 from trackstream.stream.tests.test_arm import StreamArmTestMixin
 from trackstream.tests.helper import IbataEtAl2017  # noqa: F401
 from trackstream.track.fitter import TrackStreamArm
 from trackstream.utils import resolve_framelike
+
+if TYPE_CHECKING:
+    # LOCAL
+    from trackstream.stream.arm import StreamArm
 
 S = TypeVar("S", bound=StreamBase)
 

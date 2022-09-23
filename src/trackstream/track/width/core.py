@@ -21,7 +21,7 @@ from trackstream.utils.descriptors.classproperty import classproperty
 
 if TYPE_CHECKING:
     # LOCAL
-    from .interpolated import InterpolatedWidth
+    from trackstream.track.width.interpolated import InterpolatedWidth
 
 
 __all__ = ["BaseWidth"]
@@ -146,6 +146,17 @@ class BaseWidth(WidthBase, metaclass=ABCMeta):
         return represent_as(self, width_type, point)
 
     # ===============================================================
+    # Magic Methods
+
+    @singledispatchmethod
+    def __lt__(self, other: object) -> Any:  # https://github.com/python/mypy/issues/11727
+        return NotImplemented
+
+    @singledispatchmethod
+    def __setitem__(self, key: object, value: Any) -> Any:  # https://github.com/python/mypy/issues/11727
+        raise NotImplementedError("not dispatched")
+
+    # ===============================================================
     # I/O
 
     @singledispatchmethod
@@ -185,7 +196,7 @@ class BaseWidth(WidthBase, metaclass=ABCMeta):
     ) -> Any:
         """Interface with :mod:`numpy` functions."""
         # LOCAL
-        from .interop import WB_FUNCS
+        from trackstream.track.width.interop import WB_FUNCS
 
         if func not in WB_FUNCS:
             return NotImplemented
@@ -195,6 +206,27 @@ class BaseWidth(WidthBase, metaclass=ABCMeta):
         if not finfo.validate_types(types):
             return NotImplemented
         return finfo.func(*args, **kwargs)
+
+
+@BaseWidth.__lt__.register(BaseWidth)
+def _lt_basewidth(self, other: BaseWidth) -> dict[str, np.ndarray]:
+    if not isinstance(other, self.__class__):
+        return NotImplemented
+
+    return {f.name: getattr(self, f.name) < getattr(other, f.name) for f in fields(self)}
+
+
+@BaseWidth.__setitem__.register(Mapping)
+def _setitem_mapping(self, key: Mapping[str, Any], value: BaseWidth) -> None:
+    if key.keys() != {f.name for f in fields(self)}:
+        return NotImplemented
+    elif key.keys() != {f.name for f in fields(value)}:
+        return NotImplemented
+
+    # Delegate to contained fields
+    for f in fields(self):
+        k = f.name
+        getattr(self, k)[key[k]] = getattr(value, k)
 
 
 # ===================================================================

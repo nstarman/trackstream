@@ -11,19 +11,19 @@ from typing import TYPE_CHECKING, Any
 
 # THIRD PARTY
 import numpy as np
-from astropy.units import Quantity
 from numpy import asanyarray
 
 # LOCAL
-from trackstream.stream.core import StreamArm
-from trackstream.track.fit.utils import f2q
+from trackstream.utils.coord_utils import f2q
 from trackstream.utils.unit_utils import merge_units
 
 if TYPE_CHECKING:
     # THIRD PARTY
+    from astropy.units import Quantity
     from numpy.typing import ArrayLike, NDArray
 
     # LOCAL
+    from trackstream.stream.core import StreamArm
     from trackstream.track.fit.kalman.core import FirstOrderNewtonianKalmanFilter
 
 __all__: list[str] = []

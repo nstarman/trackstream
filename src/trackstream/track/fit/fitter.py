@@ -6,36 +6,39 @@
 from __future__ import annotations
 
 # STDLIB
+import copy
 from dataclasses import InitVar, dataclass
 from functools import singledispatchmethod
-from typing import TYPE_CHECKING, Any, ClassVar, NoReturn, TypeVar, cast, final
+from typing import TYPE_CHECKING, Any, TypeVar, cast, final
 
 # THIRD PARTY
 import astropy.coordinates as coords
 import astropy.units as u
 import numpy as np
-from numpy import ndarray
-from typing_extensions import ParamSpec, Self, TypedDict
+from typing_extensions import ParamSpec, Self
 
 # LOCAL
-from trackstream.stream.base import CacheProperty
 from trackstream.stream.core import StreamArm
 from trackstream.stream.plural import StreamArmsBase
-from trackstream.track.fit.errors import EXCEPT_3D_NO_DISTANCES, EXCEPT_NO_KINEMATICS
-from trackstream.track.fit.kalman.base import kalman_output
+from trackstream.track.fit.exceptions import (
+    EXCEPT_3D_NO_DISTANCES,
+    EXCEPT_NO_KINEMATICS,
+)
 from trackstream.track.fit.kalman.core import FirstOrderNewtonianKalmanFilter
 from trackstream.track.fit.kalman.utils import make_error
 from trackstream.track.fit.som import SelfOrganizingMap
 from trackstream.track.fit.timesteps import make_timesteps
-from trackstream.track.fit.timesteps.plural import Times
+from trackstream.track.fit.timesteps.plural import LENGTH, SPEED, Times
 from trackstream.track.width.plural import Widths
 from trackstream.utils.coord_utils import deep_transform_to
 
 if TYPE_CHECKING:
+    # THIRD PARTY
+
     # LOCAL
     from trackstream.track.core import StreamArmTrack
 
-__all__ = ["FitterStreamArmTrack"]
+__all__: list[str] = []
 
 
 ##############################################################################
@@ -50,11 +53,11 @@ P = ParamSpec("P")
 ##############################################################################
 
 
-class _TSCacheDict(TypedDict):
-    """Cache for FitterStreamArmTrack."""
+# class _TSCacheDict(TypedDict):
+#     """Cache for FitterStreamArmTrack."""
 
-    visit_order: ndarray | None
-    mean_path: kalman_output | None
+#     # visit_order: ndarray | None
+#     # mean_path: kalman_output | None
 
 
 @final
@@ -73,8 +76,8 @@ class FitterStreamArmTrack:
         Should the track be fit with or without kinematic information.
     """
 
-    _CACHE_CLS: ClassVar[type] = _TSCacheDict
-    cache = CacheProperty()
+    # _CACHE_CLS: ClassVar[type] = _TSCacheDict
+    # cache = CacheProperty()
 
     # The bad de
     som: SelfOrganizingMap
@@ -125,7 +128,7 @@ class FitterStreamArmTrack:
         *,
         som_kw: dict[str, Any] | None = None,
         kalman_kw: dict | None = None,
-    ) -> NoReturn:
+    ) -> Any:  # https://github.com/python/mypy/issues/11727
         raise NotImplementedError("not dispatched")
 
     @from_format.register(StreamArm)
@@ -182,8 +185,8 @@ class FitterStreamArmTrack:
     def _default_dt0(self) -> Times:
         dt0 = Times(
             {
-                "length": u.Quantity(0.5, u.deg) if self.kalman.onsky else u.Quantity(10.0, u.pc),
-                "speed": u.Quantity(0.01, u.Unit("mas / yr")) if self.kalman.onsky else u.Quantity(1.0, u.km / u.s),
+                LENGTH: u.Quantity(0.5, u.deg) if self.kalman.onsky else u.Quantity(10.0, u.pc),
+                SPEED: u.Quantity(0.01, u.Unit("mas / yr")) if self.kalman.onsky else u.Quantity(1.0, u.km / u.s),
             }
         )
         return dt0
@@ -192,11 +195,21 @@ class FitterStreamArmTrack:
     def _default_dtmin(self) -> Times:
         dtmin = Times(
             {
-                "length": u.Quantity(0.01, u.deg) if self.kalman.onsky else u.Quantity(0.01, u.pc),
-                "speed": u.Quantity(0.01, u.Unit("mas / yr")) if self.kalman.onsky else u.Quantity(0.01, u.km / u.s),
+                LENGTH: u.Quantity(0.01, u.deg) if self.kalman.onsky else u.Quantity(0.01, u.pc),
+                SPEED: u.Quantity(0.01, u.Unit("mas / yr")) if self.kalman.onsky else u.Quantity(0.01, u.km / u.s),
             }
         )
         return dtmin
+
+    @property
+    def _default_dtmax(self) -> Times:
+        dtmax = Times(
+            {
+                LENGTH: u.Quantity(np.inf, u.deg) if self.kalman.onsky else u.Quantity(np.inf, u.pc),
+                SPEED: u.Quantity(np.inf, u.Unit("mas / yr")) if self.kalman.onsky else u.Quantity(np.inf, u.km / u.s),
+            }
+        )
+        return dtmax
 
     def fit(
         self,
@@ -212,10 +225,9 @@ class FitterStreamArmTrack:
         stream : `trackstream.Stream`, positional-only
             The stream arm to fit.
 
-        width0 : Widths
-        som_kw : dict or None, optional keyword-only
+        som_kw : dict or None, optional
             Keyword options for the SOM.
-        kalman_kw : dict or None, optional keyword-only
+        kalman_kw : dict or None, optional
             - dt0 : Times
             - dtmin : Times
             - dtmax : Times
@@ -228,12 +240,9 @@ class FitterStreamArmTrack:
         # --------------------------------------
         # Setup and Validation
 
-        onsky = self.onsky
-        kinematics = self.kinematics
-
-        if not onsky and not stream.has_distances:
+        if not self.onsky and not stream.has_distances:
             raise EXCEPT_3D_NO_DISTANCES
-        elif kinematics and not stream.has_kinematics:
+        elif self.kinematics and not stream.has_kinematics:
             raise EXCEPT_NO_KINEMATICS
 
         # Frame
@@ -256,43 +265,39 @@ class FitterStreamArmTrack:
 
         # Self-Organizing Map
         projdata, order = self.som.fit_predict(data, **(som_kw or {}))
-        self._cache["visit_order"] = order  # cache result
-        data = data[order]  # re-order data
+        data = data[order]  # re-order data (projdata already ordered)
 
-        # Stream Width
+        # --------------------------------------
+        # Kalman Filter
+
+        kfkw = {} if kalman_kw is None else copy.deepcopy(kalman_kw)  # decouple so can't mutate
+
+        # Stream Width FIXME don't do separation from SOM, instead do separation
+        # from fake prototypes, which are avg of ordered data in segments.
         wb = self.som.separation(data)
-        stream_width = np.convolve(wb, np.ones((10,)) / 10, mode="same")  # TODO! better kernel width selection
+        stream_width = np.convolve(wb, np.ones((10,)) / 10, mode="same")
         stream_width = cast(Widths, stream_width)
+        # Set minimum width from the stream width
+        if (minwidth := kfkw.pop("width_min", None)) is not None:
+            stream_width[stream_width < minwidth] = minwidth
 
         # "Timesteps", projected distances from the SOM
         # The Kalman Filter is run with `timesteps` from the SOM order.
-        # Options are packaged in the kalman filter's kwargs
-        kfkw = {} if kalman_kw is None else kalman_kw
-
         dt0 = Times.from_format(kfkw.pop("dt0", self._default_dt0))
         dtmin = Times.from_format(kfkw.pop("dtmin", self._default_dtmin))
-        _dtmax = kfkw.pop("dtmax", None)
-        dtmax = Times.from_format(_dtmax) if _dtmax is not None else None
+        dtmax = Times.from_format(kfkw.pop("dtmax", self._default_dtmax))
 
-        timesteps = make_timesteps(projdata, kf=self.kalman, dt0=dt0, dtmin=dtmin, dtmax=dtmax, width=6)
+        timesteps = make_timesteps(
+            projdata, kf=self.kalman, dt0=dt0, dtmin=dtmin, dtmax=dtmax, width=kfkw.pop("width", 6)
+        )
+        # Always has ['length']. Also ['speed'] if there's kinematics
 
-        # # THIRD PARTY
-        # import matplotlib.pyplot as plt
-
-        # fig = plt.figure()
-        # plt.plot(timesteps["length"].value)
-        # plt.show()
-
-        # Kalman Filter
         # The Kalman Filter is run with widths along the stream.
         Rs = make_error(stream, self.kalman, default=0)
         Rs = cast(u.Quantity, Rs[order])
 
         path_name = ((stream.full_name or "") + " Path").lstrip()
         path = self.kalman.fit(data, errors=Rs, widths=stream_width, timesteps=timesteps, name=path_name)
-
-        # Cache result
-        self._cache["mean_path"] = path
 
         # -------------------
         # Return Track
@@ -301,7 +306,10 @@ class FitterStreamArmTrack:
         from trackstream.track.core import StreamArmTrack
 
         track = StreamArmTrack(
-            stream, path, name=stream.full_name, meta=dict(som=self.som, visit_order=order, kalman=self.kalman)
+            stream,
+            path,
+            name=stream.full_name,
+            meta=dict(som=self.som, visit_order=order, kalman=self.kalman),
         )
 
         return track

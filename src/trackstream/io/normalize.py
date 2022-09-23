@@ -1,5 +1,3 @@
-"""Core Functions."""
-
 ##############################################################################
 # IMPORTS
 
@@ -8,16 +6,18 @@ from __future__ import annotations
 # STDLIB
 import copy
 from dataclasses import dataclass
-from typing import Mapping
+from typing import TYPE_CHECKING, Mapping
 
 # THIRD PARTY
 import astropy.units as u
 from astropy.coordinates import BaseCoordinateFrame, SkyCoord
 from astropy.table import MaskedColumn, QTable, Table
 from numpy import arange, ones
+from stream.utils.coord_utils import deep_transform_to
 
-# LOCAL
-from trackstream.utils.coord_utils import deep_transform_to
+if TYPE_CHECKING:
+    # THIRD PARTY
+    from stream.core import StreamArm  # noqa: F401
 
 __all__: list[str] = []
 
@@ -58,7 +58,7 @@ class StreamArmDataNormalizer:
 
         Returns
         -------
-        data : :class:`~astropy.table.QTable`
+        data : `~astropy.table.QTable`
         """
         data = QTable()  # going to be assigned in-place
         data.meta = {}
@@ -176,22 +176,17 @@ class StreamArmDataNormalizer:
         else:
             osc = SkyCoord.guess_from_table(original)
 
-        # add coordinates to stream
+        # Add coordinates to stream
         if self.frame is None:  # no new frame
-            # make sure rep type is as expected
-            sc = deep_transform_to(
-                osc,
-                osc.frame,
-                type(osc.data),
-                type(osc.data.differentials["s"]) if "s" in osc.data.differentials else None,
-            )
+            to_frame = osc.frame
+            to_rep = type(osc.data)
+            to_dif = type(osc.data.differentials["s"]) if "s" in osc.data.differentials else None
         else:
-            sc = deep_transform_to(
-                osc,
-                self.frame,
-                self.frame.representation_type,
-                self.frame.differential_type,
-            )
+            to_frame = self.frame
+            to_rep, to_dif = to_frame.representation_type, to_frame.differential_type
+
+        sc: SkyCoord
+        sc = deep_transform_to(osc, to_frame, to_rep, to_dif)
 
         # it's now clean and can be added
         out["coords"] = sc

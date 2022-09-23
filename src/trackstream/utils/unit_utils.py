@@ -7,8 +7,8 @@ from typing import Any, Iterable, Sequence
 
 # THIRD PARTY
 import astropy.units as u
+import numpy.lib.recfunctions as rfn
 from astropy.units.quantity_helper.function_helpers import function_helper
-from numpy.lib import recfunctions
 
 __all__ = ["merge_units"]
 
@@ -33,18 +33,20 @@ def merge_units(*units: u.UnitBase | u.StructuredUnit | None) -> u.StructuredUni
     ----------
     *units : `astropy.units.UnitBase` or `astropy.units.StructuredUnit`
         The units to merge into one structured unit.
+        Units that are `None` are ignored.
 
     Returns
     -------
     `astropy.units.StructuredUnit`
         Structured unit of constituent unit.
     """
+    # filter units, excluding None
     actual_units = tuple(unit for unit in units if isinstance(unit, (u.UnitBase, u.StructuredUnit)))
-    flat = tuple(_izip_units_flat(actual_units))
+    flat = tuple(_izip_units_flat(u.StructuredUnit(actual_units)))
     return u.StructuredUnit(tuple(uu for _, uu in flat), names=tuple(n for n, _ in flat))
 
 
-@function_helper(module=recfunctions)
+@function_helper(helps=rfn.merge_arrays)
 def merge_arrays(
     seqarrays: u.Quantity | Sequence[u.Quantity],
     fill_value: float = -1,
@@ -64,8 +66,14 @@ def merge_arrays(
         Whether to collapse nested fields.
     usemask : {False, True}, optional
         Whether to return a masked array or not.
+
+        .. warning::
+            Not yet supported.
     asrecarray : {False, True}, optional
         Whether to return a recarray (MaskedRecords) or not.
+
+        .. warning::
+            Not yet supported.
 
     Returns
     -------

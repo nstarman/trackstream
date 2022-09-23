@@ -55,3 +55,9 @@ class HasFrame(Protocol):
     @property
     def frame(self) -> BaseCoordinateFrame:
         ...
+
+
+class SupportsFrame(HasFrame, Protocol):
+    @property
+    def frame(self) -> BaseCoordinateFrame | None:
+        ...

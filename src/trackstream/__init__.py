@@ -3,7 +3,7 @@
 """This module contains class and functions for working with stellar streams."""
 
 # LOCAL
-from trackstream import utils  # noqa: F401
+from trackstream import utils  # noqa: F401, TC002
 from trackstream.stream.core import StreamArm
 from trackstream.stream.stream import Stream
 
@@ -15,8 +15,8 @@ __all__ = ["StreamArm", "Stream"]
 # Fill in attrs, etc.
 # isort: split
 # LOCAL
-from trackstream import frame  # noqa: F401
-from trackstream import setup_package  # noqa: F401
+from trackstream import frame  # noqa: F401, TC002
+from trackstream import setup_package  # noqa: F401, TC002
 
 # ===================================================================
 # Register I/O

@@ -7,18 +7,10 @@ from __future__ import annotations
 
 # STDLIB
 from dataclasses import dataclass, replace
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Literal,
-    MutableMapping,
-    NoReturn,
-    TypeVar,
-    overload,
-)
+from typing import TYPE_CHECKING, Any, Literal, MutableMapping, TypeVar, overload
 
 # LOCAL
-from .base import BndTo, BoundClass, BoundClassRef
+from trackstream.utils.descriptors.base import BndTo, BoundClass, BoundClassRef
 
 if TYPE_CHECKING:
     # THIRD PARTY
@@ -93,8 +85,8 @@ class BoundDescriptorBase(BoundClass[BndTo]):
     # ):
     #     ...
 
-    def __set__(self, _: str, __: Any) -> NoReturn:
-        raise AttributeError  # TODO! useful error message
+    def __set__(self, _: str, __: Any) -> Any:  # https://github.com/python/mypy/issues/11727
+        raise AttributeError("cannot set attribute")
 
     # ===============================================================
 

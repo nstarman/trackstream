@@ -147,25 +147,24 @@ def _get_info_for_projection(
     (N, PSN) ndarray
         Where P is the number of prototypes and connecting segments.
     """
-    data_len, nfeature = data.shape
-    nlattice = len(prototypes)
+    N, nF = data.shape
+    nL = len(prototypes)
 
-    # vector from one point to next  (nlattice-1, nfeature)
+    # vector from one point to next  (nL-1, nF)
     p1 = prototypes[:-1, :]
     p2 = prototypes[1:, :]
-    # vector from one point to next  (nlattice-1, nfeature)
+    # vector from one point to next  (nL-1, nF)
     viip1 = np.subtract(p2, p1)
-    # square distance from one point to next  (nlattice-1, nfeature)
+    # square distance from one point to next  (nL-1, nF)
     liip1 = np.sum(np.square(viip1), axis=1)
 
-    # data - point_i  (D, nlattice-1, nfeature)
-    # for each slice in D,
-    dmi = np.subtract(data[:, None, :], p1[None, :, :])  # d-p1
+    # data - point_i  (N, nL-1, nF)
+    dmi = np.subtract(data[:, None, :], p1[None, :, :])
 
     # The line extending the segment is parameterized as p1 + t (p2 - p1).
     # The projection falls where t = [(data-p1) . (p2-p1)] / |p2-p1|^2
     # tM is the matrix of "t"'s.
-    tM = np.sum((dmi * viip1[None, :, :]), axis=-1) / liip1
+    tM = np.sum((dmi * viip1[None, :, :]), axis=-1) / liip1  # (N, nL-1)
 
     projected_points = p1[None, :, :] + tM[:, :, None] * viip1[None, :, :]
 
@@ -173,7 +172,7 @@ def _get_info_for_projection(
     # the correct "place" to put the data point is within a
     # projection, unless it outside (by an endpoint)
     # or inside, but on the convex side of a segment junction
-    all_points = np.empty((data_len, 2 * nlattice - 1, nfeature), dtype=float)
+    all_points = np.empty((N, 2 * nL - 1, nF), dtype=float)
     all_points[:, 1::2, :] = projected_points
     all_points[:, 0::2, :] = prototypes
     distances = norm(np.subtract(data[:, None, :], all_points), axis=-1)
@@ -258,6 +257,7 @@ def _order_data_along_som_projection(
 
         slc = slice(counter, counter + numrows)
         ordering[slc] = rowi[rowsorter]
+
         counter += numrows
 
     ordering = np.array(ordering, dtype=int)
@@ -267,8 +267,6 @@ def _order_data_along_som_projection(
 
 def project_data_on_som(prototypes: ndarray, data: ndarray) -> tuple[ndarray, ndarray]:
     """Project data onto a trained SOM.
-
-    TODO! make work on 6D.
 
     Parameters
     ----------
@@ -280,7 +278,7 @@ def project_data_on_som(prototypes: ndarray, data: ndarray) -> tuple[ndarray, nd
     Returns
     -------
     projected : (N,) ndarray
-        The data projected onto the SOM
+        The data projected onto the SOM. Not ordered.
     ordering : (N,) ndarray[int]
         The ordering of ``projected`` to ``data``.
     """
@@ -288,7 +286,7 @@ def project_data_on_som(prototypes: ndarray, data: ndarray) -> tuple[ndarray, nd
 
     # projdata = _get_projected_point(som, arr, all_points, distances)
     ind_best_distance = np.argmin(distances, axis=1)
-    projpnts = all_points[(np.arange(len(distances))), ind_best_distance, :]
+    projpnts = all_points[np.arange(len(distances)), ind_best_distance, :]
 
     ordering = _order_data_along_som_projection(
         data, lattice_p2p_distance=lattice_p2p_distance, segment_projection=segment_projection, distances=distances

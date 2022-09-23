@@ -13,13 +13,11 @@ from typing import TYPE_CHECKING, Any, Protocol, TypeVar
 import astropy.units as u
 from astropy.coordinates import BaseCoordinateFrame, RadialDifferential, SkyCoord
 from astropy.utils.misc import indent
-from matplotlib.axes import Axes
 
 # LOCAL
 from trackstream.stream.visualization import StreamPlotDescriptorBase
 from trackstream.utils.descriptors.attribute import Attribute
 from trackstream.utils.descriptors.cache import CacheProperty
-from trackstream.utils.visualization import DKindT
 
 if TYPE_CHECKING:
     # THIRD PARTY
@@ -33,12 +31,6 @@ __all__: list[str] = []
 
 StreamLikeT = TypeVar("StreamLikeT", bound="StreamLike")
 StreamBaseT = TypeVar("StreamBaseT", bound="StreamBase")
-
-
-class SupportsFrame(Protocol):
-    @property
-    def frame(self) -> BaseCoordinateFrame | None:
-        ...
 
 
 class StreamLike(Protocol):
@@ -105,59 +97,6 @@ class Flags:
 
 
 @dataclass(frozen=True)
-class StreamBasePlotDescriptor(StreamPlotDescriptorBase[StreamBaseT]):
-    """Plot methods for `trackstream.stream.base.StreamBase` objects."""
-
-    def in_frame(
-        self,
-        frame: str = "icrs",
-        kind: DKindT = "positions",
-        *,
-        origin: bool = False,
-        ax: Axes | None = None,
-        format_ax: bool = False,
-        **kwargs: Any,
-    ) -> Axes:
-        """Plot stream in an |ICRS| frame.
-
-        Parameters
-        ----------
-        frame : |Frame| or str, optional
-            A frame instance or its name (a `str`, the default).
-            Also supported is "stream", which is the stream frame
-            of the enclosing instance.
-        kind : {'positions', 'kinematics'}, optional
-            The kind of plot.
-
-        origin : bool, optional keyword-only
-            Whether to plot the origin, by default `True`.
-
-        ax : |Axes| or None, optional keyword-only
-            Matplotlib |Axes|. `None` (default) uses the current axes
-            (:func:`matplotlib.pyplot.gca`).
-        format_ax : bool, optional keyword-only
-            Whether to add the axes labels and info, by default `True`.
-        **kwargs : Any
-            Passed to :func:`matplotlib.pyplot.scatter`.
-
-        Returns
-        -------
-        |Axes|
-        """
-        _, _ax, *_ = self._setup(ax=ax)
-
-        super().in_frame(frame=frame, kind=kind, ax=_ax, format_ax=format_ax, **kwargs)
-
-        if origin:
-            self.origin(frame=frame, kind=kind, ax=_ax, format_ax=format_ax)
-
-        return _ax
-
-
-##############################################################################
-
-
-@dataclass(frozen=True)
 class StreamBase:
     """Abstract base class for stream arms, and collections thereof.
 
@@ -176,7 +115,7 @@ class StreamBase:
     cache = CacheProperty["StreamBase"]()
     flags = Attribute(Flags(minPmemb=u.Quantity(90, unit=u.percent), table_repr_max_lines=10), attrs_loc="__dict__")
 
-    plot = StreamBasePlotDescriptor()
+    plot = StreamPlotDescriptorBase[StreamBaseT]()
 
     # ===============================================================
     # Initializatino

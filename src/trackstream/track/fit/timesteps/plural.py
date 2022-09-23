@@ -12,7 +12,6 @@ from typing import (
     Iterator,
     KeysView,
     MutableMapping,
-    NoReturn,
     TypeVar,
     ValuesView,
     cast,
@@ -42,6 +41,12 @@ T = TypeVar("T")
 
 TO_FORMAT = ToFormatOverloader()
 
+# Physical Types
+LENGTH = u.get_physical_type("length")
+ANGLE = u.get_physical_type("angle")
+SPEED = u.get_physical_type("speed")
+ANGULAR_SPEED = u.get_physical_type("angular speed")
+
 
 ##############################################################################
 # CODE
@@ -49,36 +54,47 @@ TO_FORMAT = ToFormatOverloader()
 
 
 @final
-class Times(MutableMapping[str, u.Quantity]):
+class Times(MutableMapping[u.PhysicalType, u.Quantity]):
 
     TO_FORMAT: ClassVar[ToFormatOverloader] = TO_FORMAT
 
-    def __init__(self, ts: dict[str, u.Quantity]) -> None:
-        self._ts: dict[str, u.Quantity] = ts
+    def __init__(self, ts: dict[u.PhysicalType, u.Quantity]) -> None:
+        # Validate
+        if any(not isinstance(k, u.PhysicalType) for k in ts.keys()):
+            raise ValueError("all keys must be a PhysicalType")
 
-        # notphysical = [k for k in ts.keys() if k not in _name_physical_mapping]
-        # if any(notphysical):
-        #     raise ValueError(f"keys {notphysical} are not known physical types")
+        # Init
+        self._ts: dict[u.PhysicalType, u.Quantity] = ts
+
+    @singledispatchmethod
+    def __getitem__(self, key: object) -> Any:  # https://github.com/python/mypy/issues/11727
+        raise NotImplementedError("not dispatched")
 
     # ===============================================================
     # Mapping
 
-    def __getitem__(self, key: str) -> u.Quantity:
-        return self._ts[key]
+    @staticmethod
+    def _get_key(key: str | u.PhysicalType) -> u.PhysicalType:
+        return cast(u.PhysicalType, u.get_physical_type(key))
 
-    def __setitem__(self, k: str, v: u.Quantity) -> None:
-        self._ts[k] = v
+    @__getitem__.register(str)
+    @__getitem__.register(u.PhysicalType)
+    def _getitem_key(self, key: str | u.PhysicalType) -> u.Quantity:
+        return self._ts[self._get_key(key)]
 
-    def __delitem__(self, k: str) -> None:
-        del self._ts[k]
+    def __setitem__(self, k: str | u.PhysicalType, v: u.Quantity) -> None:
+        self._ts[self._get_key(k)] = v
 
-    def __iter__(self) -> Iterator[str]:
+    def __delitem__(self, k: str | u.PhysicalType) -> None:
+        del self._ts[self._get_key(k)]
+
+    def __iter__(self) -> Iterator[u.PhysicalType]:
         return iter(self._ts)
 
     def __len__(self) -> int:
         return len(self._ts)
 
-    def keys(self) -> KeysView[str]:
+    def keys(self) -> KeysView[u.PhysicalType]:
         return self._ts.keys()
 
     def values(self) -> ValuesView[u.Quantity]:
@@ -95,25 +111,37 @@ class Times(MutableMapping[str, u.Quantity]):
 
     @singledispatchmethod
     @classmethod
-    def from_format(cls, data: object) -> NoReturn:
+    def from_format(cls, data: object) -> Any:  # https://github.com/python/mypy/issues/11727
         raise NotImplementedError("not dispatched")
 
     @from_format.register(Mapping)
     @classmethod
-    def _from_format_mapping(cls, data: Mapping[str, u.Quantity]) -> Times:
-        if not all(isinstance(k, str) and isinstance(v, u.Quantity) for k, v in data.items()):
-            raise ValueError
+    def _from_format_mapping(cls, data: Mapping[str | u.PhysicalType, u.Quantity]) -> Times:
+        if not all(isinstance(k, (str, u.PhysicalType)) and isinstance(v, u.Quantity) for k, v in data.items()):
+            raise ValueError("data must be a Mapping[str | u.PhysicalType, u.Quantity]")
 
-        return cls(dict(data))
+        times: dict[u.PhysicalType, u.Quantity] = {}
+        for k, v in data.items():
+            pt = cls._get_key(k)
+            if pt in times:
+                raise ValueError(f"key {k} repeats physical type {pt}")
+            times[pt] = v
+        return cls(times)
 
     @from_format.register(u.Quantity)
     @classmethod
     def _from_format_structuredquantity(cls, data: u.Quantity) -> Times:
         if not is_structured(data):
-            raise ValueError
+            raise ValueError("Quantity must be structured")
 
         ns = list(map(str, data.dtype.names))
-        return cls({k: cast(u.Quantity, data[k]) for k in ns})
+        times: dict[u.PhysicalType, u.Quantity] = {}
+        for k in ns:
+            pt = cls._get_key(k)
+            if pt in times:
+                raise ValueError(f"key {k} repeats physical type {pt}")
+            times[pt] = cast(u.Quantity, data[k])
+        return cls(times)
 
     def to_format(self, format: type[T], /, *args: Any, **kwargs: Any) -> T:
         """Transform times to specified format.
@@ -144,8 +172,19 @@ class Times(MutableMapping[str, u.Quantity]):
         return out
 
     def __array__(self, dtype: np.dtype | None = None) -> np.ndarray:
-        arrs_g = ((k, np.array(v, dtype)) for k, v in self.items())
+        arrs_g = ((k._physical_type_list[0], np.array(v, dtype)) for k, v in self.items())
         return merge_arrays(tuple(v.view(np.dtype([(k, v.dtype)])) for k, v in arrs_g))
+
+    # ===============================================================
+    # Magic Methods
+
+    @__getitem__.register(np.ndarray)
+    @__getitem__.register(np.integer)
+    @__getitem__.register(bool)
+    @__getitem__.register(slice)
+    @__getitem__.register(int)
+    def _getitem_valid(self, key: Any) -> Times:
+        return self.__class__({k: u.Quantity(v[key]) for k, v in self.items()})
 
 
 ##############################################################################
@@ -159,6 +198,6 @@ def _to_format_ndarray(data: Times) -> np.ndarray:
 @TO_FORMAT.implements(u.Quantity, dispatch_on=Times)
 def _to_format_quantity(data: Times) -> u.Quantity:
     arrs = np.array(data)
-    units = u.StructuredUnit(tuple(v.steps.unit for v in data.values()))
+    units = u.StructuredUnit(tuple(v.unit for v in data.values()))
     out = u.Quantity(arrs, unit=units)
     return out

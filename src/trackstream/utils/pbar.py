@@ -7,10 +7,7 @@ from __future__ import annotations
 
 # STDLIB
 import logging
-from typing import Any
-
-# THIRD PARTY
-from typing_extensions import Self
+from typing import TYPE_CHECKING, Any
 
 # LOCAL
 from trackstream.setup_package import HAS_TQDM
@@ -18,6 +15,10 @@ from trackstream.setup_package import HAS_TQDM
 if HAS_TQDM:
     # THIRD PARTY
     import tqdm
+
+if TYPE_CHECKING:
+    # THIRD PARTY
+    from typing_extensions import Self
 
 
 __all__ = ["get_progress_bar"]
@@ -61,7 +62,7 @@ def get_progress_bar(display: bool, total: int) -> _NoOpPBar | tqdm.tqdm:
     if display is False:
         return _NoOpPBar()
     elif not HAS_TQDM:
-        logging.warning("You must install the tqdm library to have progress bars.")
+        logging.warning("install the tqdm library to have progress bars.")
         return _NoOpPBar()
 
     return tqdm.tqdm(total=total)

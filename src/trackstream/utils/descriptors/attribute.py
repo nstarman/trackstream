@@ -40,7 +40,6 @@ class Attribute(Generic[T]):
         self._enclosing_attr: str
         object.__setattr__(self, "_enclosing_attr", name)
 
-    # TODO! use Self, not Attribute[T] when that works
     @overload
     def __get__(self: Attribute[T], instance: None, _: Any) -> Attribute[T]:
         ...

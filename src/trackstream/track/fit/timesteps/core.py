@@ -9,13 +9,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, cast
 
 # THIRD PARTY
+import astropy.coordinates as coords
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import CartesianDifferential, CartesianRepresentation, SkyCoord
 from astropy.units import Quantity
 
 # LOCAL
-from trackstream.track.fit.timesteps.plural import Times
+from trackstream.track.fit.timesteps.plural import LENGTH, SPEED, Times
 
 if TYPE_CHECKING:
     # LOCAL
@@ -74,7 +74,7 @@ def _make_timesteps(
 
 
 def make_timesteps(
-    data: SkyCoord,
+    data: coords.SkyCoord,
     /,
     kf: FirstOrderNewtonianKalmanFilter,
     *,
@@ -108,10 +108,10 @@ def make_timesteps(
     qu, pu = kf.info.units[0][0], kf.info.units[1][0]
     dt0["length"] <<= qu
 
-    dtmin = Times({"length": 0 * qu}) if dtmin is None else dtmin
+    dtmin = Times({LENGTH: 0 * qu, SPEED: 0 * pu}) if dtmin is None else dtmin
     dtmin["length"] <<= qu
 
-    dtmax = Times({"length": np.inf * qu}) if dtmax is None else dtmax
+    dtmax = Times({LENGTH: np.inf * qu, SPEED: np.inf * pu}) if dtmax is None else dtmax
     dtmax["length"] <<= qu
 
     if kf.kinematics:
@@ -122,8 +122,10 @@ def make_timesteps(
         dtmin["speed"] <<= pu
         dtmax["speed"] <<= pu
 
-    # start with null.
-    dts = Times({"length": np.nan * u.dimensionless_unscaled, "speed": np.nan * u.dimensionless_unscaled})
+    # Start with null.
+    dts = Times({})
+    #     {LENGTH: u.Quantity(np.nan, u.dimensionless_unscaled), SPEED: u.Quantity(np.nan, u.dimensionless_unscaled)}
+    # )
 
     # Positions
     # point-to-point distance
@@ -133,10 +135,14 @@ def make_timesteps(
 
     if not kf.kinematics:
         # Make array the same length to avoid padding issues.
-        dts["speed"] = (dts["length"].value * np.nan) << u.dimensionless_unscaled
+        # dts["speed"] = (dts["length"].value * np.nan) << u.dimensionless_unscaled
+        pass
     else:
-        r0 = data.data[:-1]
-        r1 = data.data[1:]
+        r0: coords.BaseRepresentation
+        r1: coords.BaseRepresentation
+
+        r0 = data.data[:-1]  # type: ignore
+        r1 = data.data[1:]  # type: ignore
 
         r0cart = r0.without_differentials().to_cartesian()
         r1cart = r1.without_differentials().to_cartesian()
@@ -144,9 +150,10 @@ def make_timesteps(
 
         # There are 3 options: onsky vs not, where can either already be in cartesin coordinates or not
         d_diff = r1.differentials["s"] - r0.differentials["s"]
+        ds: u.Quantity
         if kf.onsky:
             ds = d_diff.norm(ravg)
-        elif isinstance(d_diff, (CartesianRepresentation, CartesianDifferential)):
+        elif isinstance(d_diff, (coords.CartesianRepresentation, coords.CartesianDifferential)):
             ds = d_diff.norm()
         else:
             ds = d_diff.to_cartesian(ravg).norm()

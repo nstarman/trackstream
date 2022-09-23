@@ -7,15 +7,18 @@
 
 # STDLIB
 import re
-from typing import TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 # THIRD PARTY
 import pytest
 
 # LOCAL
 from trackstream.base import StreamBase
-from trackstream.core import Stream
-from trackstream.stream.arm import StreamArm
+
+if TYPE_CHECKING:
+    # LOCAL
+    from trackstream.core import Stream
+    from trackstream.stream.arm import StreamArm
 
 S = TypeVar("S", bound=StreamBase)
 

@@ -6,11 +6,12 @@
 # STDLIB
 import os
 import pathlib
-from typing import Optional, Union
+from typing import Optional, Union, cast
 
 # THIRD PARTY
 import astropy.coordinates as coords
 import astropy.units as u
+import numpy as np
 from astropy.table import QTable
 from astropy.units import Quantity
 from astropy.utils.data import get_pkg_data_filename
@@ -18,7 +19,7 @@ from astropy.utils.misc import NumpyRNGContext
 from galpy.df import streamspraydf
 from galpy.orbit import Orbit
 from galpy.potential import LogarithmicHaloPotential
-from typing_extensions import TypeAlias
+from typing_extensions import TypeAlias  # noqa: TC002
 
 __all__ = ["get_example_stream"]
 
@@ -80,8 +81,11 @@ def make_stream_from_Vasiliev18(
 
     # Sample from leading and trailing
     with NumpyRNGContext(4):
-        RvR_l, _ = spdf_l.sample(n=300, returndt=True, integrate=True)
-        RvR_t, _ = spdf_t.sample(n=300, returndt=True, integrate=True)
+        RvR_l, *_ = spdf_l.sample(n=300, returndt=True, integrate=True)
+        RvR_t, *_ = spdf_t.sample(n=300, returndt=True, integrate=True)
+
+    RvR_l = cast(np.ndarray, RvR_l)
+    RvR_t = cast(np.ndarray, RvR_t)
 
     # Get coordinates
     data_l = Orbit(RvR_l.T, ro=ro, vo=vo).SkyCoord()
@@ -95,8 +99,8 @@ def make_stream_from_Vasiliev18(
     data["Pmemb"] = Quantity(100, u.percent)
     data["arm"] = (["arm1"] * len(data_l)) + (["arm2"] * len(data_t))
 
-    # add some metadata
-    data.meta["origin"] = sgc
+    # Add some metadata
+    data.meta["origin"] = sgc  # type: ignore
 
     # save data
     if write is not None:

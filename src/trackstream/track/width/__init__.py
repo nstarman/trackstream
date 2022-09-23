@@ -1,7 +1,12 @@
 # LOCAL
 from trackstream.track.width.core import BaseWidth
 from trackstream.track.width.interpolated import InterpolatedWidth, InterpolatedWidths
-from trackstream.track.width.oned.core import Cartesian1DiffWidth, Cartesian1DWidth
+from trackstream.track.width.oned.core import (
+    AngularDiffWidth,
+    AngularWidth,
+    Cartesian1DiffWidth,
+    Cartesian1DWidth,
+)
 from trackstream.track.width.plural import Widths
 from trackstream.track.width.threed.core import (
     Cartesian3DiffWidth,
@@ -23,6 +28,8 @@ __all__ = [
     # Widths
     "BaseWidth",
     # 1d
+    "AngularWidth",
+    "AngularDiffWidth",
     "Cartesian1DWidth",
     "Cartesian1DiffWidth",
     # 2d,

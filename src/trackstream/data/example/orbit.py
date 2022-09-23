@@ -202,7 +202,9 @@ def make_noisy_orbit_data(
 
     # Default error
     if sigma is None:
-        sigma = dict(x=u.Quantity(100, u.pc), y=u.Quantity(100, u.pc), z=u.Quantity(20, u.pc))
+        sig = dict(x=u.Quantity(100, u.pc), y=u.Quantity(100, u.pc), z=u.Quantity(20, u.pc))
+    else:
+        sig = sigma
 
     # Unordered data
     usc = make_unordered_orbit_data(
@@ -210,13 +212,13 @@ def make_noisy_orbit_data(
     )
 
     # Noisy SkyCoord with gaussian-convolved values.
-    noisy = {
-        n: rnd.normal(getattr(usc.data, n).to_value(unit), scale=sigma[n].to_value(unit)) * unit
-        for n, unit in usc.data._units.items()
-    }
-    nsc = coords.SkyCoord(usc.realize_frame(coords.CartesianRepresentation(**noisy)))
-    # Transform to desired frame and representation type
-    sc = nsc.transform_to(frame)
-    sc.representation_type = representation_type
+    noisy: dict[str, u.Quantity] = {}
+    for n, unit in cast(u.StructuredUnit, cast(u.Quantity, usc.data)._units).items():
+        mean = getattr(usc.data, n).to_value(unit)
+        scale = cast(np.ndarray, sig[n].to_value(unit))
+        noisy[n] = u.Quantity(rnd.normal(mean, scale=scale), unit=unit)
 
-    return sc
+    nc = coords.SkyCoord(usc.frame.realize_frame(coords.CartesianRepresentation(**noisy))).transform_to(frame)
+    nc.representation_type = representation_type
+
+    return coords.SkyCoord(nc)

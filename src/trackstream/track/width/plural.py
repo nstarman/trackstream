@@ -15,7 +15,6 @@ from typing import (
     Iterator,
     KeysView,
     MutableMapping,
-    NoReturn,
     TypeVar,
     ValuesView,
     cast,
@@ -24,18 +23,20 @@ from typing import (
 # THIRD PARTY
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import BaseRepresentation
-from numpy.lib.recfunctions import merge_arrays
+import numpy.lib.recfunctions as rfn
 
 # LOCAL
 from trackstream.track.utils import is_structured
 from trackstream.track.width.base import TO_FORMAT, WidthBase
 from trackstream.track.width.core import BASEWIDTH_KIND, LENGTH
-from trackstream.utils.to_format_overload import ToFormatOverloader
 
 if TYPE_CHECKING:
+    # THIRD PARTY
+    from astropy.coordinates import BaseRepresentation
+
     # LOCAL
-    from .interpolated import InterpolatedWidths
+    from trackstream.track.width.interpolated import InterpolatedWidths
+    from trackstream.utils.to_format_overload import ToFormatOverloader
 
 __all__ = ["Widths"]
 
@@ -61,11 +62,17 @@ class Widths(MutableMapping[u.PhysicalType, W1]):
         # Validate that have the necessary base of the tower
         if LENGTH not in widths:
             raise ValueError("need positions")
+        if any(not isinstance(k, u.PhysicalType) for k in widths.keys()):
+            raise ValueError("all keys must be a PhysicalType")
 
         self._spaces: dict[u.PhysicalType, W1] = widths
 
     @singledispatchmethod
-    def __getitem__(self, key: object) -> NoReturn:
+    def __getitem__(self, key: object) -> Any:  # https://github.com/python/mypy/issues/11727
+        raise NotImplementedError("not dispatched")
+
+    @singledispatchmethod
+    def __setitem__(self, key: object, value: Any) -> Any:  # https://github.com/python/mypy/issues/11727
         raise NotImplementedError("not dispatched")
 
     # ===============================================================
@@ -98,7 +105,9 @@ class Widths(MutableMapping[u.PhysicalType, W1]):
     def _getitem_key(self, key: str | u.PhysicalType) -> W1:
         return self._spaces[self._get_key(key)]
 
-    def __setitem__(self, k: str | u.PhysicalType, v: W1) -> None:
+    @__setitem__.register(str)
+    @__setitem__.register(u.PhysicalType)
+    def _setitem_str_or_PT(self, k: str | u.PhysicalType, v: W1) -> None:
         self._spaces[self._get_key(k)] = v
 
     def __delitem__(self, k: str | u.PhysicalType) -> None:
@@ -199,13 +208,13 @@ class Widths(MutableMapping[u.PhysicalType, W1]):
 
     def __array__(self, dtype: np.dtype | None = None) -> np.ndarray:
         arrs_g = ((str(k._physical_type_list[0]), np.array(v, dtype)) for k, v in self.items())
-        return merge_arrays(tuple(v.view(np.dtype([(k, v.dtype)])) for k, v in arrs_g))
+        return rfn.merge_arrays(tuple(v.view(np.dtype([(k, v.dtype)])) for k, v in arrs_g))
 
     def __array_function__(
         self, func: Callable[..., Any], types: tuple[type, ...], args: tuple[Any, ...], kwargs: dict[str, Any]
     ) -> Any:
         # LOCAL
-        from .interop import WS_FUNCS
+        from trackstream.track.width.interop import WS_FUNCS
 
         if func not in WS_FUNCS:
             return NotImplemented
@@ -226,6 +235,23 @@ class Widths(MutableMapping[u.PhysicalType, W1]):
     def _getitem_valid(self, key: Any) -> Widths[W1]:
         return self.__class__({k: v[key] for k, v in self.items()})
 
+    @singledispatchmethod
+    def __lt__(self, other: object) -> Any:  # https://github.com/python/mypy/issues/11727
+        return NotImplemented
+
+    @__setitem__.register(Mapping)
+    def _setitem_mapping(
+        self, key: Mapping[u.PhysicalType, Mapping[str, Any]], value: Mapping[u.PhysicalType, W1]
+    ) -> None:
+        if key.keys() != self.keys():
+            return NotImplemented
+        elif key.keys() != value.keys():
+            return NotImplemented
+
+        # Delegate to contained Width
+        for k in self.keys():
+            self[k][key[k]] = value[k]
+
 
 ##############################################################################
 
@@ -240,3 +266,11 @@ def _to_format_quantity(data, *args):
     unit = u.StructuredUnit(tuple(v.units for v in data.values()))
     out = u.Quantity(np.array(data), unit=unit)
     return out
+
+
+@Widths.__lt__.register(Widths)
+def _lt_widths(self, other: Widths) -> dict[u.PhysicalType, np.ndarray]:
+    if any(k not in self for k in other.keys()):
+        return NotImplemented
+
+    return {k: self[k] < v for k, v in other.items()}

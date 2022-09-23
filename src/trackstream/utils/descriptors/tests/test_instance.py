@@ -10,7 +10,7 @@
 import pytest
 
 # LOCAL
-from trackstream.utils.descriptors import BoundDescriptor
+from trackstream.utils.descriptors.bound import BoundDescriptor
 
 ##############################################################################
 # TESTS

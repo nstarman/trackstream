@@ -7,13 +7,12 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, fields, replace
 from functools import singledispatchmethod
-from typing import Any, Generic, Iterable, NoReturn, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Generic, Iterable, TypeVar, cast
 
 # THIRD PARTY
 import astropy.units as u
 import numpy as np
 import numpy.lib.recfunctions as rfn
-from astropy.coordinates import BaseRepresentation
 from astropy.units import Quantity
 from interpolated_coordinates.utils import InterpolatedUnivariateSplinewithUnits as IUSU
 
@@ -22,6 +21,10 @@ from trackstream.track.utils import is_structured
 from trackstream.track.width.base import WidthBase
 from trackstream.track.width.core import BaseWidth
 from trackstream.track.width.plural import Widths
+
+if TYPE_CHECKING:
+    # THIRD PARTY
+    from astropy.coordinates import BaseRepresentation
 
 __all__ = ["InterpolatedWidth"]
 
@@ -134,7 +137,7 @@ class InterpolatedWidth(WidthBase, Generic[W1]):
 
     @singledispatchmethod
     @classmethod
-    def from_format(cls, data: object, affine: Quantity | None) -> NoReturn:
+    def from_format(cls, data: object, affine: Quantity | None) -> Any:  # https://github.com/python/mypy/issues/11727
         """Construct this width instance from data of given type."""
         raise NotImplementedError("not dispatched")
 
@@ -171,7 +174,7 @@ class InterpolatedWidth(WidthBase, Generic[W1]):
     def __getattr__(self, key: str) -> Any:
         if key in self._interps:
             return self._interps[key]
-        return super().__getattr__(key)
+        return super().__getattr__(key)  # type: ignore
 
     def __dir__(self) -> Iterable[str]:
         return sorted(list(super().__dir__()) + list(self._interps.keys()))
@@ -292,7 +295,7 @@ class InterpolatedWidths(Widths[InterpolatedWidth[W1]]):
     # Magic Methods
 
     @singledispatchmethod
-    def __getitem__(self, key: object) -> NoReturn:
+    def __getitem__(self, key: object) -> Any:  # https://github.com/python/mypy/issues/11727
         raise NotImplementedError(f"not dispatched on {key}")
 
     @__getitem__.register(u.PhysicalType)

@@ -6,18 +6,21 @@ from __future__ import annotations
 # STDLIB
 from dataclasses import dataclass, field
 from functools import singledispatch
-from types import MappingProxyType
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Iterator,
     KeysView,
     Mapping,
-    NoReturn,
     TypeVar,
     ValuesView,
     final,
 )
+
+if TYPE_CHECKING:
+    # STDLIB
+    pass
 
 __all__ = ["ToFormatOverloader"]
 
@@ -36,33 +39,29 @@ Self = TypeVar("Self")
 @final
 @dataclass(frozen=True)
 class ToFormatInfo:
-    """Info to overload a :mod:`numpy` function."""
+    """Info to implement ``to_format``."""
 
     func: Callable[..., Any]
-    """The to_format function."""
+    """The ``to_format`` function."""
 
     implements: type
     """The type ``to_format`` implements."""
 
     def __call__(self: Self, *args: Any) -> Self:
-        """Return self. Used for singledispatch in Dispatcher."""
+        """Return self. Used for single-dispatch."""
         return self
 
 
 @final
-class Dispatcher:
+class _Dispatcher:
     """Single dispatch."""
 
     def __init__(self) -> None:
         @singledispatch
-        def dispatcher(obj: object) -> NoReturn:
+        def dispatcher(obj: object) -> Any:  # https://github.com/python/mypy/issues/11727
             raise NotImplementedError("not dispatched")
 
         self._dispatcher = dispatcher
-
-    @property
-    def registry(self) -> MappingProxyType[Any, Callable[..., Any]]:
-        return self._dispatcher.registry
 
     def __call__(self, obj) -> ToFormatInfo:
         """Run dispatcher."""
@@ -74,16 +73,22 @@ class Dispatcher:
 
 @final
 @dataclass(frozen=True)
-class ToFormatOverloader(Mapping[type, Dispatcher]):
+class ToFormatOverloader(Mapping[type, _Dispatcher]):
+    """Overload ``to_format``.
+
+    Parameters
+    ----------
+    default_dispatch_on : type or None, optional
+    """
 
     default_dispatch_on: type | None = None
 
-    _reg: dict[type, Dispatcher] = field(default_factory=dict, repr=False)
+    _reg: dict[type, _Dispatcher] = field(default_factory=dict, repr=False)
 
     # ===============================================================
     # Mapping
 
-    def __getitem__(self, key: type) -> Dispatcher:
+    def __getitem__(self, key: type) -> _Dispatcher:
         return self._reg[key]
 
     def __iter__(self) -> Iterator[type]:
@@ -95,7 +100,7 @@ class ToFormatOverloader(Mapping[type, Dispatcher]):
     def keys(self) -> KeysView[type]:
         return self._reg.keys()
 
-    def values(self) -> ValuesView[Dispatcher]:
+    def values(self) -> ValuesView[_Dispatcher]:
         return self._reg.values()
 
     def __contains__(self, o: object) -> bool:
@@ -110,7 +115,20 @@ class ToFormatOverloader(Mapping[type, Dispatcher]):
         *,
         dispatch_on: type | None = None,
     ):
-        """Register a ``to_format`` implementation."""
+        """Register a ``to_format`` implementation.
+
+        Parameters
+        ----------
+        type : type, positional-only
+            The type for which the overload is implemented.
+        dispatch_on : type or None, optional
+            The class for which this is dispatched.
+
+        Returns
+        -------
+        decorator : Callable[[Callable[..., Any]], Callable[..., Any]]
+            To add function to ``to_format`` overloading.
+        """
         # Get dispatch type
         dispatch_on = self.default_dispatch_on if dispatch_on is None else dispatch_on
         if dispatch_on is None:
@@ -118,9 +136,9 @@ class ToFormatOverloader(Mapping[type, Dispatcher]):
         else:
             dispatch_type = dispatch_on
 
-        # Make single-dispatcher for numpy function
+        # Make single-dispatcher
         if type not in self._reg:
-            self._reg[type] = Dispatcher()
+            self._reg[type] = _Dispatcher()
 
         def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
             """Add function to ``to_format`` overloading.
@@ -135,7 +153,7 @@ class ToFormatOverloader(Mapping[type, Dispatcher]):
             func : Callable[..., Any]
                 Same as ``func``.
             """
-            # Adding a new numpy function
+            # Adding a new function
             info = ToFormatInfo(func=func, implements=type)
             # Register the function
             self._reg[type]._dispatcher.register(dispatch_type, info)
