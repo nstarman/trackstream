@@ -5,8 +5,13 @@
 from __future__ import annotations
 
 # STDLIB
-import copyreg
-from types import MappingProxyType
+import logging
+import sys
+
+__all__: list[str] = []
+
+
+PY_GE_310 = sys.version_info >= (3, 10)
 
 try:
     # THIRD PARTY
@@ -17,27 +22,8 @@ else:
     HAS_TQDM = True
 
 
-__all__ = ["HAS_TQDM"]
-
-
-def pickle_mappingproxytype(mpt: MappingProxyType) -> tuple[type[MappingProxyType], tuple[dict]]:
-    """:mod:`pickle` a `~types.MappingProxyType`.
-
-    .. warning::
-
-        Unfortunately unpickled MappingProxyType do not point back to the
-        original object.
-
-    Parameters
-    ----------
-    mpt : `~types.MappingProxyType`
-        Object to pickle.
-
-    Returns
-    -------
-    type, tuple[dict]
-    """
-    return type(mpt), (dict(mpt),)
-
-
-copyreg.pickle(MappingProxyType, pickle_mappingproxytype)
+# Logging
+logger = logging.getLogger("trackstream")
+handler = logging.StreamHandler(sys.stdout)
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)

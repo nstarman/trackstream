@@ -7,197 +7,204 @@ from __future__ import annotations
 
 # STDLIB
 import functools
-from typing import Any, Literal, Type, TypeVar, cast, overload
+from typing import TYPE_CHECKING, Any, Literal, TypeVar, Union
 
 # THIRD PARTY
-from astropy.coordinates import BaseCoordinateFrame as BaseFrame
-from astropy.coordinates import BaseDifferential as BaseDif
-from astropy.coordinates import BaseRepresentation as BaseRep
-from astropy.coordinates import SkyCoord
-from astropy.coordinates.matrix_utilities import matrix_product, rotation_matrix
-from astropy.coordinates.sky_coordinate_parsers import _get_frame_class
-from astropy.units import Quantity
-from numpy import arcsin, arctan2, broadcast_to, cos, ndarray, pi, sin
+import astropy.units as u
+import numpy as np
+import numpy.lib.recfunctions as rfn
+from astropy.coordinates import (
+    BaseCoordinateFrame,
+    BaseDifferential,
+    BaseRepresentation,
+    SkyCoord,
+    frame_transform_graph,
+)
 
-# LOCAL
-from trackstream._typing import CoordinateLikeType
+if TYPE_CHECKING:
+    # THIRD PARTY
+    from typing_extensions import TypeAlias
 
-__all__ = [
-    "reference_to_skyoffset_matrix",
-    "resolve_framelike",
-    "deep_transform_to",
-    "position_angle",
-    "offset_by",
-]
+__all__ = ["parse_framelike", "get_frame", "deep_transform_to", "f2q"]
 
 ##############################################################################
 # PARAMETERS
 
-_PI_2 = pi / 2
-
-_FT = TypeVar("_FT", bound=BaseFrame)
-_RT = TypeVar("_RT", bound=BaseRep)
-_DT = TypeVar("_DT", bound=BaseDif)
+_FT = TypeVar("_FT", bound=BaseCoordinateFrame)
+_RT = TypeVar("_RT", bound=BaseRepresentation)
 
 ##############################################################################
 # CODE
 ##############################################################################
 
 
-def reference_to_skyoffset_matrix(lon: float | Quantity, lat: float | Quantity, rotation: float | Quantity) -> ndarray:
-    """Convert a reference coordinate to an sky offset frame [astropy].
-
-    Cartesian to Cartesian matrix transform.
-
-    Parameters
-    ----------
-    lon : float or |Angle| or |Quantity| instance
-        For ICRS, the right ascension.
-        If float, assumed degrees.
-    lat : |Angle| or |Quantity| instance
-        For ICRS, the declination.
-        If float, assumed degrees.
-    rotation : |Angle| or |Quantity| instance
-        The final rotation of the frame about the ``origin``. The sign of
-        the rotation is the left-hand rule.  That is, an object at a
-        particular position angle in the un-rotated system will be sent to
-        the positive |Latitude| (z) direction in the final frame.
-        If float, assumed degrees.
-
-    Returns
-    -------
-    ndarray
-        (3x3) matrix. rotates reference Cartesian to skyoffset Cartesian.
-
-    See Also
-    --------
-    :func:`~astropy.coordinates.builtin.skyoffset.reference_to_skyoffset`
-
-    References
-    ----------
-    .. [astropy] Astropy Collaboration, Robitaille, T., Tollerud, E.,
-        Greenfield, P., Droettboom, M., Bray, E., Aldcroft, T., Davis,
-        M., Ginsburg, A., Price-Whelan, A., Kerzendorf, W., Conley, A.,
-        Crighton, N., Barbary, K., Muna, D., Ferguson, H., Grollier, F.,
-        Parikh, M., Nair, P., Unther, H., Deil, C., Woillez, J.,
-        Conseil, S., Kramer, R., Turner, J., Singer, L., Fox, R.,
-        Weaver, B., Zabalza, V., Edwards, Z., Azalee Bostroem, K.,
-        Burke, D., Casey, A., Crawford, S., Dencheva, N., Ely, J.,
-        Jenness, T., Labrie, K., Lim, P., Pierfederici, F., Pontzen, A.,
-        Ptak, A., Refsdal, B., Servillat, M., & Streicher, O. (2013).
-        Astropy: A community Python package for astronomy.
-        Astronomy and Astrophysics, 558, A33.
-
-    """
-    # Define rotation matrices along the position angle vector, and
-    # relative to the origin.
-    mat1 = rotation_matrix(-rotation, "x")
-    mat2 = rotation_matrix(-lat, "y")
-    mat3 = rotation_matrix(lon, "z")
-
-    M: ndarray = matrix_product(mat1, mat2, mat3)
-
-    return M
-
-
-# -------------------------------------------------------------------
-# For implementation explanation, see
-# https://github.com/python/mypy/issues/8356#issuecomment-884548381
-
-
 @functools.singledispatch
-def _resolve_framelike(frame: Any, type_error: bool = True) -> BaseFrame:
-    if type_error:
-        raise TypeError(
-            "input coordinate frame must be an astropy "
-            "coordinates frame subclass *instance*, not a "
-            "'{}'".format(frame.__class__.__name__)
-        )
-    return frame
-
-
-@overload
-@_resolve_framelike.register
-def resolve_framelike(frame: str, type_error: bool = True) -> BaseFrame:  # noqa: F811
-    # strings can be turned into frames using the private SkyCoord parsers
-    out: BaseFrame = cast(Type[BaseFrame], _get_frame_class(frame.lower()))()
-    return out
-
-
-@overload
-@_resolve_framelike.register
-def resolve_framelike(frame: BaseFrame, type_error: bool = True) -> BaseFrame:
-    out: BaseFrame = frame.replicate_without_data(
-        representation_type=frame.representation_type, differential_type=frame.differential_type
-    )
-    return out
-
-
-@overload
-@_resolve_framelike.register
-def resolve_framelike(frame: SkyCoord, type_error: bool = True) -> BaseFrame:  # type: ignore  # noqa: E501, F811
-    out: BaseFrame = frame.frame.replicate_without_data(
-        representation_type=frame.frame.representation_type,
-        differential_type=frame.frame.differential_type,
-    )
-    return out
-
-
-def resolve_framelike(frame: CoordinateLikeType, type_error: bool = True) -> BaseFrame:  # type: ignore  # noqa: F811
+def parse_framelike(frame: object) -> Any:  # https://github.com/python/mypy/issues/11727
     """Determine the frame and return a blank instance.
 
     Parameters
     ----------
-    frame : frame-like instance (optional)
-        If BaseCoordianteFrame, replicates without data.
-        If str, uses astropy parsers to determine frame class
+    frame : |Frame| or str or Any, positional-only
+        If |Frame|, replicates without data. If `str`, uses astropy parsers to
+        determine frame class.
 
-    type_error : bool
-        Whether to raise TypeError if `frame` is not one of the allowed types.
+    type_error : bool, optional
+        Whether to raise TypeError if ``frame`` is not one of the allowed types.
 
     Returns
     -------
-    frame : `~astropy.coordinates.BaseCoordianteFrame` instance
+    frame : |Frame| instance
         Replicated without data.
 
     Raises
     ------
     TypeError
-        If `frame` is not one of the allowed types and 'type_error' is
-        True.
+        If ``frame`` is not one of the allowed types and 'type_error' is True.
+
+    See Also
+    --------
+    get_frame
+        Determine the frame and return a blank instance.
+
+    Parameters
+    ----------
+    frame : |Frame| or str or Any, positional-only
+        If |Frame|, replicates without data. If `str`, uses astropy parsers to
+        determine frame class.
+
+    type_error : bool, optional
+        Whether to raise TypeError if ``frame`` is not one of the allowed types.
+
+    Returns
+    -------
+    frame : |Frame| instance
+        Replicated without data.
+
+    Raises
+    ------
+    TypeError
+        If ``frame`` is not one of the allowed types and 'type_error' is True.
+
+    See Also
+    --------
+    get_frame
+
+    Examples
+    --------
+    ``parse_framelike`` single-dispatches on the argument, so these examples are
+    incomplete.
+
+        >>> try: parse_framelike(object())
+        ... except NotImplementedError: print("NotImplemented")
+        NotImplemented
+
+        >>> parse_framelike('icrs')
+        <ICRS Frame>
+
+        >>> import astropy.units as u
+        >>> from astropy.coordinates import ICRS, SkyCoord
+        >>> parse_framelike(ICRS())
+        <ICRS Frame>
+
+        >>> parse_framelike(ICRS(ra=10 * u.deg, dec=10*u.deg))
+        <ICRS Frame>
     """
-    return _resolve_framelike(frame, type_error=type_error)
+    raise NotImplementedError(f"frame type {type(frame)} not dispatched")
 
 
-# -------------------------------------------------------------------
+@functools.singledispatch
+def get_frame(frame: object) -> BaseCoordinateFrame:
+    """Determine the frame and return a blank instance.
+
+    Parameters
+    ----------
+    frame : |Frame| or str or Any, positional-only
+        If |Frame|, replicates without data.
+        If `str`, uses astropy parsers to determine frame class.
+
+    type_error : bool, optional
+        Whether to raise TypeError if ``frame`` is not one of the allowed types.
+
+    Returns
+    -------
+    frame : |Frame| instance
+        Replicated without data.
+
+    Raises
+    ------
+    TypeError
+        If ``frame`` is not one of the allowed types and 'type_error' is True.
+
+    See Also
+    --------
+    parse_framelike
+
+    Examples
+    --------
+    ``parse_framelike`` single-dispatches on the argument, so these examples are
+    incomplete.
+
+        >>> try: get_frame(object())
+        ... except NotImplementedError: print("NotImplemented")
+        NotImplemented
+
+        >>> get_frame('icrs')
+        <ICRS Frame>
+
+        >>> import astropy.units as u
+        >>> from astropy.coordinates import ICRS, SkyCoord
+        >>> get_frame(ICRS())
+        <ICRS Frame>
+
+        >>> get_frame(ICRS(ra=10 * u.deg, dec=10*u.deg))
+        <ICRS Frame>
+
+        >>> get_frame(SkyCoord(ICRS(ra=10 * u.deg, dec=10*u.deg)))
+        <ICRS Frame>
+    """
+    raise NotImplementedError(f"frame type {type(frame)} not dispatched")
 
 
-@overload
+@get_frame.register(str)
+@parse_framelike.register(str)
+def _parse_framelike_str(name: str) -> BaseCoordinateFrame:  # noqa: F811
+    frame_cls = frame_transform_graph.lookup_name(name)
+
+    if frame_cls is None:
+        frame_names = frame_transform_graph.get_names()
+        raise ValueError(f"Coordinate frame name {name!r} is not a known coordinate frame ({sorted(frame_names)})")
+
+    return frame_cls()
+
+
+@get_frame.register(BaseCoordinateFrame)
+@parse_framelike.register(BaseCoordinateFrame)
+def _parse_framelike_frame(frame: BaseCoordinateFrame) -> BaseCoordinateFrame:
+    return frame.replicate_without_data(
+        representation_type=frame.representation_type, differential_type=frame.differential_type
+    )
+
+
+@get_frame.register
+def _get_frame_skycoord(frame: SkyCoord) -> BaseCoordinateFrame:
+    return frame.frame.replicate_without_data(
+        representation_type=frame.frame.representation_type,
+        differential_type=frame.frame.differential_type,
+    )
+
+
+# ===================================================================
+
+_DifT: TypeAlias = Union[type[BaseDifferential], None, Literal["base"]]
+
+
+@functools.singledispatch
 def deep_transform_to(
-    crd: BaseFrame,
-    frame: _FT,
-    representation_type: type[BaseRep],
-    differential_type: type[BaseDif] | None = None,
-) -> _FT:
-    ...
-
-
-@overload
-def deep_transform_to(
-    crd: SkyCoord,
-    frame: BaseFrame,
-    representation_type: type[BaseRep],
-    differential_type: type[BaseDif] | None = None,
-) -> SkyCoord:
-    ...
-
-
-def deep_transform_to(
-    crd: SkyCoord | BaseFrame,
-    frame: _FT,
-    representation_type: type[_RT],
-    differential_type: type[BaseDif] | None | Literal["base"] = "base",
-) -> SkyCoord | _FT:
+    crd: object,
+    frame: BaseCoordinateFrame,
+    representation_type: type[BaseRepresentation],
+    differential_type: _DifT,
+) -> Any:  # https://github.com/python/mypy/issues/11727
     """Transform a coordinate to a frame and representation type.
 
     For speed, Astropy transformations can be shallow. This function does
@@ -209,9 +216,9 @@ def deep_transform_to(
     crd : SkyCoord or BaseCoordinateFrame
     frame : BaseCoordinateFrame
         The frame to which to tranform `crd`.
-    representation_type : BaseRepresentation class
+    representation_type : BaseRepresentationresentation class
         The type of representation.
-    differential_type : BaseDifferential class or None or 'base', optional
+    differential_type : BaseDifferentialferential class or None or 'base', optional
         Class in which any velocities should be represented. If equal to ‘base’
         (default), inferred from the base class.If `None`, all velocity
         information is dropped.
@@ -221,106 +228,130 @@ def deep_transform_to(
     crd : SkyCoord or BaseCoordinateFrame
         Transformed to ``frame`` and ``representation_type``.
     """
-    tcrd = crd.frame if isinstance(crd, SkyCoord) else crd
-    f: _FT = tcrd.transform_to(frame)
-    r: _RT = tcrd.represent_as(representation_type, s=differential_type)  # type: ignore
+    raise NotImplementedError("not dispatched")
 
-    dt = differential_type if differential_type != "base" else type(r.differentials["s"])
-    data = cast(
-        _FT,
-        f.realize_frame(r, representation_type=representation_type, differential_type=dt, copy=False),
+
+@deep_transform_to.register
+def _deep_transform_frame(
+    crd: BaseCoordinateFrame,
+    frame: BaseCoordinateFrame,
+    representation_type: type[BaseRepresentation],
+    differential_type: _DifT,
+) -> BaseCoordinateFrame:
+    # Get representation, with differential possibly determined by the representation.
+    dt = None if "s" not in crd.data.differentials else differential_type
+    r = crd.represent_as(representation_type, s=dt)
+
+    # Get the actual differential.
+    dt = dt if dt != "base" else type(r.differentials["s"])
+
+    # Transform to frame, then realize from data.
+    f = crd.transform_to(frame)
+    frame = f.realize_frame(r, representation_type=representation_type, differential_type=dt, copy=False)
+
+    return frame
+
+
+@deep_transform_to.register
+def _deep_transform_skycoord(
+    crd: SkyCoord,
+    frame: BaseCoordinateFrame,
+    representation_type: type[BaseRepresentation],
+    differential_type: _DifT,
+) -> SkyCoord:
+    # SkyCoord from transformation
+    return SkyCoord(
+        deep_transform_to(
+            crd.frame, frame=frame, representation_type=representation_type, differential_type=differential_type
+        ),
+        copy=False,
     )
-    out = SkyCoord(data, copy=False) if isinstance(crd, SkyCoord) else data
+
+
+# ===================================================================
+
+
+def _f2q_helper(crds: BaseCoordinateFrame | SkyCoord, which: str) -> u.Quantity:
+    """Helper for ``f2q``.
+
+    Parameters
+    ----------
+    crds : BaseCoordinateFrame or SkyCoord
+        The coordinates for which to get the array.
+    which : str
+        Which coordinate to get, e.g 'base' for positions, 's' for
+        differentials.
+
+    Returns
+    -------
+    Quantity
+        Structured quantity.
+    """
+    # Get representation components.
+    #
+    # Note: ``get_representation_component_names`` sometimes returns names which
+    # aren't actually an attribute, so need to filter.
+    rcls = crds.get_representation_cls(which)
+    comps = tuple(
+        c for c, rc in crds.get_representation_component_names(which).items() if rc in getattr(rcls, "attr_classes")
+    )
+
+    # Build structured array
+    dt = np.dtype([(c, float) for c in comps])
+    arr = np.empty(crds.shape, dtype=dt)
+    us = [None] * len(comps)
+    for i, c in enumerate(comps):
+        v = getattr(crds, c)
+        arr[c] = v
+        us[i] = v.unit
+
+    return u.Quantity(arr, dtype=dt, unit=u.StructuredUnit(tuple(us)))
+
+
+def f2q(crds: BaseCoordinateFrame | SkyCoord, flatten: bool = False) -> u.Quantity:
+    """Return coordinate as a structured, flattened Quantity.
+
+    Parameters
+    ----------
+    crds : Frame or SkyCoord
+        Coordinates.
+    flatten : bool, optional
+        Whether to flatten, by default `False`.
+
+    Returns
+    -------
+    Quantity
+        Flattened coordinates.
+
+    Examples
+    --------
+    >>> import astropy.units as u
+    >>> from astropy.coordinates import ICRS
+    >>> c = ICRS(ra=1*u.deg, dec=2*u.deg, pm_ra_cosdec=3*u.mas/u.yr, pm_dec=4*u.mas/u.yr)
+    >>> f2q(c)
+    <Quantity ((1., 2., 1.), (3., 4., 0)) ((deg, deg, ), (mas / yr, mas / yr, mas / (rad yr)))>
+    """
+    q = _f2q_helper(crds, "base")  # positions
+
+    # Velocities
+    HAS_V = False if ("s" not in crds.data.differentials) else True
+
+    # Output, possibly flattening
+    if flatten and not HAS_V:
+        out = q
+    elif flatten and HAS_V:
+        p = _f2q_helper(crds, "s")
+        out = rfn.merge_arrays((q, p), flatten=True)
+    elif HAS_V:  # not flattened
+        p = _f2q_helper(crds, "s")  # kinemtatics
+        su = u.StructuredUnit((q.unit, p.unit))
+        arr = np.empty(crds.shape, dtype=[("length", q.dtype), ("speed", p.dtype)])
+        out = u.Quantity(arr, unit=su)
+        out["length"] = q
+        out["speed"] = p
+    else:  # no flattened and has no velocities
+        su = u.StructuredUnit((q.unit,))
+        out = u.Quantity(np.empty(crds.shape, dtype=[("length", q.dtype)]), unit=su)
+        out["length"] = q
 
     return out
-
-
-# -------------------------------------------------------------------
-# Copied from Astropy, with units stripped. See License
-# https://docs.astropy.org/en/stable/_modules/astropy/coordinates/angle_utilities.html
-# The implementations in Astropy use Angle and are too slow.
-
-
-def position_angle(lon1: ndarray, lat1: ndarray, lon2: float, lat2: float) -> ndarray:
-    """
-    Position Angle (East of North) between two points on a sphere.
-
-    Parameters
-    ----------
-    lon1, lat1, lon2, lat2 : float['radian']
-        |Longitude| and |Latitude| value of the two points in radians.
-
-    Returns
-    -------
-    pa : float['radian']
-        The (positive) position angle of the vector pointing from position 1 to
-        position 2.  If any of the angles are arrays, this will contain an array
-        following the appropriate `numpy` broadcasting rules.
-    """
-    deltalon = lon2 - lon1
-    colat = cos(lat2)
-
-    x = sin(lat2) * cos(lat1) - colat * sin(lat1) * cos(deltalon)
-    y = sin(deltalon) * colat
-
-    pa: ndarray = arctan2(y, x)
-    return pa
-
-
-def offset_by(lon: ndarray, lat: ndarray, posang: ndarray, distance: ndarray) -> tuple[ndarray, ndarray]:
-    """Point with the given offset from the given point.
-
-    Parameters
-    ----------
-    lon, lat, posang, distance : float['rad']
-        |Longitude| and |Latitude| of the starting point,
-        position angle and distance to the final point.
-        Polar points at lat= ±90 are treated as limit of ±(90-epsilon) and same lon.
-
-    Returns
-    -------
-    lon, lat : float['rad']
-        The position of the final point.  If any of the angles are arrays,
-        these will contain arrays following the appropriate `numpy` broadcasting rules.
-        0 <= lon < 2pi.
-
-    Notes
-    -----
-    See :mod:`astropy` implementation.
-    """
-    cos_a = cos(distance)
-    sin_a = sin(distance)
-    cos_c = sin(lat)
-    sin_c = cos(lat)
-    cos_B = cos(posang)
-    sin_B = sin(posang)
-
-    # cosine rule: Know two sides: a,c and included angle: B; get unknown side b
-    cos_b = cos_c * cos_a + sin_c * sin_a * cos_B
-    # sin_b = sqrt(1 - cos_b**2)
-    # sine rule and cosine rule for A (using both lets arctan2 pick quadrant).
-    # multiplying both sin_A and cos_A by x=sin_b * sin_c prevents /0 errors
-    # at poles.  Correct for the x=0 multiplication a few lines down.
-    # sin_A/sin_a == sin_B/sin_b    # Sine rule
-    xsin_A = sin_a * sin_B * sin_c
-    # cos_a == cos_b * cos_c + sin_b * sin_c * cos_A  # cosine rule
-    xcos_A = cos_a - cos_b * cos_c  # type: ignore
-
-    A = arctan2(xsin_A, xcos_A)  # radian
-    # Treat the poles as if they are infinitesimally far from pole but at given lon
-    small_sin_c = sin_c < 1e-12
-    if small_sin_c.any():
-        # For south pole (cos_c = -1), A = posang; for North pole, A=180 deg - posang
-        A_pole = _PI_2 + cos_c * (_PI_2 - posang)
-        if A.shape:
-            # broadcast to ensure the shape is like that of A, which is also
-            # affected by the (possible) shapes of lat, posang, and distance.
-            small_sin_c = broadcast_to(small_sin_c, A.shape)
-            A[small_sin_c] = A_pole[small_sin_c]
-        else:
-            A = A_pole
-
-    outlon = lon + A
-    outlat = arcsin(cos_b)
-
-    return outlon, outlat

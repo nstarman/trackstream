@@ -10,15 +10,16 @@ __all__ = ["get_transform_matrix"]
 # IMPORTS
 
 # STDLIB
-import typing as T
+from typing import TYPE_CHECKING, Sequence
 
 # THIRD PARTY
 import astropy.coordinates as coord
 import numpy as np
 from astropy.coordinates.matrix_utilities import matrix_product
 
-# LOCAL
-from trackstream._type_hints import CoordinateType
+if TYPE_CHECKING:
+    # LOCAL
+    from trackstream._type_hints import CoordinateType
 
 ##############################################################################
 # PARAMETERS
@@ -28,7 +29,7 @@ from trackstream._type_hints import CoordinateType
 ##############################################################################
 
 
-def get_transform_matrix(from_frame: CoordinateType, to_frame: CoordinateType) -> T.Sequence:
+def get_transform_matrix(from_frame: CoordinateType, to_frame: CoordinateType) -> Sequence:
     """Get Transformation Matrix from Astropy [astropy]_.
 
     Compose sequential matrix transformations (static or dynamic) to get a

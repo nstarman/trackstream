@@ -1,14 +1,3 @@
-# see LICENSE.rst
+"""`trackstream.utils` is private and may change at any time."""
 
-"""Utilities.
-
-This sub-module is destined for common non-package specific utility functions.
-"""
-
-##############################################################################
-# IMPORTS
-
-# LOCAL
-from .coord_utils import reference_to_skyoffset_matrix, resolve_framelike
-
-__all__ = ["resolve_framelike", "reference_to_skyoffset_matrix"]
+__all__: list[str] = []
