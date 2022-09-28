@@ -1,5 +1,5 @@
+# Need to import the modules to register them.
 # LOCAL
-from trackstream.track.width.interop.base import WB_FUNCS  # noqa: F401, F403, TC002
-from trackstream.track.width.interop.plural import WS_FUNCS  # noqa: F401, F403, TC002
+from trackstream.track.width.interop import base, interpolated, plural  # noqa: F401
 
 __all__: list[str] = []

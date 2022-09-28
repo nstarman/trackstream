@@ -24,6 +24,11 @@ from trackstream.track.width.twod.core import (
     PolarWidth,
 )
 
+# import to register interoperations
+# isort: split
+# LOCAL
+from trackstream.track.width import interop  # noqa: F401
+
 __all__ = [
     # Widths
     "BaseWidth",

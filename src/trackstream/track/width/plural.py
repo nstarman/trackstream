@@ -10,7 +10,6 @@ from functools import singledispatchmethod
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     ClassVar,
     Iterator,
     KeysView,
@@ -24,6 +23,7 @@ from typing import (
 import astropy.units as u
 import numpy as np
 import numpy.lib.recfunctions as rfn
+from overload_numpy import NPArrayOverloadMixin, NumPyOverloader
 
 # LOCAL
 from trackstream.track.utils import is_structured
@@ -40,6 +40,7 @@ if TYPE_CHECKING:
 
 __all__ = ["Widths"]
 
+
 ##############################################################################
 # TYPING
 
@@ -49,13 +50,20 @@ W2 = TypeVar("W2", bound="WidthBase")
 
 
 ##############################################################################
+# PARAMETERS
+
+WS_FUNCS = NumPyOverloader()
+
+
+##############################################################################
 # CODE
 ##############################################################################
 
 
-class Widths(MutableMapping[u.PhysicalType, W1]):
+class Widths(MutableMapping[u.PhysicalType, W1], NPArrayOverloadMixin):
     # TODO! make work with Interpolated
 
+    NP_OVERLOADS: ClassVar[NumPyOverloader] = WS_FUNCS
     TO_FORMAT: ClassVar[ToFormatOverloader] = TO_FORMAT
 
     def __init__(self, widths: dict[u.PhysicalType, W1]) -> None:
@@ -97,7 +105,7 @@ class Widths(MutableMapping[u.PhysicalType, W1]):
 
     @staticmethod
     def _get_key(key: str | u.PhysicalType) -> u.PhysicalType:
-        k = key if isinstance(key, u.PhysicalType) else cast(u.PhysicalType, u.get_physical_type(key))
+        k = key if isinstance(key, u.PhysicalType) else cast("u.PhysicalType", u.get_physical_type(key))
         return k
 
     @__getitem__.register(str)
@@ -209,20 +217,6 @@ class Widths(MutableMapping[u.PhysicalType, W1]):
     def __array__(self, dtype: np.dtype | None = None) -> np.ndarray:
         arrs_g = ((str(k._physical_type_list[0]), np.array(v, dtype)) for k, v in self.items())
         return rfn.merge_arrays(tuple(v.view(np.dtype([(k, v.dtype)])) for k, v in arrs_g))
-
-    def __array_function__(
-        self, func: Callable[..., Any], types: tuple[type, ...], args: tuple[Any, ...], kwargs: dict[str, Any]
-    ) -> Any:
-        # LOCAL
-        from trackstream.track.width.interop import WS_FUNCS
-
-        if func not in WS_FUNCS:
-            return NotImplemented
-
-        finfo = WS_FUNCS[func](self)
-        if not finfo.validate_types(types):
-            return NotImplemented
-        return finfo.func(*args, **kwargs)
 
     # ===============================================================
     # Magic Methods

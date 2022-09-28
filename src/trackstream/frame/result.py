@@ -280,12 +280,12 @@ class FrameOptimizeResult(Generic[R]):
     @property
     def rotation(self) -> Quantity:
         """The rotation of point on sky."""
-        return cast(u.Quantity, self.frame.rotation)
+        return cast("u.Quantity", self.frame.rotation)
 
     @property
     def origin(self) -> coords.BaseCoordinateFrame:
         """The location of point on sky."""
-        return cast(coords.BaseCoordinateFrame, self.frame.origin)
+        return cast("coords.BaseCoordinateFrame", self.frame.origin)
 
     # ===============================================================
 

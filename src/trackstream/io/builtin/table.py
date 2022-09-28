@@ -37,7 +37,7 @@ def stream_arm_from_table(
     Stream: type[StreamArm] | None = None,
     _cache: dict[str, Any] | None = None,
 ) -> StreamArm:
-    table_meta = cast(dict[str, Any], table.meta)
+    table_meta = cast("dict[str, Any]", table.meta)
     # Stream class
     if Stream is None:
         Stream = table_meta.pop("Stream")

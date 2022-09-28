@@ -75,7 +75,7 @@ class Times(MutableMapping[u.PhysicalType, u.Quantity]):
 
     @staticmethod
     def _get_key(key: str | u.PhysicalType) -> u.PhysicalType:
-        return cast(u.PhysicalType, u.get_physical_type(key))
+        return cast("u.PhysicalType", u.get_physical_type(key))
 
     @__getitem__.register(str)
     @__getitem__.register(u.PhysicalType)
@@ -140,7 +140,7 @@ class Times(MutableMapping[u.PhysicalType, u.Quantity]):
             pt = cls._get_key(k)
             if pt in times:
                 raise ValueError(f"key {k} repeats physical type {pt}")
-            times[pt] = cast(u.Quantity, data[k])
+            times[pt] = cast("u.Quantity", data[k])
         return cls(times)
 
     def to_format(self, format: type[T], /, *args: Any, **kwargs: Any) -> T:

@@ -84,8 +84,8 @@ def make_stream_from_Vasiliev18(
         RvR_l, *_ = spdf_l.sample(n=300, returndt=True, integrate=True)
         RvR_t, *_ = spdf_t.sample(n=300, returndt=True, integrate=True)
 
-    RvR_l = cast(np.ndarray, RvR_l)
-    RvR_t = cast(np.ndarray, RvR_t)
+    RvR_l = cast("np.ndarray", RvR_l)
+    RvR_t = cast("np.ndarray", RvR_t)
 
     # Get coordinates
     data_l = Orbit(RvR_l.T, ro=ro, vo=vo).SkyCoord()

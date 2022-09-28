@@ -276,7 +276,7 @@ class FitterStreamArmTrack:
         # from fake prototypes, which are avg of ordered data in segments.
         wb = self.som.separation(data)
         stream_width = np.convolve(wb, np.ones((10,)) / 10, mode="same")
-        stream_width = cast(Widths, stream_width)
+        stream_width = cast("Widths", stream_width)
         # Set minimum width from the stream width
         if (minwidth := kfkw.pop("width_min", None)) is not None:
             stream_width[stream_width < minwidth] = minwidth
@@ -294,7 +294,7 @@ class FitterStreamArmTrack:
 
         # The Kalman Filter is run with widths along the stream.
         Rs = make_error(stream, self.kalman, default=0)
-        Rs = cast(u.Quantity, Rs[order])
+        Rs = cast("u.Quantity", Rs[order])
 
         path_name = ((stream.full_name or "") + " Path").lstrip()
         path = self.kalman.fit(data, errors=Rs, widths=stream_width, timesteps=timesteps, name=path_name)

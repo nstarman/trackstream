@@ -10,11 +10,11 @@ from typing import TYPE_CHECKING, Any, cast
 
 # THIRD PARTY
 import matplotlib.pyplot as plt
-from numpy import ndarray
 
 if TYPE_CHECKING:
     # THIRD PARTY
     from matplotlib.figure import Figure
+    from numpy import ndarray
 
     # LOCAL
     from trackstream.fit.track.core import StreamArmTrack
@@ -108,7 +108,7 @@ def full_multipanel(
     ncols = 2 if track.has_kinematics else 1
     figwidth = 16 if track.has_kinematics else 8
     fig, axs = plt.subplots(5, ncols, figsize=(figwidth, 12))
-    axs = cast(ndarray, axs)
+    axs = cast("ndarray", axs)
     if len(axs.shape) == 1:
         axs.shape = (-1, 1)
 

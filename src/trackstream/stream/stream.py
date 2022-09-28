@@ -28,7 +28,7 @@ from typing import (
 # THIRD PARTY
 from astropy.coordinates import BaseCoordinateFrame, SkyCoord
 from astropy.coordinates import concatenate as concatenate_coords
-from astropy.table import Column, QTable
+from astropy.table import Column, QTable  # noqa: TC002
 
 # LOCAL
 from trackstream.stream.base import Flags, StreamBase
@@ -233,7 +233,7 @@ class Stream(StreamArmsBase, StreamBase):
 
         # similarly for errors
         if data_err is not None:
-            data_err = cast(QTable, data_err.group_by("arm"))
+            data_err = cast("QTable", data_err.group_by("arm"))
             data_err.add_index("arm")
 
         if caches is None:
@@ -244,7 +244,7 @@ class Stream(StreamArmsBase, StreamBase):
             frame = parse_framelike(frame)
 
         # initialize each arm
-        groups_keys = cast(Column, data.groups.keys)
+        groups_keys = cast("Column", data.groups.keys)
         arm_names: tuple[str, ...] = tuple(groups_keys["arm"])
         arms: dict[str, StreamArm] = {}
         for k in arm_names:

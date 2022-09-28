@@ -72,7 +72,7 @@ class InterpolatedWidth(WidthBase, Generic[W1]):
         else:
             width = self.width
 
-        affine = cast(u.Quantity, affine)
+        affine = cast("Quantity", affine)
 
         # Create interpolations
         interps = {f.name: IUSU(affine, getattr(width, f.name)) for f in fields(width)}
@@ -309,7 +309,7 @@ class InterpolatedWidths(Widths[InterpolatedWidth[W1]]):
     @__getitem__.register(slice)
     @__getitem__.register(int)
     def _getitem_valid(self, key: Any) -> InterpolatedWidths[W1]:
-        return self.__class__({k: v[key] for k, v in self.items()}, affine=cast(u.Quantity, self.affine[key]))
+        return self.__class__({k: v[key] for k, v in self.items()}, affine=cast("Quantity", self.affine[key]))
 
     # ===============================================================
     # Interoperability

@@ -13,6 +13,7 @@ from typing import Any, ClassVar, TypeVar
 # THIRD PARTY
 import astropy.units as u
 import numpy as np
+from overload_numpy import NPArrayOverloadMixin, NumPyOverloader
 
 # LOCAL
 from trackstream.utils.to_format_overload import ToFormatOverloader
@@ -30,6 +31,7 @@ T = TypeVar("T")
 ##############################################################################
 # PARAMETERS
 
+WB_FUNCS = NumPyOverloader()
 TO_FORMAT = ToFormatOverloader()
 
 
@@ -37,21 +39,12 @@ TO_FORMAT = ToFormatOverloader()
 # CODE
 ##############################################################################
 
-# def _get_q_and_d(type_str: str) -> tuple[type[u.Quantity] | str, str]:
-#     # TODO! Better processing of str -> class
-#     typestr, rest = type_str.split("[")
-#     if typestr == "Quantity":
-#         typ = u.Quantity
-#     else:
-#         typ = typestr
-#     dimension = rest[1:-2]
-#     return typ, dimension
-
 
 @dataclass(frozen=True)
-class WidthBase:
+class WidthBase(NPArrayOverloadMixin):
     """ABC for all width classes."""
 
+    NP_OVERLOADS: ClassVar[NumPyOverloader] = WB_FUNCS
     TO_FORMAT: ClassVar[ToFormatOverloader] = TO_FORMAT
 
     def __post_init__(self):

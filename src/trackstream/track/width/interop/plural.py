@@ -11,8 +11,7 @@ from typing import Literal, Sequence, TypeVar
 import numpy as np
 
 # LOCAL
-from trackstream.track.width.plural import Widths
-from trackstream.utils.numpy_overload import NumPyOverloader
+from trackstream.track.width.plural import WS_FUNCS, Widths
 
 __all__: list[str] = []
 
@@ -27,12 +26,8 @@ WS = TypeVar("WS", bound=Widths)
 # CODE
 ##############################################################################
 
-WS_FUNCS = NumPyOverloader(default_dispatch_on=Widths)
 
-# ============================================================================
-
-
-@WS_FUNCS.implements(np.convolve, types=(Widths, np.ndarray))
+@WS_FUNCS.implements(np.convolve, dispatch_on=Widths, types=(Widths, np.ndarray))
 def convolve(a: WS, v: np.ndarray, mode: Literal["valid", "full", "same"] = "full") -> WS:
     # Apply convolution to each contained field.
     ws = {}
@@ -42,7 +37,7 @@ def convolve(a: WS, v: np.ndarray, mode: Literal["valid", "full", "same"] = "ful
     return type(a)(ws)
 
 
-@WS_FUNCS.implements(np.concatenate, types=Widths)
+@WS_FUNCS.implements(np.concatenate, dispatch_on=Widths)
 def concatenate(
     seqws: Sequence[WS],
     axis: int = 0,

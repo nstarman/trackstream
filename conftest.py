@@ -62,7 +62,6 @@ def pytest_configure(config: pytest.Config) -> None:
     PYTEST_HEADER_MODULES.pop("Pandas", None)
 
     # STDLIB
-    # from trackstream import __version__  # type: ignore
     from importlib.metadata import version
 
     packagename = os.path.basename(os.path.dirname(__file__))
@@ -243,10 +242,10 @@ def index_on() -> int:
 @pytest.fixture(scope="session")
 def affine_on(affine: coords.Angle, index_on: int) -> coords.Angle:
     """Fixture returning the affine parameter at one point."""
-    return cast(coords.Angle, affine[index_on])
+    return cast("coords.Angle", affine[index_on])
 
 
 @pytest.fixture(scope="session")
 def point_on(crd: coords.BaseCoordinateFrame, index_on: int) -> coords.BaseCoordinateFrame:
     """Fixture returning the coordinate at one point."""
-    return cast(coords.BaseCoordinateFrame, crd[index_on])
+    return cast("coords.BaseCoordinateFrame", crd[index_on])

@@ -145,4 +145,4 @@ class scipyKDTreeLOF(KDTreeLOFBase["KDTree"]):
         invdens = 1.0 / lrd  # inverse of density
         outlier_score = lrd * np.sum(invdens[idx_knn], axis=1) / k
 
-        return cast(np.ndarray[Any, np.dtype[np.bool_]], outlier_score > threshold)
+        return cast("np.ndarray[Any, np.dtype[np.bool_]]", outlier_score > threshold)

@@ -63,7 +63,7 @@ def _make_timesteps(
     Ds[Ds < dtmin] = dtmin
     # Set maximum
     Ds[Ds > dtmax] = dtmax
-    Ds = cast(Quantity, Ds)
+    Ds = cast("Quantity", Ds)
 
     # munge the starts
     dts = Quantity(np.empty(len(Ds) + 1), unit=ds.unit)

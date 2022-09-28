@@ -166,7 +166,7 @@ def make_unordered_orbit_data(
     osc = make_ordered_orbit_data(stop=stop, num=num, unit=unit, frame=frame, representation_type=representation_type)
     # Shuffle the data
     shuffler, _ = make_shuffler(len(osc))
-    usc = cast(coords.SkyCoord, osc[shuffler])
+    usc = cast("coords.SkyCoord", osc[shuffler])
     return usc
 
 
@@ -213,9 +213,9 @@ def make_noisy_orbit_data(
 
     # Noisy SkyCoord with gaussian-convolved values.
     noisy: dict[str, u.Quantity] = {}
-    for n, unit in cast(u.StructuredUnit, cast(u.Quantity, usc.data)._units).items():
+    for n, unit in cast("u.StructuredUnit", cast("u.Quantity", usc.data)._units).items():
         mean = getattr(usc.data, n).to_value(unit)
-        scale = cast(np.ndarray, sig[n].to_value(unit))
+        scale = cast("np.ndarray", sig[n].to_value(unit))
         noisy[n] = u.Quantity(rnd.normal(mean, scale=scale), unit=unit)
 
     nc = coords.SkyCoord(usc.frame.realize_frame(coords.CartesianRepresentation(**noisy))).transform_to(frame)
