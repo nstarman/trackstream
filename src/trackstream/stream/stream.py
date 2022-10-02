@@ -29,13 +29,13 @@ from typing import (
 from astropy.coordinates import BaseCoordinateFrame, SkyCoord
 from astropy.coordinates import concatenate as concatenate_coords
 from astropy.table import Column, QTable  # noqa: TC002
+from bound_class.core.descriptors import BoundDescriptor
 
 # LOCAL
 from trackstream.stream.base import Flags, StreamBase
 from trackstream.stream.core import StreamArm
 from trackstream.stream.plural import StreamArms, StreamArmsBase
 from trackstream.utils.coord_utils import get_frame, parse_framelike
-from trackstream.utils.descriptors.bound import BoundDescriptor
 from trackstream.utils.descriptors.cache import CacheProperty
 from trackstream.utils.visualization import DKindT, PlotCollectionBase
 
@@ -78,7 +78,6 @@ class _StreamCache(TypedDict):
 class StreamArmsDescriptor(StreamArms, BoundDescriptor["Stream"]):
     def __init__(self, store_in: Literal["__dict__", "_attrs_"] | None = "__dict__") -> None:
         object.__setattr__(self, "store_in", store_in)
-        super().__post_init__()  # from BoundDescriptor
 
     @property
     def _data(self) -> dict[str, StreamArm]:
@@ -92,7 +91,7 @@ class StreamArmsDescriptor(StreamArms, BoundDescriptor["Stream"]):
         raise AttributeError
 
 
-@dataclass(frozen=True)
+@dataclass
 class StreamPlotDescriptor(PlotCollectionBase["Stream"]):
     # todo move to StreamPlotCollection (DNE)
     def origin(

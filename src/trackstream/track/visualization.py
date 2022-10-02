@@ -46,7 +46,7 @@ __all__: list[str] = []
 ##############################################################################
 
 
-@dataclass(frozen=True)
+@dataclass
 class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
     """Plot descriptor for a :class:`trackstream.fit.StreamArmTrack`."""
 
@@ -622,7 +622,7 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
 #####################################################################
 
 
-@dataclass(frozen=True)
+@dataclass
 class StreamArmsTrackBasePlotDescriptor(PlotCollectionBase["StreamArmsTrackBase"]):
     def in_frame(
         self,

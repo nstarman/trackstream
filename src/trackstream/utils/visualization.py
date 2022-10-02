@@ -33,10 +33,10 @@ from astropy.coordinates import (
 )
 from astropy.units import Quantity
 from astropy.visualization import quantity_support
+from bound_class.core.descriptors import BoundDescriptor
 
 # LOCAL
 from trackstream.utils.coord_utils import parse_framelike
-from trackstream.utils.descriptors.bound import BndTo, BoundDescriptor
 
 if TYPE_CHECKING:
     # THIRD PARTY
@@ -58,6 +58,7 @@ __all__: list[str] = []
 quantity_support()
 
 # Types
+BndTo = TypeVar("BndTo")
 CollectionBaseT = TypeVar("CollectionBaseT", bound="CollectionBase")
 CLike = Union[str, Sequence[float], Quantity]
 DKindT = Union[Literal["positions"], Literal["kinematics"]]
@@ -88,7 +89,7 @@ AX_LABELS = MappingProxyType(
 ##############################################################################
 
 
-@dataclass(frozen=True)
+@dataclass
 class PlotDescriptorBase(BoundDescriptor[BndTo]):
     """Plot descriptor base class.
 
@@ -101,7 +102,6 @@ class PlotDescriptorBase(BoundDescriptor[BndTo]):
     default_scatter_kwargs: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        super().__post_init__()
         self.default_scatter_kwargs.setdefault("s", 3)
 
     def _get_kw(self, kwargs: dict[str, Any] | None = None, **defaults: Any) -> dict[str, Any]:
@@ -229,7 +229,7 @@ class PlotDescriptorBase(BoundDescriptor[BndTo]):
         return (x, xn), (y, yn)
 
 
-@dataclass(frozen=True)
+@dataclass
 class CommonPlotDescriptorBase(PlotDescriptorBase[BndTo]):
     def _parse_frame(self, framelike: FrameLikeType, /) -> tuple[BaseCoordinateFrame, str]:
         """Return the frame and its name.
@@ -364,7 +364,7 @@ class CommonPlotDescriptorBase(PlotDescriptorBase[BndTo]):
 ##############################################################################
 
 # todo: make a subclass of CollectionBase
-@dataclass(frozen=True)
+@dataclass
 class PlotCollectionBase(BoundDescriptor[CollectionBaseT]):
     def __iter__(self):
         enclosing = self.enclosing
@@ -374,6 +374,8 @@ class PlotCollectionBase(BoundDescriptor[CollectionBaseT]):
         return self.enclosing[key].plot
 
     def __getattr__(self, key: str) -> Any:
+        if key in ("__isabstractmethod__",):
+            return object.__getattribute__(self, key)
         try:
             enclosing = self.enclosing
         except ValueError as e:

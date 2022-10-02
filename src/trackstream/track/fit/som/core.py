@@ -41,7 +41,7 @@ __all__: list[str] = []
 #####################################################################
 
 
-@dataclass(frozen=True)
+@dataclass
 class SOMPlotDescriptor(CommonPlotDescriptorBase["SelfOrganizingMap"]):
     def current(
         self,
