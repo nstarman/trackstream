@@ -24,19 +24,20 @@ import astropy.units as u
 import numpy as np
 import numpy.lib.recfunctions as rfn
 from overload_numpy import NPArrayOverloadMixin, NumPyOverloader
+from override_toformat import ToFormatOverloadMixin
 
 # LOCAL
 from trackstream.track.utils import is_structured
-from trackstream.track.width.base import TO_FORMAT, WidthBase
+from trackstream.track.width.base import FMT_OVERLOADS, WidthBase
 from trackstream.track.width.core import BASEWIDTH_KIND, LENGTH
 
 if TYPE_CHECKING:
     # THIRD PARTY
     from astropy.coordinates import BaseRepresentation
+    from override_toformat import ToFormatOverloader
 
     # LOCAL
     from trackstream.track.width.interpolated import InterpolatedWidths
-    from trackstream.utils.to_format_overload import ToFormatOverloader
 
 __all__ = ["Widths"]
 
@@ -60,11 +61,11 @@ WS_FUNCS = NumPyOverloader()
 ##############################################################################
 
 
-class Widths(MutableMapping[u.PhysicalType, W1], NPArrayOverloadMixin):
+class Widths(MutableMapping[u.PhysicalType, W1], NPArrayOverloadMixin, ToFormatOverloadMixin):
     # TODO! make work with Interpolated
 
     NP_OVERLOADS: ClassVar[NumPyOverloader] = WS_FUNCS
-    TO_FORMAT: ClassVar[ToFormatOverloader] = TO_FORMAT
+    FMT_OVERLOADS: ClassVar[ToFormatOverloader] = FMT_OVERLOADS
 
     def __init__(self, widths: dict[u.PhysicalType, W1]) -> None:
         # Validate that have the necessary base of the tower
@@ -183,34 +184,6 @@ class Widths(MutableMapping[u.PhysicalType, W1], NPArrayOverloadMixin):
             raise ValueError
         return cls.from_format.__wrapped__(cls, data)
 
-    def to_format(self, format: type[T], /, *args: Any, **kwargs: Any) -> T:
-        """Transform width to specified format.
-
-        Parameters
-        ----------
-        format : type, positional-only
-            The format type to which to transform this width.
-        *args : Any
-            Arguments into ``to_format``.
-        **kwargs : Any
-            Keyword-arguments into ``to_format``.
-
-        Returns
-        -------
-        object
-            Width transformed to specified type.
-
-        Raises
-        ------
-        ValueError
-            If format is not one of the recognized types.
-        """
-        if format not in self.TO_FORMAT:
-            raise ValueError(f"format {format} is not known -- {self.TO_FORMAT.keys()}")
-
-        out = self.TO_FORMAT[format](self).func(self, *args, **kwargs)
-        return out
-
     # ===============================================================
     # Interoperability
 
@@ -250,15 +223,15 @@ class Widths(MutableMapping[u.PhysicalType, W1], NPArrayOverloadMixin):
 ##############################################################################
 
 
-@TO_FORMAT.implements(np.ndarray, dispatch_on=Widths)
-def _to_format_ndarray(data, *args):
+@FMT_OVERLOADS.implements(to_format=np.ndarray, from_format=Widths)
+def _to_format_ndarray(cls, data, *args):
     return np.array(data, *args)
 
 
-@TO_FORMAT.implements(u.Quantity, dispatch_on=Widths)
-def _to_format_quantity(data, *args):
+@FMT_OVERLOADS.implements(to_format=u.Quantity, from_format=Widths)
+def _to_format_quantity(cls, data, *args):
     unit = u.StructuredUnit(tuple(v.units for v in data.values()))
-    out = u.Quantity(np.array(data), unit=unit)
+    out = cls(np.array(data), unit=unit)
     return out
 
 

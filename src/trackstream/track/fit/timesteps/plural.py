@@ -22,10 +22,10 @@ from typing import (
 import astropy.units as u
 import numpy as np
 from numpy.lib.recfunctions import merge_arrays
+from override_toformat import ToFormatOverloader, ToFormatOverloadMixin
 
 # LOCAL
 from trackstream.track.utils import is_structured
-from trackstream.utils.to_format_overload import ToFormatOverloader
 
 __all__: list[str] = []
 
@@ -39,7 +39,7 @@ T = TypeVar("T")
 ##############################################################################
 # PARAMETERS
 
-TO_FORMAT = ToFormatOverloader()
+FMT_OVERLOADS = ToFormatOverloader()
 
 # Physical Types
 LENGTH = u.get_physical_type("length")
@@ -54,9 +54,9 @@ ANGULAR_SPEED = u.get_physical_type("angular speed")
 
 
 @final
-class Times(MutableMapping[u.PhysicalType, u.Quantity]):
+class Times(MutableMapping[u.PhysicalType, u.Quantity], ToFormatOverloadMixin):
 
-    TO_FORMAT: ClassVar[ToFormatOverloader] = TO_FORMAT
+    FMT_OVERLOADS: ClassVar[ToFormatOverloader] = FMT_OVERLOADS
 
     def __init__(self, ts: dict[u.PhysicalType, u.Quantity]) -> None:
         # Validate
@@ -143,34 +143,6 @@ class Times(MutableMapping[u.PhysicalType, u.Quantity]):
             times[pt] = cast("u.Quantity", data[k])
         return cls(times)
 
-    def to_format(self, format: type[T], /, *args: Any, **kwargs: Any) -> T:
-        """Transform times to specified format.
-
-        Parameters
-        ----------
-        format : type, positional-only
-            The format type to which to transform this Times.
-        *args : Any
-            Arguments into ``to_format``.
-        **kwargs : Any
-            Keyword-arguments into ``to_format``.
-
-        Returns
-        -------
-        object
-            Times transformed to specified type.
-
-        Raises
-        ------
-        ValueError
-            If format is not one of the recognized types.
-        """
-        if format not in self.TO_FORMAT:
-            raise ValueError(f"format {format} is not known -- {self.TO_FORMAT.keys()}")
-
-        out = self.TO_FORMAT[format](self).func(self, *args, **kwargs)
-        return out
-
     def __array__(self, dtype: np.dtype | None = None) -> np.ndarray:
         arrs_g = ((k._physical_type_list[0], np.array(v, dtype)) for k, v in self.items())
         return merge_arrays(tuple(v.view(np.dtype([(k, v.dtype)])) for k, v in arrs_g))
@@ -190,14 +162,14 @@ class Times(MutableMapping[u.PhysicalType, u.Quantity]):
 ##############################################################################
 
 
-@TO_FORMAT.implements(np.ndarray, dispatch_on=Times)
+@FMT_OVERLOADS.implements(to_format=np.ndarray, from_format=Times)
 def _to_format_ndarray(data: Times) -> np.ndarray:
     return np.array(data)
 
 
-@TO_FORMAT.implements(u.Quantity, dispatch_on=Times)
-def _to_format_quantity(data: Times) -> u.Quantity:
+@FMT_OVERLOADS.implements(to_format=u.Quantity, from_format=Times)
+def _to_format_quantity(cls, data: Times) -> u.Quantity:
     arrs = np.array(data)
     units = u.StructuredUnit(tuple(v.unit for v in data.values()))
-    out = u.Quantity(arrs, unit=units)
+    out = cls(arrs, unit=units)
     return out

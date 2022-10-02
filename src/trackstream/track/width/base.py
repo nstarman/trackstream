@@ -14,9 +14,7 @@ from typing import Any, ClassVar, TypeVar
 import astropy.units as u
 import numpy as np
 from overload_numpy import NPArrayOverloadMixin, NumPyOverloader
-
-# LOCAL
-from trackstream.utils.to_format_overload import ToFormatOverloader
+from override_toformat import ToFormatOverloader, ToFormatOverloadMixin
 
 __all__ = ["WidthBase"]
 
@@ -32,7 +30,7 @@ T = TypeVar("T")
 # PARAMETERS
 
 WB_FUNCS = NumPyOverloader()
-TO_FORMAT = ToFormatOverloader()
+FMT_OVERLOADS = ToFormatOverloader()
 
 
 ##############################################################################
@@ -41,11 +39,11 @@ TO_FORMAT = ToFormatOverloader()
 
 
 @dataclass(frozen=True)
-class WidthBase(NPArrayOverloadMixin):
+class WidthBase(NPArrayOverloadMixin, ToFormatOverloadMixin):
     """ABC for all width classes."""
 
     NP_OVERLOADS: ClassVar[NumPyOverloader] = WB_FUNCS
-    TO_FORMAT: ClassVar[ToFormatOverloader] = TO_FORMAT
+    FMT_OVERLOADS: ClassVar[ToFormatOverloader] = FMT_OVERLOADS
 
     def __post_init__(self):
         qlen = None
@@ -84,34 +82,6 @@ class WidthBase(NPArrayOverloadMixin):
     def _from_format_dict(cls, data: Mapping[str, Any]) -> WidthBase:
         # From a Mapping.
         return cls(**data)
-
-    def to_format(self, format: type[T], /, *args: Any, **kwargs: Any) -> T:
-        """Transform width to specified format.
-
-        Parameters
-        ----------
-        format : type, positional-only
-            The format type to which to transform this width.
-        *args : Any
-            Arguments into ``to_format``.
-        **kwargs : Any
-            Keyword-arguments into ``to_format``.
-
-        Returns
-        -------
-        object
-            Width transformed to specified type.
-
-        Raises
-        ------
-        ValueError
-            If format is not one of the recognized types.
-        """
-        if format not in self.TO_FORMAT:
-            raise ValueError(f"format {format} is not known -- {self.TO_FORMAT.keys()}")
-
-        out = self.TO_FORMAT[format](self).func(self, *args, **kwargs)
-        return out
 
     # ===============================================================
     # Dunder methods
