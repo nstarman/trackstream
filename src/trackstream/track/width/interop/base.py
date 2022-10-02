@@ -11,8 +11,7 @@ from typing import Literal, Sequence, TypeVar
 import numpy as np
 
 # LOCAL
-from trackstream.track.width.base import WidthBase
-from trackstream.utils.numpy_overload import NumPyOverloader
+from trackstream.track.width.base import WB_FUNCS, WidthBase
 
 __all__: list[str] = []
 
@@ -27,20 +26,15 @@ T = TypeVar("T")
 # CODE
 ##############################################################################
 
-WB_FUNCS = NumPyOverloader(default_dispatch_on=WidthBase)
 
-
-# ===============================================================
-
-
-@WB_FUNCS.implements(np.convolve, types=(WidthBase, np.ndarray))
+@WB_FUNCS.implements(np.convolve, WidthBase, types=(WidthBase, np.ndarray))
 def convolve(a: T, v: np.ndarray, mode: Literal["valid", "full", "same"] = "full") -> T:
     """Returns the discrete, linear convolution of two one-dimensional sequences."""
     # apply to each field.
     return replace(a, **{f.name: np.convolve(getattr(a, f.name), v, mode=mode) for f in fields(a)})
 
 
-@WB_FUNCS.implements(np.concatenate, types=WidthBase)
+@WB_FUNCS.implements(np.concatenate, WidthBase, types=WidthBase)
 def concatenate(
     seqwb: Sequence[T],
     axis: int = 0,
@@ -49,7 +43,6 @@ def concatenate(
     casting: Literal["no", "equiv", "safe", "same_kind", "unsafe"] = "same_kind",
 ) -> T:
     """Join a sequence of arrays along an existing axis."""
-    # TODO! move this to ``numpy_overload``
     # Check types are the same
     cls = type(seqwb[0])
     if not all(type(wb) is cls for wb in seqwb):

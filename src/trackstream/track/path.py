@@ -12,6 +12,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    ClassVar,
     Literal,
     NamedTuple,
     Sequence,
@@ -26,13 +27,13 @@ import interpolated_coordinates as icoords
 import numpy as np
 from astropy.utils.decorators import format_doc
 from astropy.utils.metadata import MetaData
+from overload_numpy import NPArrayOverloadMixin, NumPyOverloader
 from scipy.optimize import OptimizeResult, minimize_scalar
 
 # LOCAL
 from trackstream.track.width.core import BaseWidth
 from trackstream.track.width.interpolated import InterpolatedWidths
 from trackstream.utils.coord_utils import get_frame, parse_framelike
-from trackstream.utils.numpy_overload import NumPyOverloader
 from trackstream.utils.visualization import PlotDescriptorBase
 
 if TYPE_CHECKING:
@@ -51,6 +52,8 @@ __all__ = ["Path", "path_moments"]
 ##############################################################################
 # PARAMETERS
 
+PATH_FUNCS = NumPyOverloader()
+
 
 class path_moments(NamedTuple):
     mean: coords.SkyCoord
@@ -63,7 +66,7 @@ class path_moments(NamedTuple):
 
 
 @dataclass(frozen=True)
-class Path:
+class Path(NPArrayOverloadMixin):
     """Paths are an affine-parameterized position and distribution.
 
     Parameters
@@ -107,6 +110,8 @@ class Path:
     Exception
         if `path` is not already interpolated and affine is None
     """
+
+    NP_OVERLOADS: ClassVar[NumPyOverloader] = PATH_FUNCS
 
     meta = MetaData(copy=True)
     plot = PlotDescriptorBase["Path"]()
@@ -224,21 +229,6 @@ class Path:
 
         data_f = theframe.realize_frame(data, representation_type=rep_type, differential_type=dif_type)
         return cls.from_format(data_f, width=width, amplitude=amplitude, affine=affine, name=name, metadata=metadata)
-
-    # ===============================================================
-    # Interoperability
-
-    def __array_function__(
-        self, func: Callable[..., Any], types: tuple[type, ...], args: tuple[Any, ...], kwargs: dict[str, Any]
-    ) -> Any:
-        # LOCAL
-        if func not in PATH_FUNCS:
-            return NotImplemented
-
-        finfo = PATH_FUNCS[func](self)
-        if not finfo.validate_types(types):
-            return NotImplemented
-        return finfo.func(*args, **kwargs)
 
     # ===============================================================
     # Magic Methods
@@ -428,10 +418,8 @@ class Path:
 ##############################################################################
 # NumPy Overloading
 
-PATH_FUNCS = NumPyOverloader(default_dispatch_on=Path)
 
-
-@PATH_FUNCS.implements(np.concatenate, dispatch_on=Path, types=Path)
+@Path.NP_OVERLOADS.implements(np.concatenate, dispatch_on=Path)
 def concatenate(
     seqpaths: Sequence[Path],
     axis: int = 0,
@@ -467,7 +455,7 @@ def concatenate(
     elif npth.frame.representation_type != ppth.frame.representation_type:
         raise ValueError("the paths must have the same representation_type")
 
-    affine = cast(u.Quantity, np.concatenate((-npth.affine[::-1], ppth.affine)))
+    affine = cast("u.Quantity", np.concatenate((-npth.affine[::-1], ppth.affine)))
 
     # get representations, uninterpolated
     # TODO! add concatenated to InterpolatedSkyCoord
@@ -489,7 +477,7 @@ def concatenate(
         raise ValueError("negow and posow is None")
     else:
         uninterp_width = np.concatenate((negow.uninterpolated[::-1], posow.uninterpolated))
-        uninterp_width = cast(BaseWidth, uninterp_width)
+        uninterp_width = cast("BaseWidth", uninterp_width)
         width = InterpolatedWidths.from_format(uninterp_width, affine=affine)
 
     # Name

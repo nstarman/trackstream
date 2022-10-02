@@ -195,7 +195,7 @@ class PlotDescriptorBase(BoundDescriptor[BndTo]):
             raise ValueError(f"kind must be in {get_args(DKindT)}, not {kind!r}")
 
         # TODO! reps with 1 dim, like RadialRepresentation
-        namedict = cast(dict, getattr(frame, "get_representation_component_names")(which))
+        namedict = cast("dict", getattr(frame, "get_representation_component_names")(which))
         xn, yn, *_ = tuple(namedict.keys())
 
         return xn, yn
@@ -222,9 +222,9 @@ class PlotDescriptorBase(BoundDescriptor[BndTo]):
         x = getattr(crds, xn)
         if isinstance(x, Angle):
             x = x.wrap_at(Angle(180, u.deg))
-        x = cast(Quantity, x)
+        x = cast("Quantity", x)
 
-        y = cast(Quantity, getattr(crds, yn))
+        y = cast("Quantity", getattr(crds, yn))
 
         return (x, xn), (y, yn)
 

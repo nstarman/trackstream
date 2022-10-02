@@ -31,6 +31,7 @@ from trackstream.utils.unit_utils import merge_units
 
 if TYPE_CHECKING:
     # THIRD PARTY
+    from astropy.coordinates import BaseCoordinateFrame
     from typing_extensions import Self
 
     # LOCAL
@@ -263,7 +264,7 @@ class FirstOrderNewtonianKalmanFilter:
         stream_width = Widths(dws)
 
         # Affine
-        ci = cast(coords.BaseCoordinateFrame, mc[:-1])
+        ci = cast("BaseCoordinateFrame", mc[:-1])
         cj = mc[1:]
         sp2p = ci.separation(cj)  # point-2-point sep
         minafn = u.Quantity(min(1e-10, 1e-10 * sp2p.value[0]), sp2p.unit)

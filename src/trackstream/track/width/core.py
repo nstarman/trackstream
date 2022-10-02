@@ -6,7 +6,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass, fields
 from functools import singledispatchmethod
-from typing import TYPE_CHECKING, Any, Callable, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 # THIRD PARTY
 import astropy.coordinates as coords
@@ -29,7 +29,6 @@ __all__ = ["BaseWidth"]
 ##############################################################################
 # TYPING
 
-T = TypeVar("T")
 W1 = TypeVar("W1", bound="BaseWidth")
 W2 = TypeVar("W2", bound="BaseWidth")
 
@@ -190,22 +189,6 @@ class BaseWidth(WidthBase, metaclass=ABCMeta):
         dt = np.dtype([(f.name, dtype) for f in fields(self)])
         x = np.c_[tuple(getattr(self, f.name).value for f in fields(self))]
         return rfn.unstructured_to_structured(x, dtype=dt)
-
-    def __array_function__(
-        self, func: Callable[..., Any], types: tuple[type, ...], args: tuple[Any, ...], kwargs: dict[str, Any]
-    ) -> Any:
-        """Interface with :mod:`numpy` functions."""
-        # LOCAL
-        from trackstream.track.width.interop import WB_FUNCS
-
-        if func not in WB_FUNCS:
-            return NotImplemented
-
-        # Get NumPyInfo on function, given type of self
-        finfo = WB_FUNCS[func](self)
-        if not finfo.validate_types(types):
-            return NotImplemented
-        return finfo.func(*args, **kwargs)
 
 
 @BaseWidth.__lt__.register(BaseWidth)

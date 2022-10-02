@@ -191,7 +191,7 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
 
         track, _ax, _, _, *_ = self._setup(ax=ax)
         theframe, frame_name = self._parse_frame(frame)
-        som = cast(SelfOrganizingMap, track.som)
+        som = cast("SelfOrganizingMap", track.som)
         xn, yn = "", ""  # default labels. updated from data.
 
         if som is not None:
@@ -279,7 +279,7 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
         track, _ax, _, _, *_ = self._setup(ax=ax)
         xn, yn = "", ""  # default, updated from data
 
-        kalman = cast(FirstOrderNewtonianKalmanFilter, track.kalman)
+        kalman = cast("FirstOrderNewtonianKalmanFilter", track.kalman)
 
         # Subselect from covariance matrix
         start = 0 if kind == "positions" else kalman.nfeature

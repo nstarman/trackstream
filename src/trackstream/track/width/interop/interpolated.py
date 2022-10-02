@@ -10,7 +10,7 @@ from typing import Literal, Sequence, TypeVar
 import numpy as np
 
 # LOCAL
-from trackstream.track.width.interop.base import WB_FUNCS
+from trackstream.track.width.base import WB_FUNCS
 from trackstream.track.width.interpolated import InterpolatedWidth
 
 __all__: list[str] = []

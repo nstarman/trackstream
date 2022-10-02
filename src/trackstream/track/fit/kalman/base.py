@@ -31,6 +31,7 @@ from trackstream.utils.unit_utils import merge_units
 
 if TYPE_CHECKING:
     # THIRD PARTY
+    from astropy.units import Quantity
     from typing_extensions import Self
 
     # LOCAL
@@ -218,9 +219,9 @@ class FONKFBase:
             # includes the kinematics.
             unit = flat_units[rn]
             if rn in width0.dtype.names:
-                wn0 = cast(u.Quantity, width0[rn]).to_value(unit).item()
+                wn0 = cast("Quantity", width0[rn]).to_value(unit).item()
             elif fn in width0.dtype.names:
-                wn0 = cast(u.Quantity, width0[fn]).to_value(unit).item()
+                wn0 = cast("Quantity", width0[fn]).to_value(unit).item()
             else:
                 msg = f"{rn}/{fn} is not in the stream data, setting the width to 0."
                 wn0 = 0

@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, TypeVar, cast
 
 # THIRD PARTY
 import numpy as np
-from astropy.coordinates import BaseCoordinateFrame, SkyCoord
+from astropy.coordinates import BaseCoordinateFrame, SkyCoord  # noqa: TC002
 from astropy.io.registry import UnifiedReadWriteMethod
 from numpy.lib.recfunctions import structured_to_unstructured
 from typing_extensions import TypedDict
@@ -106,7 +106,7 @@ class StreamArm(StreamBase):
         if include_order:
             mask |= self.data["order"].mask
 
-        return cast(np.ndarray[Any, np.dtype[np.bool_]], mask)
+        return cast("np.ndarray[Any, np.dtype[np.bool_]]", mask)
 
     @property
     def mask(self) -> NDArray[np.bool_]:
@@ -154,7 +154,7 @@ class StreamArm(StreamBase):
         """Data coordinates transformed to `Stream.frame` (if there is one)."""
         order = self._get_order(self.mask)
 
-        dc = cast(SkyCoord, self.data_coords[order])
+        dc = cast("SkyCoord", self.data_coords[order])
         frame = self._best_frame
 
         c = dc.transform_to(frame)

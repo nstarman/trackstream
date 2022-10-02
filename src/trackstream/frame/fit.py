@@ -169,7 +169,7 @@ def _fit_frame_dict(
     usrep: coords.UnitSphericalRepresentation
     usrep = info["data"].represent_as(coords.UnitSphericalRepresentation)  # type: ignore
 
-    crep = cast(coords.CartesianRepresentation, usrep.represent_as(coords.CartesianRepresentation))
+    crep = cast("coords.CartesianRepresentation", usrep.represent_as(coords.CartesianRepresentation))
     xyz: Quantity = crep.xyz
 
     # Put origin in same frame as the data.
