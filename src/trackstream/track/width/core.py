@@ -16,7 +16,7 @@ import numpy.lib.recfunctions as rfn
 
 # LOCAL
 from trackstream.track.utils import is_structured
-from trackstream.track.width.base import TO_FORMAT, WidthBase
+from trackstream.track.width.base import FMT_OVERLOADS, WidthBase
 from trackstream.utils.descriptors.classproperty import classproperty
 
 if TYPE_CHECKING:
@@ -265,13 +265,13 @@ class KinematicSpaceWidth(BaseWidth):
 ##############################################################################
 
 
-@TO_FORMAT.implements(np.ndarray, dispatch_on=BaseWidth)
-def _to_format_ndarray(data, *args):
+@FMT_OVERLOADS.implements(to_format=np.ndarray, from_format=BaseWidth)
+def _to_format_ndarray(cls, data, *args):
     return np.array(data, *args)
 
 
-@TO_FORMAT.implements(u.Quantity, dispatch_on=BaseWidth)
-def _to_format_quantity(data, *args):
+@FMT_OVERLOADS.implements(to_format=u.Quantity, from_format=BaseWidth)
+def _to_format_quantity(cls, data, *args):
     unit = u.StructuredUnit(tuple(getattr(data, f.name).unit for f in fields(data)))
-    out = u.Quantity(np.array(data, *args), unit=unit)
+    out = cls(np.array(data, *args), unit=unit)
     return out
