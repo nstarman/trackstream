@@ -24,6 +24,7 @@
     "astropy>=5.0",
     "galpy>=1.8",
     'bound_class.core @ git+https://github.com/nstarman/bound-class.git#egg=bound_class.core&subdirectory=libs/core',
+    "importlib_metadata",
     "interpolated_coordinates  @ git+https://github.com/GalOrrery/interpolated-coordinates.git",
     "matplotlib",
     "numpy>=1.18",
