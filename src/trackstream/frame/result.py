@@ -45,7 +45,7 @@ R = TypeVar("R")
 
 
 @final
-@dataclass(frozen=True)
+@dataclass
 class FrameOptimizeResultPlotDescriptor(PlotDescriptorBase["FrameOptimizeResult"]):
     """FrameOptimizeResult plot descriptor."""
 

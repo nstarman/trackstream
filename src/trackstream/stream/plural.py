@@ -32,7 +32,7 @@ __all__ = ["StreamArmsBase", "StreamArms"]
 ##############################################################################
 
 
-@dataclass(frozen=True)
+@dataclass
 class StreamPlotDescriptor(PlotCollectionBase["StreamArmsBase"]):
     # todo move to StreamPlotCollection (DNE)
     def origin(

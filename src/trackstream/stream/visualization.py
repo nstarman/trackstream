@@ -15,10 +15,10 @@ from astropy.coordinates import (
     SkyOffsetFrame,
     frame_transform_graph,
 )
+from bound_class.core.descriptors.base import BndTo
 
 # LOCAL
 from trackstream.utils.coord_utils import parse_framelike
-from trackstream.utils.descriptors.base import BndTo
 from trackstream.utils.visualization import AX_LABELS, CommonPlotDescriptorBase, DKindT
 
 if TYPE_CHECKING:
@@ -36,7 +36,7 @@ __all__: list[str] = []
 ##############################################################################
 
 
-@dataclass(frozen=True)
+@dataclass
 class StreamPlotDescriptorBase(CommonPlotDescriptorBase[BndTo]):
     """ABC descriptor for plotting stream(arms).
 
