@@ -36,7 +36,7 @@ repos:
       - id: shfmt
 
   - repo: https://github.com/PyCQA/autoflake
-    rev: v1.7.6
+    rev: v1.7.7
     hooks:
       - id: autoflake
         args:
@@ -79,7 +79,7 @@ repos:
         additional_dependencies: ["toml"]
 
   - repo: https://github.com/nbQA-dev/nbQA
-    rev: 1.5.2
+    rev: 1.5.3
     hooks:
       - id: nbqa-black
       - id: nbqa-flake8
