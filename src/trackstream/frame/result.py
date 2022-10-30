@@ -49,7 +49,7 @@ R = TypeVar("R")
 class FrameOptimizeResultPlotDescriptor(PlotDescriptorBase["FrameOptimizeResult"]):
     """FrameOptimizeResult plot descriptor."""
 
-    def residual(self, stream: StreamBase, *, ax: Axes | None = None, format_ax: bool = True) -> Axes:
+    def residual(self, stream: StreamBase, *, ax: Axes | None = None, format_ax: bool = True, **kwargs: Any) -> Axes:
         """Residual plot of fitting the frame.
 
         Parameters
@@ -62,6 +62,8 @@ class FrameOptimizeResultPlotDescriptor(PlotDescriptorBase["FrameOptimizeResult"
             (:func:`matplotlib.pyplot.gca`).
         format_ax : bool, optional keyword-only
             Whether to add the axes labels and info, by default `True`.
+        **kwargs : Any
+            Passed to ``scatter``.
 
         Returns
         -------
@@ -86,7 +88,7 @@ class FrameOptimizeResultPlotDescriptor(PlotDescriptorBase["FrameOptimizeResult"
                 for angle in rotation_angles
             ]
         )
-        _ax.scatter(rotation_angles, res)
+        _ax.scatter(rotation_angles, res, **kwargs)
 
         # Plot the best-fit rotation
         _ax.axvline(
