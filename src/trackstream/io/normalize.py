@@ -6,18 +6,16 @@ from __future__ import annotations
 # STDLIB
 import copy
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Mapping
+from typing import Mapping
 
 # THIRD PARTY
 import astropy.units as u
 from astropy.coordinates import BaseCoordinateFrame, SkyCoord
 from astropy.table import MaskedColumn, QTable, Table
 from numpy import arange, ones
-from stream.utils.coord_utils import deep_transform_to
 
-if TYPE_CHECKING:
-    # THIRD PARTY
-    from stream.core import StreamArm  # noqa: F401
+# LOCAL
+from trackstream.utils.coord_utils import deep_transform_to
 
 __all__: list[str] = []
 
