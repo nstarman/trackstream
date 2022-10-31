@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 # STDLIB
+import copy as pycopy
 from collections.abc import Mapping
 from dataclasses import fields
 from functools import singledispatchmethod
@@ -218,6 +219,9 @@ class Widths(MutableMapping[u.PhysicalType, W1], NPArrayOverloadMixin, ToFormatO
         # Delegate to contained Width
         for k in self.keys():
             self[k][key[k]] = value[k]
+
+    def __deepcopy__(self, memo: dict[Any, Any]) -> Widths:
+        return type(self)(pycopy.deepcopy(self._spaces, memo))
 
 
 ##############################################################################
