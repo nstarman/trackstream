@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 # STDLIB
+import copy as pycopy
 import inspect
 from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping
@@ -154,6 +155,9 @@ class BaseWidth(WidthBase, metaclass=ABCMeta):
     @singledispatchmethod
     def __setitem__(self, key: object, value: Any) -> Any:  # https://github.com/python/mypy/issues/11727
         raise NotImplementedError("not dispatched")
+
+    def __deepcopy__(self: W1, memo: dict[Any, Any]) -> W1:
+        return type(self)(**{f.name: pycopy.deepcopy(getattr(self, f.name), memo=memo) for f in fields(self)})
 
     # ===============================================================
     # I/O
