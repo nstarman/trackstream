@@ -1,6 +1,6 @@
-# """Testing :class:`trackstream.core.TrackStreamArm`."""
+# """Testing :class:`trackstream.core.FitterStreamArmTrack`."""
 
-# __all__ = ["Test_TrackStreamArm"]
+# __all__ = ["Test_FitterStreamArmTrack"]
 
 
 # ##############################################################################
@@ -14,7 +14,7 @@
 # from astropy.tests.helper import assert_quantity_allclose
 
 # # LOCAL
-# from trackstream import StreamArmTrack, TrackStreamArm
+# from trackstream import StreamArmTrack, FitterStreamArmTrack
 # from trackstream.example_data import get_example_pal5
 # from trackstream.som import SelfOrganizingMap1D
 # from trackstream.stream import Stream
@@ -24,8 +24,8 @@
 # ##############################################################################
 
 
-# class Test_TrackStreamArm:
-#     """Test :class:`~trackstream.core.TrackStreamArm`."""
+# class Test_FitterStreamArmTrack:
+#     """Test :class:`~trackstream.core.FitterStreamArmTrack`."""
 
 #     def setup_class(self):
 #         """Setup fixtures for testing."""
@@ -44,11 +44,11 @@
 #             # TODO! have a test for a pre-made SOM
 #             arm2SOM = None
 
-#         return TrackStreamArm(onsky=False)
+#         return FitterStreamArmTrack(onsky=False)
 
 #     @pytest.fixture
 #     def tracker_cls(self):
-#         return TrackStreamArm
+#         return FitterStreamArmTrack
 
 #     @pytest.fixture
 #     def stream_cls(self):

@@ -2,12 +2,16 @@
 
 """Classes and functions for working with stellar streams."""
 
+# STDLIB
+from importlib.metadata import version as _get_version
+
 # LOCAL
 from trackstream import utils  # noqa: F401
 from trackstream.stream.core import StreamArm
 from trackstream.stream.stream import Stream
 
 __all__ = ["StreamArm", "Stream"]
+__version__ = _get_version(__name__)
 
 
 # ===================================================================
@@ -21,3 +25,5 @@ from trackstream.io.register import UnifiedIOEntryPointRegistrar
 UnifiedIOEntryPointRegistrar(data_class=StreamArm, group="trackstream.io.StreamArm.from_format", which="reader").run()
 # clean up
 del UnifiedIOEntryPointRegistrar
+
+del _get_version

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 # STDLIB
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Protocol, TypeVar, runtime_checkable
 
 # THIRD PARTY
 import astropy.units as u
@@ -33,6 +33,7 @@ StreamLikeT = TypeVar("StreamLikeT", bound="StreamLike")
 StreamBaseT = TypeVar("StreamBaseT", bound="StreamBase")
 
 
+@runtime_checkable
 class StreamLike(Protocol):
     """Stream-like Protocol."""
 

@@ -25,13 +25,9 @@ from astropy.units import Quantity
 from numpy import allclose, array, array_equal
 
 # LOCAL
-from trackstream.utils.coord_utils import (
-    deep_transform_to,
-    offset_by,
-    position_angle,
-    resolve_framelike,
-)
-from trackstream.utils.misc import covariance_ellipse, is_structured, make_shuffler
+from trackstream.track.fit.utils import offset_by, position_angle
+from trackstream.track.utils import covariance_ellipse, is_structured
+from trackstream.utils.coord_utils import deep_transform_to, parse_framelike
 
 ##############################################################################
 # TESTS
@@ -45,38 +41,26 @@ def test_reference_to_skyoffset_matrix(lon, lat, rotation):
     assert True
 
 
-@pytest.mark.parametrize("type_error", [True, False])
-class Test_resolve_framelike:
-    """Test :func:`trackstream.utils.coord_utils.resolve_framelike`.
+class Test_parse_framelike:
+    """Test :func:`trackstream.utils.coord_utils.parse_framelike`.
 
     Uses :func:`functools.singledispatch`.
     """
 
-    def test_wrong_type(self, type_error):
-        """Test giving the wrong type to ``resolve_framelike``."""
-        if not type_error:
-            frame = resolve_framelike(object(), type_error=type_error)
-            assert frame.__class__.__name__ == "object"
+    def test_wrong_type(self):
+        """Test giving the wrong type to ``parse_framelike``."""
+        with pytest.raises(NotImplementedError, match="frame type"):
+            parse_framelike(object())
 
-        else:
-            with pytest.raises(TypeError, match="input coordinate"):
-                resolve_framelike(object(), type_error=type_error)
-
-    def test_str(self, type_error):
+    def test_str(self):
         """Test ``resolve_framelik`` with `str` input."""
-        frame = resolve_framelike("galactic", type_error=type_error)
+        frame = parse_framelike("galactic")
         assert isinstance(frame, coord.Galactic)
 
-    def test_frame(self, type_error):
+    def test_frame(self):
         """Test ``resolve_framelik`` with |Frame| input."""
-        frame = resolve_framelike(coord.Galactocentric(), type_error=type_error)
+        frame = parse_framelike(coord.Galactocentric())
         assert isinstance(frame, coord.Galactocentric)
-
-    def test_skycoord(self, type_error):
-        """Test ``resolve_framelik`` with |SkyCoord| input."""
-        c = coord.ICRS(ra=Quantity(1, u.deg), dec=Quantity(2, u.deg))
-        frame = resolve_framelike(coord.SkyCoord(c), type_error=type_error)
-        assert isinstance(frame, coord.ICRS)
 
 
 @pytest.mark.parametrize(
@@ -135,24 +119,6 @@ def test_offset_by(lon, lat, posang, distance, expected):
     """Test `trackstream.utils.coord_utils.offset_by`."""
     pnt = offset_by(lon, lat, posang, distance)
     assert allclose(pnt, expected)
-
-
-def test_make_shuffler():
-    """Test `trackstream.utils.misc.make_shuffler`."""
-    # default Generator
-    shuffler, undo = make_shuffler(10, rng=None)
-    assert isinstance(shuffler, np.ndarray) & isinstance(undo, np.ndarray)
-    assert np.all(shuffler[undo] == np.arange(10))
-
-    # Generator
-    shuffler, undo = make_shuffler(10, rng=np.random.default_rng())
-    assert isinstance(shuffler, np.ndarray) & isinstance(undo, np.ndarray)
-    assert np.all(shuffler[undo] == np.arange(10))
-
-    # RandomState
-    shuffler, undo = make_shuffler(10, rng=np.random.RandomState())
-    assert isinstance(shuffler, np.ndarray) & isinstance(undo, np.ndarray)
-    assert np.all(shuffler[undo] == np.arange(10))
 
 
 def test_is_structured():

@@ -2,8 +2,7 @@
 
 """Testing :mod:`~trackstream.stream.core`."""
 
-##############################################################################
-# IMPORTS
+from __future__ import annotations
 
 # STDLIB
 import re
@@ -13,12 +12,12 @@ from typing import TYPE_CHECKING, TypeVar
 import pytest
 
 # LOCAL
-from trackstream.base import StreamBase
+from trackstream.stream.base import StreamBase
 
 if TYPE_CHECKING:
     # LOCAL
-    from trackstream.core import Stream
     from trackstream.stream.arm import StreamArm
+    from trackstream.stream.core import Stream
 
 S = TypeVar("S", bound=StreamBase)
 
