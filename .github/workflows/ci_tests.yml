@@ -55,7 +55,7 @@ jobs:
           - name: Python 3.11 with minimal dependencies and full coverage
             os: ubuntu-latest
             python: "3.11"
-            toxenv: py310-test-cov
+            toxenv: py311-test-cov
 
           # NOTE: In the build below we also check that tests do not open and
           # leave open any files. This has a performance impact on running the
@@ -63,26 +63,26 @@ jobs:
           - name: Python 3.10 with all optional dependencies
             os: ubuntu-latest
             python: "3.10"
-            toxenv: py39-test-alldeps
+            toxenv: py310-test-alldeps
             toxargs: -v --develop
             toxposargs: --open-files
 
           - name: Python 3.9 with oldest supported version of all dependencies
             os: ubuntu-18.04
             python: "3.9"
-            toxenv: py38-test-oldestdeps-alldeps-cov-clocale
+            toxenv: py39-test-oldestdeps-alldeps-cov-clocale
             toxposargs: --remote-data=github
 
           - name: Python 3.10 with all optional dependencies (Windows)
             os: windows-latest
             python: "3.10"
-            toxenv: py39-test-alldeps
+            toxenv: py310-test-alldeps
             toxposargs: --durations=50
 
           - name: Python 3.10 with all optional dependencies (MacOS X)
             os: macos-latest
             python: "3.10"
-            toxenv: py39-test-alldeps
+            toxenv: py310-test-alldeps
             toxposargs: --durations=50
 
     steps:
@@ -121,7 +121,7 @@ jobs:
           - name: (Allowed Failure) Python 3.11 with remote data and dev version of key dependencies
             os: ubuntu-latest
             python: "3.11"
-            toxenv: py38-test-devdeps
+            toxenv: py311-test-devdeps
             toxposargs: --remote-data=any
 
     steps:
