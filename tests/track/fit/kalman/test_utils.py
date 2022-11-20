@@ -10,7 +10,7 @@
 import numpy as np
 
 # LOCAL
-from trackstream.utils.misc import intermix_arrays
+from trackstream.track.fit.kalman.utils import intermix_arrays
 
 ##############################################################################
 # TESTS
