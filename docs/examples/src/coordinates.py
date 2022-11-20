@@ -2,12 +2,7 @@
 
 """Examples Coordinate Utilities."""
 
-
-__all__ = ["get_transform_matrix"]
-
-
-##############################################################################
-# IMPORTS
+from __future__ import annotations
 
 # STDLIB
 from collections.abc import Sequence
@@ -22,8 +17,8 @@ if TYPE_CHECKING:
     # LOCAL
     from trackstream._type_hints import CoordinateType
 
-##############################################################################
-# PARAMETERS
+
+__all__ = ["get_transform_matrix"]
 
 ##############################################################################
 # CODE
