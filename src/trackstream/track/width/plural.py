@@ -236,7 +236,7 @@ class Widths(PhysicalTypeKeyMutableMapping[W1], NPArrayOverloadMixin, ToFormatOv
             self[k][key[k]] = value[k]
 
     def __deepcopy__(self, memo: dict[Any, Any]) -> Widths:
-        return type(self)(pycopy.deepcopy(self._spaces, memo))
+        return type(self)(pycopy.deepcopy(self._mapping, memo))
 
 
 ##############################################################################
