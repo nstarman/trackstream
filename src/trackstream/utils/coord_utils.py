@@ -326,7 +326,7 @@ def f2q(crds: BaseCoordinateFrame | SkyCoord, flatten: bool = False) -> u.Quanti
     >>> import astropy.units as u
     >>> from astropy.coordinates import ICRS
     >>> c = ICRS(ra=1*u.deg, dec=2*u.deg, pm_ra_cosdec=3*u.mas/u.yr, pm_dec=4*u.mas/u.yr)
-    >>> f2q(c)
+    >>> f2q(c)  # doctest: +FLOAT_CMP
     <Quantity ((1., 2., 1.), (3., 4., 0)) ((deg, deg, ), (mas / yr, mas / yr, mas / (rad yr)))>
     """
     q = _f2q_helper(crds, "base")  # positions
