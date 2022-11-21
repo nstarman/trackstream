@@ -1,5 +1,4 @@
-##############################################################################
-# IMPORTS
+"""Register IO extensions for trackstream."""
 
 from __future__ import annotations
 
@@ -26,12 +25,18 @@ __all__ = ["UnifiedIOEntryPointRegistrar"]
 
 
 class IdentifyCallable(Protocol):
-    def __call__(self, origin: str, format: str | None, /, *args: Any, **kwargs: Any) -> bool:
+    """Callable that identifies a format."""
+
+    def __call__(self, origin: str, format: str | None, /, *args: Any, **kwargs: Any) -> bool:  # noqa: A002
+        """Identify a format."""
         ...
 
 
 class FuncCallable(Protocol):  # TODO!
+    """Callable that reads or writes a format."""
+
     def __call__(self, base: Any, /, *args: Any, **kwds: Any) -> Any:
+        """Read or write a format."""
         ...
 
 
@@ -51,6 +56,7 @@ class EPDict(TypedDict):
 
 @dataclass(frozen=True)
 class UnifiedIOEntryPointRegistrar:
+    """Unified I/O entry-point registrar."""
 
     _ep_keys: ClassVar[frozenset[str]] = frozenset(getattr(EPDict, "__annotations__", {}).keys())
     """Do not change."""
@@ -60,11 +66,13 @@ class UnifiedIOEntryPointRegistrar:
     which: str
 
     def run(self) -> None:
+        """Run the registrar."""
         eps = entry_points().select(group=self.group)
         for ep in eps:
             self(ep)
 
     def __call__(self, entry_point: EntryPoint) -> None:
+        """Register an entry-point."""
         name = entry_point.name
 
         # Load entrypoint

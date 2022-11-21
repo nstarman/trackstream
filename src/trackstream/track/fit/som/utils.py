@@ -1,5 +1,4 @@
-##############################################################################
-# IMPORTS
+"""Utilities for SOMs."""
 
 from __future__ import annotations
 

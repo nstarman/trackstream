@@ -1,3 +1,5 @@
+"""Width."""
+
 from __future__ import annotations
 
 # STDLIB
@@ -95,6 +97,7 @@ class BaseWidth(WidthBase, metaclass=ABCMeta):
     @property
     @abstractmethod
     def corresponding_width_types(cls) -> dict[u.PhysicalType, None | type[BaseWidth]]:
+        """Return a dictionary of corresponding width types."""
         raise NotImplementedError
 
     @property
@@ -230,16 +233,19 @@ class ConfigSpaceWidth(BaseWidth, metaclass=ABCMeta):
 
     @classproperty
     def dimensions(cls) -> u.PhysicalType:
+        """Physical type of the width."""
         return LENGTH
 
     @classproperty
     @abstractmethod
     def corresponding_representation_type(cls) -> None | type[coords.BaseRepresentation]:
+        """Representation type corresponding to the width type."""
         return None
 
     @property
     @abstractmethod
     def corresponding_width_types(cls) -> dict[u.PhysicalType, None | type[BaseWidth]]:
+        """The width types corresponding to this width type."""
         raise NotImplementedError
 
 
@@ -253,16 +259,18 @@ class KinematicSpaceWidth(BaseWidth):
 
     @classproperty
     def dimensions(cls) -> u.PhysicalType:
+        """Physical type of the width."""
         return SPEED
 
     @classproperty
-    # @abstractmethod
     def corresponding_representation_type(cls) -> None | type[coords.BaseDifferential]:
+        """Representation type corresponding to the width type."""
         return None
 
     @property
     @abstractmethod
     def corresponding_width_types(self) -> dict[u.PhysicalType, type[WidthBase]]:
+        """The width types corresponding to this width type."""
         raise NotImplementedError
 
 

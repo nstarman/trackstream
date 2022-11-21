@@ -141,6 +141,13 @@
   ]
 
 
+[tool.ruff]
+line-length = 120
+select = ["A", "B", "D", "E", "F", "M", "N", "Q", "RUF", "S", "T", "U", "W", "YTT"]
+ignore = ["B008", "D105", "D107", "D203", "D213", "D417", "N80", "B011"]
+per-file-ignores = {"test_*.py" = ["B027", "D", "N801", "S101"], "src/trackstream/io/core.py" = ["D414"], "src/trackstream/stream/base.py" = ["N815"]}
+
+
 [tool.isort]
   profile = "black"
   multi_line_output = 3

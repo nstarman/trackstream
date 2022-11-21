@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     # THIRD PARTY
     from astropy.units import Quantity
     from matplotlib.figure import Figure
-    from matplotlib.pyplot import Axes  # type: ignore
+    from matplotlib.pyplot import Axes
     from numpy import ndarray
     from typing_extensions import Unpack
 
@@ -35,7 +35,6 @@ if TYPE_CHECKING:
     from trackstream._typing import FrameLikeType
     from trackstream.stream.base import StreamBase
     from trackstream.track.core import StreamArmTrack
-    from trackstream.track.plural import StreamArmsTrackBase  # noqa: F401
 
 
 __all__: list[str] = []
@@ -478,12 +477,12 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
             ax=ax2,
             format_ax=format_ax,
             som=True,
-            som_kw=dict(
-                connect=connect,
-                initial_prototypes=initial_prototypes,
-                x_offset=prototypes_x_offset,
-                y_offset=prototypes_y_offset,
-            ),
+            som_kw={
+                "connect": connect,
+                "initial_prototypes": initial_prototypes,
+                "x_offset": prototypes_x_offset,
+                "y_offset": prototypes_y_offset,
+            },
             kalman=False,
         )
 
@@ -624,6 +623,8 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
 
 @dataclass
 class StreamArmsTrackBasePlotDescriptor(PlotCollectionBase["StreamArmsTrackBase"]):
+    """Plot descriptors for |StreamArmsTrackBase|."""
+
     def in_frame(
         self,
         frame: str = "stream",
@@ -634,6 +635,27 @@ class StreamArmsTrackBasePlotDescriptor(PlotCollectionBase["StreamArmsTrackBase"
         format_ax: bool = False,
         **kwargs: Any,
     ) -> dict[str, Axes]:
+        """Plot the stream in a given frame.
+
+        Parameters
+        ----------
+        frame : str, optional
+            The frame to plot in, by default ``"stream"``.
+        kind : str, optional
+            The kind of data to plot, by default ``"positions"``.
+        origin : bool, optional
+            Whether to plot the origin, by default `True`.
+        ax : |Axes|, optional
+            The axes to plot on. If `None`, the current axes are used.
+        format_ax : bool, optional
+            Whether to add the axes labels and info, by default `False`.
+        kwargs : Any
+            Options passed to each track' ``in_frame`` plot method.
+
+        Returns
+        -------
+        dict[str, |Axes|]
+        """
         track = self.enclosing
         last = len(track.keys()) - 1
 
@@ -662,6 +684,33 @@ class StreamArmsTrackBasePlotDescriptor(PlotCollectionBase["StreamArmsTrackBase"
         ax: Axes | None = None,
         format_ax: bool = False,
     ) -> dict[str, Axes]:
+        """Plot the SOMs.
+
+        Parameters
+        ----------
+        frame : str, optional
+            The frame to plot in, by default ``"stream"``.
+        kind : str, optional
+            The kind of data to plot, by default ``"positions"``.
+        origin : bool, optional keyword-only
+            Whether to plot the origin, by default `True`.
+        connect : bool, optional keyword-only
+            Whether to connect the prototypes, by default `True`.
+        initial_prototypes : bool, optional keyword-only
+            Whether to plot the initial prototypes, by default `False`.
+        x_offset : |Quantity|, optional keyword-only
+            The x offset to apply to the prototypes, by default `0`.
+        y_offset : |Quantity|, optional keyword-only
+            The y offset to apply to the prototypes, by default `0`.
+        ax : |Axes|, optional
+            The axes to plot on. If `None`, the current axes are used.
+        format_ax : bool, optional
+            Whether to add the axes labels and info, by default `False`.
+
+        Returns
+        -------
+        dict[str, |Axes|]
+        """
         track = self.enclosing
         last = len(track.keys()) - 1
 
@@ -691,6 +740,29 @@ class StreamArmsTrackBasePlotDescriptor(PlotCollectionBase["StreamArmsTrackBase"
         format_ax: bool = False,
         **kwargs: Any,
     ) -> dict[str, Axes]:
+        """Plot the Kalman filter.
+
+        Parameters
+        ----------
+        frame : str, optional
+            The frame to plot in, by default ``"stream"``.
+        kind : str, optional
+            The kind of data to plot, by default ``"positions"``.
+        connect : bool, optional keyword-only
+            Whether to connect the prototypes, by default `False`.
+        origin : bool, optional keyword-only
+            Whether to plot the origin, by default `False`.
+        ax : |Axes|, optional
+            The axes to plot on. If `None`, the current axes are used.
+        format_ax : bool, optional
+            Whether to add the axes labels and info, by default `False`.
+        kwargs : Any
+            Options passed to each track's ``kalman`` plot method.
+
+        Returns
+        -------
+        dict[str, |Axes|]
+        """
         track = self.enclosing
         last = len(track.keys()) - 1
 
@@ -721,6 +793,35 @@ class StreamArmsTrackBasePlotDescriptor(PlotCollectionBase["StreamArmsTrackBase"
         format_ax: bool = False,
         **kwargs: Any,
     ) -> dict[str, Axes]:
+        """Plot the tracks.
+
+        Parameters
+        ----------
+        frame : str, optional
+            The frame to plot in, by default ``"stream"``.
+        kind : str, optional
+            The kind of data to plot, by default ``"positions"``.
+        origin : bool, optional keyword-only
+            Whether to plot the origin, by default `True`.
+        som : bool, optional keyword-only
+            Whether to plot the SOMs, by default `True`.
+        som_kw : dict, optional keyword-only
+            Options passed to the ``som`` plot method.
+        kalman : bool, optional keyword-only
+            Whether to plot the Kalman filter, by default `True`.
+        kalman_kw : dict, optional keyword-only
+            Options passed to the ``kalman`` plot method.
+        ax : |Axes|, optional
+            The axes to plot on. If `None`, the current axes are used.
+        format_ax : bool, optional
+            Whether to add the axes labels and info, by default `False`.
+        kwargs : Any
+            Options passed to each track' ``in_frame`` plot method.
+
+        Returns
+        -------
+        dict[str, |Axes|]
+        """
         track = self.enclosing
         last = len(track.keys()) - 1
 
@@ -751,6 +852,29 @@ class StreamArmsTrackBasePlotDescriptor(PlotCollectionBase["StreamArmsTrackBase"
         axes: tuple[Axes, Axes] | None = None,
         format_ax: bool = True,
     ) -> tuple[Figure | None, tuple[Axes, Axes] | None]:
+        """Plot the SOMs in a multipanel figure.
+
+        Parameters
+        ----------
+        connect : bool, optional keyword-only
+            Whether to connect the prototypes, by default `True`.
+        initial_prototypes : bool, optional keyword-only
+            Whether to plot the initial prototypes, by default `False`.
+        prototypes_x_offset : |Quantity|, optional keyword-only
+            The x offset to apply to the prototypes, by default `0`.
+        prototypes_y_offset : |Quantity|, optional keyword-only
+            The y offset to apply to the prototypes, by default `0`.
+        origin : bool, optional keyword-only
+            Whether to plot the origin, by default `True`.
+        axes : tuple[|Axes|, |Axes|], optional
+            The axes to plot on. If `None`, the current axes are used.
+        format_ax : bool, optional
+            Whether to add the axes labels and info, by default `True`.
+
+        Returns
+        -------
+        tuple[|Figure|, tuple[|Axes|, |Axes|]]
+        """
         track = self.enclosing
         last = len(track.keys()) - 1
         fig: Figure | None = None
@@ -777,6 +901,27 @@ class StreamArmsTrackBasePlotDescriptor(PlotCollectionBase["StreamArmsTrackBase"
         axes: ndarray | None = None,
         format_ax: bool = True,
     ) -> tuple[Figure | None, ndarray | None]:
+        """Plot the tracks in a multipanel figure.
+
+        Parameters
+        ----------
+        origin : bool, optional keyword-only
+            Whether to plot the origin, by default `True`.
+        in_frame_kw : dict[str, Any], optional keyword-only
+            Options passed to the ``in_frame`` plot method.
+        som_kw : dict[str, Any], optional keyword-only
+            Options passed to the ``som`` plot method.
+        kalman_kw : dict[str, Any], optional keyword-only
+            Options passed to the ``kalman`` plot method.
+        axes : |ndarray|, optional
+            The axes to plot on. If `None`, the current axes are used.
+        format_ax : bool, optional
+            Whether to add the axes labels and info, by default `True`.
+
+        Returns
+        -------
+        tuple[|Figure|, |ndarray|]
+        """
         track = self.enclosing
         last = len(track.keys()) - 1
         fig: Figure | None = None

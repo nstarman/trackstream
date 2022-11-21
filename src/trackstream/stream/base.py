@@ -41,22 +41,27 @@ class StreamLike(Protocol):
 
     @property
     def plot(self) -> object:
+        """Plotting descriptor."""
         ...
 
     @property
     def full_name(self) -> str | None:
+        """The full name of the stream."""
         ...
 
     @property
     def coords(self) -> SkyCoord:
+        """The stream's coordinates."""
         ...
 
     @property
     def frame(self) -> BaseCoordinateFrame | None:
+        """The stream's frame."""
         ...
 
     @property
     def origin(self) -> SkyCoord:
+        """The stream's origin."""
         ...
 
 
@@ -80,10 +85,12 @@ _ABC_MSG = "Can't instantiate abstract class {} with abstract method {}"
 
 @dataclass(frozen=True)
 class Flags:
+    """Flags."""
+
     minPmemb: u.Quantity = u.Quantity(80, unit=u.percent)
     table_repr_max_lines: int = 10
 
-    def set(self, **kwargs: Any) -> None:
+    def set(self, **kwargs: Any) -> None:  # noqa: A003
         """Set the value of a flag."""
         for key, value in kwargs.items():
             if not isinstance(value, type(getattr(self, key))):
@@ -173,8 +180,8 @@ class StreamBase:
         raise TypeError(_ABC_MSG.format(self.__class__.__qualname__, "data_frame"))
 
     @property
-    # @abstractmethod
     def data_coords(self) -> SkyCoord:
+        """The coordinates in ``data``."""
         raise TypeError(_ABC_MSG.format(self.__class__.__qualname__, "data_coords"))
 
     @property

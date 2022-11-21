@@ -3,7 +3,7 @@
 """Test helpers for :mod:`~trackstream`."""
 
 # STDLIB
-from typing import Any, Dict
+from typing import Any
 
 # THIRD PARTY
 import astropy.units as u
@@ -14,7 +14,7 @@ from astropy.utils.data import get_pkg_data_path
 
 
 @pytest.fixture(scope="session")
-def IbataEtAl2017() -> Dict[str, Any]:
+def IbataEtAl2017() -> dict[str, Any]:
     """Fixture returning data from Ibata et al (2017) [1]_.
 
     Returns

@@ -1,10 +1,10 @@
-##############################################################################
-# IMPORTS
+"""Interoperability for interpolated widths."""
 
 from __future__ import annotations
 
 # STDLIB
-from typing import Literal, Sequence, TypeVar
+from collections.abc import Sequence
+from typing import Literal, TypeVar
 
 # THIRD PARTY
 import numpy as np
@@ -29,6 +29,7 @@ T = TypeVar("T")
 
 @WB_FUNCS.implements(np.convolve, dispatch_on=InterpolatedWidth, types=(InterpolatedWidth, np.ndarray))
 def convolve(a: T, v: np.ndarray, mode: Literal["valid", "full", "same"] = "full") -> T:
+    """Returns the discrete, linear convolution of an interpolated width."""
     raise ValueError
 
 
@@ -40,5 +41,26 @@ def concatenate(
     dtype: np.dtype | None = None,
     casting: Literal["no", "equiv", "safe", "same_kind", "unsafe"] = "same_kind",
 ) -> T:
-    """Join a sequence of arrays along an existing axis."""
+    """Join a sequence of widths along an existing axis.
+
+    Parameters
+    ----------
+    seqwb : Sequence[T]
+        Sequence of widths to concatenate.
+    axis : int, optional
+        The axis along which the arrays will be joined. Default is 0.
+    out : T | None, optional
+        If provided, the destination to place the result. The shape must be correct,
+        matching that of what concatenate would have returned if no out argument
+        were specified. Default is None.
+    dtype : np.dtype | None, optional
+        If provided, the destination array will have this dtype. Default is None.
+    casting : Literal["no", "equiv", "safe", "same_kind", "unsafe"], optional
+        Controls what kind of data casting may occur. Default is "same_kind".
+
+    Returns
+    -------
+    T
+        The concatenated width.
+    """
     raise ValueError

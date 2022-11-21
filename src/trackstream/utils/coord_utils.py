@@ -7,7 +7,7 @@ from __future__ import annotations
 
 # STDLIB
 import functools
-from typing import TYPE_CHECKING, Any, Literal, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Literal, TypeVar
 
 # THIRD PARTY
 import astropy.units as u
@@ -167,7 +167,7 @@ def get_frame(frame: object) -> BaseCoordinateFrame:
 
 @get_frame.register(str)
 @parse_framelike.register(str)
-def _parse_framelike_str(name: str) -> BaseCoordinateFrame:  # noqa: F811
+def _parse_framelike_str(name: str) -> BaseCoordinateFrame:
     frame_cls = frame_transform_graph.lookup_name(name)
 
     if frame_cls is None:
@@ -195,7 +195,7 @@ def _get_frame_skycoord(frame: SkyCoord) -> BaseCoordinateFrame:
 
 # ===================================================================
 
-_DifT: TypeAlias = Union[type[BaseDifferential], None, Literal["base"]]
+_DifT: TypeAlias = type[BaseDifferential] | None | Literal["base"]
 
 
 @functools.singledispatch
@@ -219,7 +219,7 @@ def deep_transform_to(
     representation_type : BaseRepresentationresentation class
         The type of representation.
     differential_type : BaseDifferentialferential class or None or 'base', optional
-        Class in which any velocities should be represented. If equal to ‘base’
+        Class in which any velocities should be represented. If equal to `base`
         (default), inferred from the base class.If `None`, all velocity
         information is dropped.
 
@@ -292,9 +292,7 @@ def _f2q_helper(crds: BaseCoordinateFrame | SkyCoord, which: str) -> u.Quantity:
     # Note: ``get_representation_component_names`` sometimes returns names which
     # aren't actually an attribute, so need to filter.
     rcls = crds.get_representation_cls(which)
-    comps = tuple(
-        c for c, rc in crds.get_representation_component_names(which).items() if rc in getattr(rcls, "attr_classes")
-    )
+    comps = tuple(c for c, rc in crds.get_representation_component_names(which).items() if rc in rcls.attr_classes)
 
     # Build structured array
     dt = np.dtype([(c, float) for c in comps])

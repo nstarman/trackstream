@@ -89,7 +89,9 @@ class KDTreeLOFBase(OutlierDetectorBase, Generic[KDT], register=False):
         return super().predict(data, threshold=threshold, k=k, **query_kw)
 
 
-class scipyKDTreeLOF(KDTreeLOFBase["KDTree"]):
+class ScipyKDTreeLOF(KDTreeLOFBase["KDTree"]):
+    """LOF using a KDTree from `scipy.spatial`."""
+
     def fit(self, data: NDFloat[N1], /) -> None:
         """Fit the outlier detection method to the training data.
 

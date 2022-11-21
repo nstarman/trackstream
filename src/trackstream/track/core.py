@@ -46,7 +46,7 @@ class StreamArmTrackBase(Generic[StreamLikeT]):
     @property
     @abstractmethod
     def stream(self) -> StreamLikeT:
-        """The track's stream"""
+        """The track's stream."""
         raise NotImplementedError
 
 
@@ -113,10 +113,12 @@ class StreamArmTrack(StreamArmTrackBase[StreamLikeT]):
 
     @property
     def origin(self) -> coords.SkyCoord:
+        """The origin of the track."""
         return self.stream.origin
 
     @property
     def full_name(self) -> str | None:
+        """The full name of the track."""
         return self.name
 
     @property
@@ -126,21 +128,24 @@ class StreamArmTrack(StreamArmTrackBase[StreamLikeT]):
 
     @property
     def affine(self) -> Quantity:
+        """The affine interpolation parameter."""
         return self.path.affine
 
     @property
     def frame(self) -> coords.BaseCoordinateFrame:
+        """The coordinate frame of the track."""
         return self.path.frame
 
     @cached_property
     def has_distances(self) -> bool:
-        """Whether the data has distances or is on-sky"""
+        """Whether the data has distances or is on-sky."""
         # TODO a more robust check
         data_onsky = issubclass(type(self.coords.data), coords.UnitSphericalRepresentation)
         return not data_onsky
 
     @cached_property
     def has_kinematics(self) -> bool:
+        """Whether the track has kinematics."""
         return "s" in self.coords.data.differentials
 
     #######################################################

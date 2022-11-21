@@ -7,8 +7,9 @@
 
 # STDLIB
 import copy
+from collections.abc import Iterator
 from copyreg import pickle
-from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 # THIRD PARTY
 import pytest
@@ -21,7 +22,6 @@ from .test_base import StreamBaseTest
 from trackstream.base import StreamBase
 from trackstream.core import Stream
 from trackstream.stream.tests.test_arm import StreamArmTestMixin
-from trackstream.tests.helper import IbataEtAl2017  # noqa: F401
 from trackstream.track.fitter import TrackStreamArm
 from trackstream.utils import resolve_framelike
 
@@ -38,12 +38,12 @@ S = TypeVar("S", bound=StreamBase)
 
 class Test_Stream(StreamBaseTest, StreamArmTestMixin):
     @pytest.fixture(scope="class")
-    def stream_cls(self) -> Type[S]:
+    def stream_cls(self) -> type[S]:
         """Stream class."""
         return Stream
 
     @pytest.fixture(scope="class")
-    def DATA(self, IbataEtAl2017) -> Iterator[Dict[str, Any]]:  # noqa: F811
+    def DATA(self, IbataEtAl2017) -> Iterator[dict[str, Any]]:
         """Fixture yielding all stream data sets."""
         yield from (IbataEtAl2017,)
 
@@ -52,7 +52,7 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
         return DATA["data"]
 
     @pytest.fixture(scope="class")
-    def data_error_table(self, DATA) -> Optional[QTable]:
+    def data_error_table(self, DATA) -> QTable | None:
         return DATA["data_error"]
 
     @pytest.fixture(scope="class")
@@ -60,11 +60,11 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
         return DATA["origin"]
 
     @pytest.fixture(scope="class", params=[None, True])
-    def name(self, request) -> Optional[str]:
+    def name(self, request) -> str | None:
         return self.__class__.__name__ if request.param else None
 
     @pytest.fixture(scope="function", params=[None, (None, None)])
-    def fitter(self, request) -> Optional[TrackStreamArm]:
+    def fitter(self, request) -> TrackStreamArm | None:
         if request.param is None:
             return None
         else:

@@ -1,5 +1,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
+"""IO for astropy tables."""
+
 from __future__ import annotations
 
 # STDLIB
@@ -37,6 +39,7 @@ def stream_arm_from_table(
     Stream: type[StreamArm] | None = None,
     _cache: dict[str, Any] | None = None,
 ) -> StreamArm:
+    """Create a stream arm from a table."""
     table_meta = cast("dict[str, Any]", table.meta)
     # Stream class
     if Stream is None:
@@ -89,7 +92,7 @@ def stream_arm_from_table(
     return stream
 
 
-def table_identify(origin: str, format: str | None, /, *args: Any, **kwargs: Any) -> bool:
+def table_identify(origin: str, format: str | None, /, *args: Any, **kwargs: Any) -> bool:  # noqa: A002
     """Identify if object uses the Table format.
 
     Returns
@@ -105,7 +108,7 @@ def table_identify(origin: str, format: str | None, /, *args: Any, **kwargs: Any
 # ===================================================================
 # Register
 
-register_StreamArm_from_format = {
+register_StreamArm_from_format = {  # noqa: N816
     "registry": convert_registry,
     "data_class": StreamArm,
     "func": stream_arm_from_table,

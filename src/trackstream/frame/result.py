@@ -6,9 +6,10 @@
 from __future__ import annotations
 
 # STDLIB
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from functools import singledispatchmethod
-from typing import TYPE_CHECKING, Any, Generic, Mapping, Sequence, TypeVar, cast, final
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast, final
 
 # THIRD PARTY
 import astropy.coordinates as coords

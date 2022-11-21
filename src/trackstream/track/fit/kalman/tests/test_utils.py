@@ -19,7 +19,6 @@ from trackstream.utils.misc import intermix_arrays
 
 def test_intermix_arrays():
     """Test `trackstream.utils.misc.intermix_arrays`."""
-
     # Mix single scalar array (does nothing)
     x = np.arange(5)
     got = intermix_arrays(x)

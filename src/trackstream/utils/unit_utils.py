@@ -1,9 +1,12 @@
+"""Utilities for working with units."""
+
 from __future__ import annotations
 
 # STDLIB
+from collections.abc import Iterable, Sequence
 from functools import reduce
 from operator import add
-from typing import Any, Iterable, Sequence
+from typing import Any
 
 # THIRD PARTY
 import astropy.units as u
@@ -104,4 +107,9 @@ def merge_arrays(
     else:
         unit = u.StructuredUnit(reduce(add, units))
 
-    return (arrays,), dict(fill_value=fill_value, flatten=flatten, usemask=usemask, asrecarray=asrecarray), unit, None
+    return (
+        (arrays,),
+        {"fill_value": fill_value, "flatten": flatten, "usemask": usemask, "asrecarray": asrecarray},
+        unit,
+        None,
+    )

@@ -10,7 +10,8 @@ __all__ = ["get_transform_matrix"]
 # IMPORTS
 
 # STDLIB
-from typing import TYPE_CHECKING, Sequence
+from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 # THIRD PARTY
 import astropy.coordinates as coord

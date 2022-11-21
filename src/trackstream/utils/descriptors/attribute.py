@@ -1,18 +1,12 @@
+"""Attribute descriptors."""
+
 from __future__ import annotations
 
 # STDLIB
+from collections.abc import MutableMapping
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import (
-    Any,
-    Generic,
-    Literal,
-    MutableMapping,
-    NoReturn,
-    TypeVar,
-    final,
-    overload,
-)
+from typing import Any, Generic, Literal, NoReturn, TypeVar, final, overload
 
 T = TypeVar("T")
 
@@ -59,7 +53,7 @@ class Attribute(Generic[T]):
             obj = deepcopy(self.obj)
         else:
             if not hasattr(instance, self.attrs_loc):
-                object.__setattr__(instance, self.attrs_loc, dict())
+                object.__setattr__(instance, self.attrs_loc, {})
 
             attrs: MutableMapping[str, Any] = getattr(instance, self.attrs_loc)
             maybeobj = attrs.get(self._enclosing_attr)  # get from enclosing.

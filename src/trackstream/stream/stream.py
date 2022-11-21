@@ -10,6 +10,7 @@ from __future__ import annotations
 
 # STDLIB
 import copy
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field, fields
 from types import MappingProxyType
 from typing import (
@@ -17,7 +18,6 @@ from typing import (
     Any,
     ClassVar,
     Literal,
-    Mapping,
     NoReturn,
     TypedDict,
     TypeVar,
@@ -28,7 +28,7 @@ from typing import (
 # THIRD PARTY
 from astropy.coordinates import BaseCoordinateFrame, SkyCoord
 from astropy.coordinates import concatenate as concatenate_coords
-from astropy.table import Column, QTable  # noqa: TC002
+from astropy.table import Column, QTable
 from bound_class.core.descriptors import BoundDescriptor
 
 # LOCAL
@@ -76,6 +76,8 @@ class _StreamCache(TypedDict):
 
 
 class StreamArmsDescriptor(StreamArms, BoundDescriptor["Stream"]):
+    """Stream arms descriptor."""
+
     def __init__(self, store_in: Literal["__dict__", "_attrs_"] | None = "__dict__") -> None:
         object.__setattr__(self, "store_in", store_in)
 
@@ -85,6 +87,7 @@ class StreamArmsDescriptor(StreamArms, BoundDescriptor["Stream"]):
 
     @property
     def name(self) -> str | None:
+        """The name of the attribute."""
         return self.enclosing.name
 
     def __set__(self, obj: object, value: Any) -> NoReturn:
@@ -93,6 +96,8 @@ class StreamArmsDescriptor(StreamArms, BoundDescriptor["Stream"]):
 
 @dataclass
 class StreamPlotDescriptor(PlotCollectionBase["Stream"]):
+    """Stream plot descriptor."""
+
     # todo move to StreamPlotCollection (DNE)
     def origin(
         self,
@@ -104,6 +109,27 @@ class StreamPlotDescriptor(PlotCollectionBase["Stream"]):
         ax: Axes | None,
         format_ax: bool = True,
     ) -> Axes:
+        """Plot the origin of the stream.
+
+        Parameters
+        ----------
+        origin : CoordinateType
+            The origin of the stream.
+        frame : FrameLikeType, optional
+            The frame of the origin. If not provided, the frame of the stream
+            will be used.
+        kind : DKindT, optional
+            The kind of data to plot, by default "positions".
+        ax : Axes, optional
+            The axes to plot on. If not provided, the current axes will be used.
+        format_ax : bool, optional
+            Whether to format the axes, by default `True`.
+
+        Returns
+        -------
+        Axes
+            The axes the origin was plotted on.
+        """
         arm0 = next(iter(self.enclosing.values()))
         return arm0.plot.origin(frame=frame, kind=kind, ax=ax, format_ax=format_ax)
 
@@ -117,6 +143,28 @@ class StreamPlotDescriptor(PlotCollectionBase["Stream"]):
         format_ax: bool = True,
         **kwargs: Any,
     ) -> dict[str, Any]:
+        """Plot the stream in a frame.
+
+        Parameters
+        ----------
+        frame : str, optional
+            The frame to plot in, by default "icrs".
+        kind : DKindT, optional
+            The kind of data to plot, by default "positions".
+        origin : bool, optional
+            Whether to plot the origin, by default `False`.
+        ax : Axes, optional
+            The axes to plot on. If not provided, the current axes will be used.
+        format_ax : bool, optional
+            Whether to format the axes, by default `True`.
+        kwargs
+            Additional keyword arguments to pass to the plotting function.
+
+        Returns
+        -------
+        dict[str, Any]
+            The plotting results.
+        """
         stream = self.enclosing
         last = len(stream.arms) - 1
 
@@ -139,16 +187,25 @@ class StreamPlotDescriptor(PlotCollectionBase["Stream"]):
 
 @dataclass(frozen=True)
 class StreamFlags(Flags, BoundDescriptor["Stream"]):
+    """Flags for a `Stream`."""
 
     store_in: Literal["__dict__"] = field(default="__dict__", repr=False)
 
-    def set(self, **kwargs: Any) -> None:
+    def set(self, **kwargs: Any) -> None:  # noqa: A003
+        """Set flags.
+
+        Parameters
+        ----------
+        kwargs
+            Flags to set.
+        """
         super().set(**kwargs)
 
         for v in self.__self__.values():
             v.flags.set(**kwargs)
 
     def asdict(self) -> dict[str, Any]:
+        """Return flags as a dictionary."""
         fns = tuple(f.name for f in fields(Flags))
         return {k: v for k, v in asdict(self).items() if k in fns}
 
@@ -226,6 +283,28 @@ class Stream(StreamArmsBase, StreamBase):
         frame: FrameLikeType | None = None,
         caches: dict[str, dict[str, Any] | None] | None = None,
     ) -> Self:
+        """Create a `Stream` from data.
+
+        Parameters
+        ----------
+        data : `~astropy.table.QTable`
+            The stream data.
+        origin : `~astropy.coordinates.SkyCoord`
+            The origin point of the stream (and rotated reference frame).
+        name : str or None, optional keyword-only
+            The name of the stream.
+        data_err : `~astropy.table.QTable` (optional)
+            Optionally separate table for the data errors.
+        frame : `~astropy.coordinates.BaseCoordinateFrame` or None, optional keyword-only
+            The stream frame. Locally linearizes the data.
+            If `None` (default), need to fit for the frame.
+        caches : dict[str, dict[str, Any] | None] or None, optional keyword-only
+            The cache data.
+
+        Returns
+        -------
+        Stream
+        """
         # split data by arm
         data = data.group_by("arm")
         data.add_index("arm")
@@ -264,11 +343,13 @@ class Stream(StreamArmsBase, StreamBase):
 
     @property
     def data_frame(self) -> BaseCoordinateFrame:
+        """The data frame."""
         # all the arms must have the same frame
         return self[self._k0].data_frame
 
     @property
     def origin(self) -> SkyCoord:
+        """The origin of the stream."""
         # all the arms must have the same frame
         return self[self._k0].origin
 
@@ -299,16 +380,18 @@ class Stream(StreamArmsBase, StreamBase):
 
     @property
     def has_distances(self) -> bool:
+        """Return `True` if all the arms have distances."""
         return all(arm.has_distances for arm in self.values())
 
     @property
     def has_kinematics(self) -> bool:
+        """Return `True` if all the arms have kinematics."""
         return all(arm.has_kinematics for arm in self.values())
 
     # ===============================================================
     # Cleaning Data
 
-    def mask_outliers(self, outlier_method: str | OutlierDetectorBase = "scipyKDTreeLOF", **kwargs: Any) -> None:
+    def mask_outliers(self, outlier_method: str | OutlierDetectorBase = "ScipyKDTreeLOF", **kwargs: Any) -> None:
         """Detect and label outliers, setting their ``order`` to -1."""
         for arm in self.values():
             arm.mask_outliers(outlier_method, **kwargs)
@@ -342,8 +425,6 @@ class Stream(StreamArmsBase, StreamBase):
 
         Parameters
         ----------
-
-
         force : bool, optional keyword-only
             Whether to force a fit, even if already fit.
 

@@ -29,7 +29,7 @@ class Test_NoOpPBar:
 
     def test_running(self):
         with _NoOpPBar() as pbar:
-            for i in range(10):
+            for _i in range(10):
                 pbar.update(1)
 
         assert isinstance(pbar, _NoOpPBar)
@@ -46,6 +46,22 @@ def test_get_progress_bar_tqdm_not_installed(caplog):
 @pytest.mark.skipif(not HAS_TQDM, reason="requires tqdm.")
 def test_get_progress_bar_():
     """
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     Test :func:`trackstream.utils.pbar.get_progress_bar` when :mod:`tqdm` is
     installed. :mod:`tqdm` itself is well tested, so no further tests are needed here.
     """

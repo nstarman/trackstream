@@ -44,6 +44,8 @@ __all__: list[str] = []
 
 
 class kalman_output(NamedTuple):
+    """Kalman Filter output."""
+
     timesteps: np.ndarray
     x: np.ndarray
     P: np.ndarray
@@ -52,6 +54,8 @@ class kalman_output(NamedTuple):
 @final
 @dataclass(frozen=True)
 class KFInfo(FrameInfo):
+    """Kalman Filter information."""
+
     REGISTRY: ClassVar[dict[type, KFInfo]] = {}
 
 
@@ -138,6 +142,22 @@ class FONKFBase:
         kinematics: bool | None = None,
         width0: None | Widths = None,
     ) -> Any:  # https://github.com/python/mypy/issues/11727
+        """Create a Kalman Filter from an object.
+
+        Parameters
+        ----------
+        arm : object, positional-only
+            The object to create the Kalman Filter from.
+        kinematics : bool | None, optional
+            Whether to use kinematics. If `None`, the data will be checked.
+        width0 : None | Widths, optional
+            The initial widths to use.
+
+        Returns
+        -------
+        `~trackstream.track.fit.kalman.base.FONKFBase`
+            The Kalman Filter.
+        """
         raise NotImplementedError("not dispatched")
 
     @from_format.register(StreamArm)
@@ -245,6 +265,7 @@ class FONKFBase:
             # covariance block
             # p = np.array([[pn, 0], [0, 10 * pn]])
             p = np.array([[pn, 0], [0, pn]])
+
             ps.append(p)
 
         P0 = block_diag(*ps)  # Covariance matrix
@@ -359,7 +380,8 @@ class FONKFBase:
     def _math_predict_and_update(
         self, x: np.ndarray, P: np.ndarray, F: np.ndarray, Q: np.ndarray, z: np.ndarray, R: np.ndarray
     ) -> tuple[np.ndarray, np.ndarray]:
-        """
+        """Predict and update step.
+
         Predict prior using Kalman filter transition functions.
         Then add a new measurement to the Kalman filter.
 

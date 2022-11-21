@@ -1,22 +1,11 @@
-##############################################################################
-# IMPORTS
+"""Timesteps."""
 
 from __future__ import annotations
 
 # STDLIB
 from collections.abc import Mapping
 from functools import singledispatchmethod
-from typing import (
-    Any,
-    ClassVar,
-    Iterator,
-    KeysView,
-    MutableMapping,
-    TypeVar,
-    ValuesView,
-    cast,
-    final,
-)
+from typing import Any, ClassVar, TypeVar, cast, final
 
 # THIRD PARTY
 import astropy.units as u
@@ -25,7 +14,7 @@ from numpy.lib.recfunctions import merge_arrays
 from override_toformat import ToFormatOverloader, ToFormatOverloadMixin
 
 # LOCAL
-from trackstream.track.utils import is_structured
+from trackstream.track.utils import PhysicalTypeKeyMutableMapping, is_structured
 
 __all__: list[str] = []
 
@@ -54,7 +43,8 @@ ANGULAR_SPEED = u.get_physical_type("angular speed")
 
 
 @final
-class Times(MutableMapping[u.PhysicalType, u.Quantity], ToFormatOverloadMixin):
+class Times(PhysicalTypeKeyMutableMapping[u.Quantity], ToFormatOverloadMixin):
+    """Times."""
 
     FMT_OVERLOADS: ClassVar[ToFormatOverloader] = FMT_OVERLOADS
 
@@ -64,7 +54,7 @@ class Times(MutableMapping[u.PhysicalType, u.Quantity], ToFormatOverloadMixin):
             raise ValueError("all keys must be a PhysicalType")
 
         # Init
-        self._ts: dict[u.PhysicalType, u.Quantity] = ts
+        self._mapping: dict[u.PhysicalType, u.Quantity] = ts
 
     @singledispatchmethod
     def __getitem__(self, key: object) -> Any:  # https://github.com/python/mypy/issues/11727
@@ -80,31 +70,10 @@ class Times(MutableMapping[u.PhysicalType, u.Quantity], ToFormatOverloadMixin):
     @__getitem__.register(str)
     @__getitem__.register(u.PhysicalType)
     def _getitem_key(self, key: str | u.PhysicalType) -> u.Quantity:
-        return self._ts[self._get_key(key)]
-
-    def __setitem__(self, k: str | u.PhysicalType, v: u.Quantity) -> None:
-        self._ts[self._get_key(k)] = v
-
-    def __delitem__(self, k: str | u.PhysicalType) -> None:
-        del self._ts[self._get_key(k)]
-
-    def __iter__(self) -> Iterator[u.PhysicalType]:
-        return iter(self._ts)
-
-    def __len__(self) -> int:
-        return len(self._ts)
-
-    def keys(self) -> KeysView[u.PhysicalType]:
-        return self._ts.keys()
-
-    def values(self) -> ValuesView[u.Quantity]:
-        return self._ts.values()
-
-    def __repr__(self) -> str:
-        return f"Times({self._ts!r})"
+        return self._mapping[self._get_key(key)]
 
     def __contains__(self, o: object) -> bool:
-        return o in self._ts
+        return o in self._mapping
 
     # ===============================================================
     # I/O & Intereop
@@ -112,6 +81,7 @@ class Times(MutableMapping[u.PhysicalType, u.Quantity], ToFormatOverloadMixin):
     @singledispatchmethod
     @classmethod
     def from_format(cls, data: object) -> Any:  # https://github.com/python/mypy/issues/11727
+        """Construct from data of a given kind."""
         raise NotImplementedError("not dispatched")
 
     @from_format.register(Mapping)

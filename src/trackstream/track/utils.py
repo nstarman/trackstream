@@ -6,7 +6,8 @@
 from __future__ import annotations
 
 # STDLIB
-from typing import TYPE_CHECKING, Any, Callable, TypeVar
+from collections.abc import Iterator, KeysView, Mapping, MutableMapping, ValuesView
+from typing import TYPE_CHECKING, Any, Callable, TypeVar, cast
 
 # THIRD PARTY
 import astropy.units as u
@@ -22,6 +23,7 @@ __all__: list[str] = []
 ##############################################################################
 # PARAMETERS
 
+V = TypeVar("V")
 R = TypeVar("R")  # return variable
 
 _PI_2 = pi / 2
@@ -48,7 +50,8 @@ svd_vec: Callable = vectorize(
 
 
 def covariance_ellipse(P: ndarray, *, nstd: int | ndarray = 1) -> tuple[Quantity, ndarray]:
-    """
+    """Compute the covariance ellipse.
+
     Returns a tuple defining the ellipse representing the 2 dimensional
     covariance matrix P.
 
@@ -79,3 +82,51 @@ def covariance_ellipse(P: ndarray, *, nstd: int | ndarray = 1) -> tuple[Quantity
         raise ValueError("width must be greater than height")
 
     return orientation, wh
+
+
+##############################################################################
+
+
+class PhysicalTypeKeyMapping(Mapping[u.PhysicalType, V]):
+    """Mapping with PhysicalType keys."""
+
+    def __init__(self, mapping: Mapping[u.PhysicalType, V], /) -> None:
+        self._mapping = mapping
+
+    @staticmethod
+    def _get_key(key: str | u.PhysicalType) -> u.PhysicalType:
+        k = key if isinstance(key, u.PhysicalType) else cast("u.PhysicalType", u.get_physical_type(key))
+        return k
+
+    def __getitem__(self, key: str | u.PhysicalType, /) -> V:
+        return self._mapping[self._get_key(key)]
+
+    def __iter__(self) -> Iterator[u.PhysicalType]:
+        return iter(self._mapping)
+
+    def __len__(self) -> int:
+        return len(self._mapping)
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self._mapping!r})"
+
+    def keys(self) -> KeysView[u.PhysicalType]:
+        """Return the keys."""
+        return self._mapping.keys()
+
+    def values(self) -> ValuesView[V]:
+        """Return the values."""
+        return self._mapping.values()
+
+
+class PhysicalTypeKeyMutableMapping(PhysicalTypeKeyMapping[V], MutableMapping[u.PhysicalType, V]):
+    """Mutable mapping with PhysicalType keys."""
+
+    def __init__(self, mapping: MutableMapping[u.PhysicalType, V], /) -> None:
+        self._mapping = mapping
+
+    def __setitem__(self, key: str | u.PhysicalType, value: V, /) -> None:
+        self._mapping[self._get_key(key)] = value
+
+    def __delitem__(self, k: str | u.PhysicalType) -> None:
+        del self._mapping[self._get_key(k)]

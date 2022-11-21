@@ -7,8 +7,9 @@ from __future__ import annotations
 
 # STDLIB
 import weakref
+from collections.abc import Mapping
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, Mapping
+from typing import TYPE_CHECKING, Any
 
 # THIRD PARTY
 import numpy as np
@@ -34,6 +35,7 @@ __all__: list[str] = []
 
 
 class StreamArmsTrackBase(CollectionBase[StreamArmTrack["StreamLikeT"]], StreamArmTrackBase["StreamLikeT"]):
+    """Base class for stream arms tracks."""
 
     plot = StreamArmsTrackBasePlotDescriptor()
 

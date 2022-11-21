@@ -19,13 +19,29 @@ from trackstream.track.fit.kalman.base import FONKFBase, KFInfo
 
 __all__: list[str] = []
 
+
 ##############################################################################
 # CODE
 ##############################################################################
 
 
 @dataclass(frozen=True)
+class CartesianFONKF(FONKFBase):
+    """Cartesian First-Order Newtonian Kalman Filter."""
+
+    info = KFInfo(
+        representation_type=coords.CartesianRepresentation,
+        differential_type=coords.CartesianDifferential,
+        units=u.StructuredUnit(
+            ((u.kpc, u.kpc, u.kpc), (u.km / u.s, u.km / u.s, u.km / u.s)),
+            names=(("x", "y", "z"), ("d_x", "d_y", "d_z")),
+        ),
+    )
+
+
+@dataclass(frozen=True)
 class USphereFONKF(FONKFBase):
+    """Unit Sphere First-Order Newtonian Kalman Filter."""
 
     info = KFInfo(
         representation_type=coords.UnitSphericalRepresentation,
@@ -39,18 +55,14 @@ class USphereFONKF(FONKFBase):
         super().__post_init__()
 
         self._wrap_at: ndarray
-        object.__setattr__(self, "_wrap_at", self._wrap_at_default())
-
-    def _wrap_at_default(self) -> ndarray:
-        return array([pi, pi / 2])  # lon, lat [rad]
+        object.__setattr__(self, "_wrap_at", array([pi, pi / 2]))  # lon, lat [rad]
 
     # ===============================================================
 
     def _wrap_residual(self, residual: ndarray) -> ndarray:
-        #  first coordinate is always the longitude
-        deltalon = residual[0]  # * self._angle_convert[0]
+        deltalon = residual[0]  # first coordinate is always the longitude
         pa = arctan2(sin(deltalon), 0)  # position angle
-        residual[0] = sign(pa) * arccos(cos(deltalon))  # / self._angle_convert[0]
+        residual[0] = sign(pa) * arccos(cos(deltalon))
 
         # TODO! similar for |Latitude|
 

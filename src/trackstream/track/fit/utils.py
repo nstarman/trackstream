@@ -6,16 +6,9 @@
 from __future__ import annotations
 
 # STDLIB
+from collections.abc import MutableMapping
 from dataclasses import dataclass
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    ClassVar,
-    Generic,
-    MutableMapping,
-    Protocol,
-    TypeVar,
-)
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, Protocol, TypeVar
 
 # THIRD PARTY
 import astropy.coordinates as coords
@@ -49,6 +42,8 @@ _PI_2 = pi / 2
 
 @dataclass(frozen=True)
 class FrameInfo(Generic[T]):
+    """Frame information."""
+
     representation_type: type[coords.BaseRepresentation]
     differential_type: type[coords.BaseDifferential]
     units: u.StructuredUnit
@@ -75,29 +70,35 @@ class FrameInfo(Generic[T]):
         tuple[str, ...]
             Names of components of representation and differential types.
         """
-        cs = tuple(getattr(self.representation_type, "attr_classes").keys())
+        cs = tuple(self.representation_type.attr_classes.keys())
         if kinematics:
-            cs += tuple(getattr(self.differential_type, "attr_classes").keys())
+            cs += tuple(self.differential_type.attr_classes.keys())
         return cs
 
     @property
     def dtype(self) -> np.dtype:
-        ldt = np.dtype([(n, float) for n in tuple(getattr(self.representation_type, "attr_classes").keys())])
-        sdt = np.dtype([(n, float) for n in tuple(getattr(self.differential_type, "attr_classes").keys())])
+        """Dtype."""
+        ldt = np.dtype([(n, float) for n in tuple(self.representation_type.attr_classes.keys())])
+        sdt = np.dtype([(n, float) for n in tuple(self.differential_type.attr_classes.keys())])
         return np.dtype([("length", ldt), ("speed", sdt)])
 
 
 class HasFrameAndInfo(SupportsFrame, Protocol):
+    """Protocol for objects that have a frame and info."""
+
     @property
     def frame(self) -> BaseCoordinateFrame:
+        """Frame."""
         ...
 
     @property
     def info(self) -> FrameInfo:
+        """Frame info."""
         ...
 
     @property
     def nfeature(self) -> int:
+        """Number of features."""
         ...
 
 
@@ -121,7 +122,7 @@ def _v2c(obj: HasFrameAndInfo, arr: ndarray, /) -> BaseCoordinateFrame:
     # Position
     i: int = 0
     q: dict[str, u.Quantity] = {}
-    for i, (n, acls) in enumerate(getattr(obj.info.representation_type, "attr_classes").items()):
+    for i, (n, acls) in enumerate(obj.info.representation_type.attr_classes.items()):
         v = arr[:, i] << obj.info.units[0][n]
         # Need to special case constrained classes
         if acls is coords.Latitude:  # map into (-90, 90)
@@ -132,7 +133,7 @@ def _v2c(obj: HasFrameAndInfo, arr: ndarray, /) -> BaseCoordinateFrame:
     # The shape of arr determines if there are differentials!
     if arr.shape[1] > i:
         p = {}
-        for j, n in enumerate(getattr(obj.info.differential_type, "attr_classes").keys()):
+        for j, n in enumerate(obj.info.differential_type.attr_classes.keys()):
             p[n] = arr[:, i + j] << obj.info.units[1][n]
 
         d = obj.info.differential_type(**p)
@@ -156,8 +157,7 @@ def _v2c(obj: HasFrameAndInfo, arr: ndarray, /) -> BaseCoordinateFrame:
 
 
 def position_angle(lon1: ndarray, lat1: ndarray, lon2: float, lat2: float) -> ndarray:
-    """
-    Position Angle (East of North) between two points on a sphere.
+    """Position Angle (East of North) between two points on a sphere.
 
     Parameters
     ----------
