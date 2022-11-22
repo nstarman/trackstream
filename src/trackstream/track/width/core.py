@@ -1,3 +1,5 @@
+"""Width."""
+
 from __future__ import annotations
 
 # STDLIB
@@ -5,8 +7,9 @@ import copy as pycopy
 import inspect
 from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, fields, replace
 from functools import singledispatchmethod
+from types import NotImplementedType
 from typing import TYPE_CHECKING, Any, TypeVar
 
 # THIRD PARTY
@@ -14,6 +17,7 @@ import astropy.coordinates as coords
 import astropy.units as u
 import numpy as np
 import numpy.lib.recfunctions as rfn
+from numpy.typing import NDArray
 
 # LOCAL
 from trackstream.track.utils import is_structured
@@ -30,6 +34,7 @@ __all__ = ["BaseWidth"]
 ##############################################################################
 # TYPING
 
+Self = TypeVar("Self", bound="BaseWidth")
 W1 = TypeVar("W1", bound="BaseWidth")
 W2 = TypeVar("W2", bound="BaseWidth")
 
@@ -95,6 +100,7 @@ class BaseWidth(WidthBase, metaclass=ABCMeta):
     @property
     @abstractmethod
     def corresponding_width_types(cls) -> dict[u.PhysicalType, None | type[BaseWidth]]:
+        """Return a dictionary of corresponding width types."""
         raise NotImplementedError
 
     @property
@@ -153,6 +159,10 @@ class BaseWidth(WidthBase, metaclass=ABCMeta):
         return NotImplemented
 
     @singledispatchmethod
+    def __getitem__(self: Self, key: object) -> Self:
+        return replace(self, **{f.name: getattr(self, f.name)[key] for f in fields(self)})
+
+    @singledispatchmethod
     def __setitem__(self, key: object, value: Any) -> Any:  # https://github.com/python/mypy/issues/11727
         raise NotImplementedError("not dispatched")
 
@@ -194,6 +204,23 @@ class BaseWidth(WidthBase, metaclass=ABCMeta):
         x = np.c_[tuple(getattr(self, f.name).value for f in fields(self))]
         return rfn.unstructured_to_structured(x, dtype=dt)
 
+    @__setitem__.register(Mapping)
+    def _setitem_mapping(self, key: Mapping[str, Any], value: BaseWidth) -> None | NotImplementedType:
+        # Setitem mut be implemented for each field.
+        if key.keys() != {f.name for f in fields(self)}:
+            raise ValueError
+        elif key.keys() != {f.name for f in fields(value)}:
+            raise ValueError
+
+        # Delegate to contained fields
+        for f in fields(self):
+            k = f.name
+            getattr(self, k)[key[k]] = getattr(value, k)
+
+    @__getitem__.register(Mapping)
+    def _getitem_mapping(self, key: Mapping[str, NDArray[np.int_]]) -> Any | NotImplementedType:
+        return {f.name: getattr(self, f.name)[key[f.name]] for f in fields(self) if f.name in key}
+
 
 @BaseWidth.__lt__.register(BaseWidth)
 def _lt_basewidth(self, other: BaseWidth) -> dict[str, np.ndarray]:
@@ -201,19 +228,6 @@ def _lt_basewidth(self, other: BaseWidth) -> dict[str, np.ndarray]:
         return NotImplemented
 
     return {f.name: getattr(self, f.name) < getattr(other, f.name) for f in fields(self)}
-
-
-@BaseWidth.__setitem__.register(Mapping)
-def _setitem_mapping(self, key: Mapping[str, Any], value: BaseWidth) -> None:
-    if key.keys() != {f.name for f in fields(self)}:
-        return NotImplemented
-    elif key.keys() != {f.name for f in fields(value)}:
-        return NotImplemented
-
-    # Delegate to contained fields
-    for f in fields(self):
-        k = f.name
-        getattr(self, k)[key[k]] = getattr(value, k)
 
 
 # ===================================================================
@@ -230,16 +244,19 @@ class ConfigSpaceWidth(BaseWidth, metaclass=ABCMeta):
 
     @classproperty
     def dimensions(cls) -> u.PhysicalType:
+        """Physical type of the width."""
         return LENGTH
 
     @classproperty
     @abstractmethod
     def corresponding_representation_type(cls) -> None | type[coords.BaseRepresentation]:
+        """Representation type corresponding to the width type."""
         return None
 
     @property
     @abstractmethod
     def corresponding_width_types(cls) -> dict[u.PhysicalType, None | type[BaseWidth]]:
+        """The width types corresponding to this width type."""
         raise NotImplementedError
 
 
@@ -253,16 +270,18 @@ class KinematicSpaceWidth(BaseWidth):
 
     @classproperty
     def dimensions(cls) -> u.PhysicalType:
+        """Physical type of the width."""
         return SPEED
 
     @classproperty
-    # @abstractmethod
     def corresponding_representation_type(cls) -> None | type[coords.BaseDifferential]:
+        """Representation type corresponding to the width type."""
         return None
 
     @property
     @abstractmethod
     def corresponding_width_types(self) -> dict[u.PhysicalType, type[WidthBase]]:
+        """The width types corresponding to this width type."""
         raise NotImplementedError
 
 

@@ -20,8 +20,7 @@ import numpy.lib.recfunctions as rfn
 from trackstream.stream.base import FRAME_NONE_ERR
 from trackstream.stream.core import StreamArm
 from trackstream.track.fit.exceptions import EXCEPT_3D_NO_DISTANCES
-from trackstream.track.fit.kalman.cartesian import CartesianFONKF
-from trackstream.track.fit.kalman.sphere import USphereFONKF
+from trackstream.track.fit.kalman.builtin import CartesianFONKF, USphereFONKF
 from trackstream.track.fit.utils import _c2v, _v2c
 from trackstream.track.path import Path
 from trackstream.track.width.core import BASEWIDTH_REP as _PW_REP
@@ -74,17 +73,17 @@ class FirstOrderNewtonianKalmanFilter:
 
     @property
     def x0(self) -> coords.BaseCoordinateFrame:
-        """Positions."""
+        """Return the initial position."""
         return _v2c(self, self.kf.x0)
 
     @property
     def P0(self) -> np.ndarray:
-        """Covariance."""
+        """Return the initial covariance."""
         return self.kf.P0
 
     @property
     def Q0(self) -> np.ndarray | None:
-        """Process noise."""
+        """Return the process noise."""
         return self.kf.Q0
 
     @property
@@ -123,6 +122,24 @@ class FirstOrderNewtonianKalmanFilter:
         *,
         width0: None | Widths = None,
     ) -> Any:  # https://github.com/python/mypy/issues/11727
+        """Create a Kalman filter from an object.
+
+        Parameters
+        ----------
+        arm : object
+            The object to create the Kalman filter from.
+        onsky : bool | None, optional
+            If the Kalman filter should be on the sky or in 3D.
+        kinematics : bool | None, optional
+            If the Kalman filter should include the kinematics.
+        width0 : None | Widths, optional
+            Initial widths for the Kalman filter.
+
+        Returns
+        -------
+        FirstOrderNewtonianKalmanFilter | Any
+            The Kalman filter or similar object, depending on the input, over which this method is dispatched.
+        """
         raise NotImplementedError("not dispatched")
 
     @from_format.register(StreamArm)
@@ -157,15 +174,15 @@ class FirstOrderNewtonianKalmanFilter:
         else:
             frame = arm.frame
 
-        KFcls = USphereFONKF if onsky else CartesianFONKF
+        kf_cls = USphereFONKF if onsky else CartesianFONKF
 
         # Width
-        flat_units = merge_units(KFcls.info.units)
+        flat_units = merge_units(kf_cls.info.units)
         if isinstance(width0, Widths):
             pass
         elif width0 is None:
             w0q = u.Quantity(np.zeros((), dtype=[(n, float) for n in flat_units.field_names]), flat_units)
-            wclss = (_PW_REP[KFcls.info.representation_type], _PW_REP[KFcls.info.differential_type])
+            wclss = (_PW_REP[kf_cls.info.representation_type], _PW_REP[kf_cls.info.differential_type])
             width0 = Widths(
                 {
                     wcls.dimensions._physical_type_list[0]: wcls.from_format(w0q)
@@ -179,7 +196,7 @@ class FirstOrderNewtonianKalmanFilter:
         widths0 = rfn.merge_arrays(width0.to_format(u.Quantity), flatten=True)
 
         # lower-level implementation
-        kf = KFcls.from_format(arm, kinematics=kinematics, width0=widths0)
+        kf = kf_cls.from_format(arm, kinematics=kinematics, width0=widths0)
 
         return cls(kf, frame=frame)
 
@@ -199,32 +216,31 @@ class FirstOrderNewtonianKalmanFilter:
 
         Parameters
         ----------
-        data : (N,) SkyCoord, position-only
+        data : (N,) SkyCoord, positional-only
             The data to fit with the Kalman filter.
         errors : (N,) Quantity
             A structured Quantity.
             Field names should be the representation names.
-        width : (N,) Quantity
+        widths : (N,) Widths
             A structured Quantity.
             Field names should be the representation names.
-
         timesteps: Times
             Must be start and end-point inclusive.
 
         Returns
         -------
-        path : `~trackstream.fit.path.Path`
+        `~trackstream.fit.path.Path`
         """
         # Measurements (in correct units).
-        Zs = _c2v(self, data)[:, : self.nfeature]
+        zs = _c2v(self, data)[:, : self.nfeature]
         # Errors as (N, D) array
         errs = rfn.structured_to_unstructured(errors.to_value(merge_units(self.info.units)))[:, : self.nfeature]
 
         # Widths: start with (N, 2) -> (N, D)
-        D = self.nfeature // 2 if self.kinematics else self.nfeature
-        _ws = (np.tile(rfn.structured_to_unstructured(np.array(widths["length"])), (1, D)),)
+        nd = self.nfeature // 2 if self.kinematics else self.nfeature
+        _ws = (np.tile(rfn.structured_to_unstructured(np.array(widths["length"])), (1, nd)),)
         if self.kinematics:
-            _ws += (np.tile(rfn.structured_to_unstructured(np.array(widths["speed"])), (1, D)),)
+            _ws += (np.tile(rfn.structured_to_unstructured(np.array(widths["speed"])), (1, nd)),)
         ws = np.c_[_ws]
 
         # timesteps
@@ -234,7 +250,7 @@ class FirstOrderNewtonianKalmanFilter:
             tu = self.kf.info.units[0][0]
         dts = rfn.structured_to_unstructured(timesteps.to_format(u.Quantity).to_value(tu))
 
-        result, smooth = self.kf.fit(Zs, errors=errs, widths=ws, timesteps=dts)
+        result, smooth = self.kf.fit(zs, errors=errs, widths=ws, timesteps=dts)
 
         # ------ make path ------
 
@@ -276,7 +292,7 @@ class FirstOrderNewtonianKalmanFilter:
             amplitude=None,  # TODO!
             name=name,
             affine=affine,
-            metadata=dict(result=result, smooth=smooth),
+            metadata={"result": result, "smooth": smooth},
         )
 
         return path

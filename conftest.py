@@ -36,8 +36,7 @@ __all__: list[str] = []
 
 try:
     # THIRD PARTY
-    from pytest_astropy_header.display import PYTEST_HEADER_MODULES  # type: ignore
-    from pytest_astropy_header.display import TESTED_VERSIONS  # type: ignore
+    from pytest_astropy_header.display import PYTEST_HEADER_MODULES, TESTED_VERSIONS
 
     ASTROPY_HEADER = True
 except ImportError:
@@ -118,7 +117,7 @@ def add_astropy(doctest_namespace: dict[str, Any]) -> None:
 
 @pytest.fixture(scope="session")
 def num() -> int:
-    """Fixture returning the number of affine ticks"""
+    """Fixture returning the number of affine ticks."""
     return 40
 
 

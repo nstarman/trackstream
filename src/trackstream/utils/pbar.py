@@ -30,7 +30,7 @@ __credits__ = ["emcee"]
 
 
 class _NoOpPBar:
-    """This class implements the progress bar interface but does nothing."""
+    """A non-operable progress bar for compatability."""
 
     def __enter__(self: Self, *_: Any, **__: Any) -> Self:
         return self

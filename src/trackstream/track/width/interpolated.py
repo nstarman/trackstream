@@ -1,20 +1,21 @@
-##############################################################################
-# IMPORTS
+"""Interpolated track width."""
 
 from __future__ import annotations
 
 # STDLIB
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, fields, replace
 from functools import singledispatchmethod
-from typing import TYPE_CHECKING, Any, Generic, Iterable, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast
 
 # THIRD PARTY
 import astropy.units as u
 import numpy as np
 import numpy.lib.recfunctions as rfn
 from astropy.units import Quantity
-from interpolated_coordinates.utils import InterpolatedUnivariateSplinewithUnits as IUSU
+from interpolated_coordinates.utils import (  # noqa: N817
+    InterpolatedUnivariateSplinewithUnits as IUSU,
+)
 
 # LOCAL
 from trackstream.track.utils import is_structured
@@ -222,12 +223,14 @@ class InterpolatedWidth(WidthBase, Generic[W1]):
 
 
 class InterpolatedWidths(Widths[InterpolatedWidth[W1]]):
+    """Interpolated widths."""
+
     def __init__(self, widths: dict[u.PhysicalType, InterpolatedWidth[W1]], affine: Quantity) -> None:
         super().__init__(widths)
         self.affine: Quantity = affine
 
         # post-init verification
-        for k, v in self.items():
+        for _k, v in self.items():
             if not np.array_equal(v.affine, self.affine):
                 raise ValueError
 
@@ -235,9 +238,11 @@ class InterpolatedWidths(Widths[InterpolatedWidth[W1]]):
 
     @property
     def uninterpolated(self) -> Widths:
+        """The uninterpolated widths."""
         return Widths({k: w.uninterpolated for k, w in self.items()})
 
     def represent_as(self, width_type: type[W1], point: BaseRepresentation) -> W1:
+        """Transform the width to another representation type."""
         # # LOCAL
         # from trackstream.track.width.transforms import represent_as
 
@@ -245,6 +250,7 @@ class InterpolatedWidths(Widths[InterpolatedWidth[W1]]):
         raise NotImplementedError("TODO!")
 
     def __call__(self, affine: Quantity | None = None) -> Widths:
+        """Evaluate the widths at the given affine parameter."""
         return Widths({k: iw(affine) for k, iw in self.items()})
 
     # ===============================================================
@@ -253,6 +259,7 @@ class InterpolatedWidths(Widths[InterpolatedWidth[W1]]):
     @singledispatchmethod
     @classmethod
     def from_format(cls, data: object, affine: Quantity) -> InterpolatedWidths:
+        """Construct this width instance from data of given type."""
         # LOCAL
         from trackstream.track.width.core import BASEWIDTH_KIND
 
@@ -301,7 +308,7 @@ class InterpolatedWidths(Widths[InterpolatedWidth[W1]]):
     @__getitem__.register(u.PhysicalType)
     @__getitem__.register(str)
     def _getitem_key(self, key: str | u.PhysicalType) -> InterpolatedWidth:
-        return self._spaces[self._get_key(key)]
+        return self._mapping[self._get_key(key)]
 
     @__getitem__.register(np.ndarray)
     @__getitem__.register(np.integer)

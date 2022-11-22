@@ -7,7 +7,8 @@ from __future__ import annotations
 
 # STDLIB
 import functools
-from typing import TYPE_CHECKING, Any, Callable, Mapping, Tuple, TypedDict, Union, cast
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, Callable, TypedDict, cast
 
 # THIRD PARTY
 import astropy.coordinates as coords
@@ -29,7 +30,6 @@ from trackstream.utils.coord_utils import get_frame
 if TYPE_CHECKING:
     # THIRD PARTY
     from numpy.typing import NDArray
-    from typing_extensions import TypeAlias
 
 __all__: list[str] = []
 
@@ -137,7 +137,7 @@ def residual(
 # then dispatches on the minimizer method. Arbitrary input types and
 # minimization methods can be supported by adding to the dispatch registries.
 
-_Rot0: TypeAlias = Union[Quantity, float, np.floating]
+_Rot0 = Quantity | float | np.floating
 _default_minimize = opt.minimize
 
 
@@ -150,6 +150,24 @@ class _FitFrameNeededInfo(TypedDict):
 def fit_frame(
     data: object, rot0: _Rot0, *, minimizer: str | Callable[..., Any] = _default_minimize, **minimizer_kwargs: Any
 ) -> Any:
+    """Fit a frame to a set of data.
+
+    Parameters
+    ----------
+    data : object
+        The data to fit the frame to.
+    rot0 : float or |Quantity| instance
+        The initial guess for the rotation angle.
+    minimizer : str or callable, optional keyword-only
+        The minimizer to use. If a string, it must be a known key.
+    minimizer_kwargs : dict, optional keyword-only
+        Keyword arguments to pass to the minimizer.
+
+    Returns
+    -------
+    result : |FrameOptimizeResult|
+        The result of the fit.
+    """
     raise NotImplementedError(f"data type {type(data)} has no registered dispatch")
 
 
@@ -174,7 +192,7 @@ def _fit_frame_dict(
 
     # Put origin in same frame as the data.
     orep: coords.UnitSphericalRepresentation
-    orep = getattr(info["origin"], "transform_to")(from_frame).represent_as(coords.UnitSphericalRepresentation)
+    orep = info["origin"].transform_to(from_frame).represent_as(coords.UnitSphericalRepresentation)
 
     # Run minimizer
     x0 = Quantity([rot0, orep.lon, orep.lat], unit=u.deg).value
@@ -239,8 +257,8 @@ def _fit_frame_Stream(
 # Since the keys are not instances of different classes, we cannot use singledispatch
 # and must roll our own equivalent using dictionaries.
 
-_X0T: TypeAlias = Tuple[float, float, float]
-_Dispatched: TypeAlias = Callable[[ndarray, _X0T, Mapping[str, Any]], object]
+_X0T = tuple[float, float, float]
+_Dispatched = Callable[[ndarray, _X0T, Mapping[str, Any]], object]
 
 MINIMIZER_DIPATCHER: dict[int, _Dispatched] = {}
 # hash(name or minimizer method) -> wrapper func
@@ -289,6 +307,21 @@ def minimizer_dispatcher(key: str | Callable[..., Any]) -> Callable[[_Dispatched
 def scipy_optimize_minimize(
     data: NDArray[np.float64], x0: _X0T, minimizer_kwargs: Mapping[str, Any]
 ) -> opt.OptimizeResult:
+    """Minimize using `scipy.optimize.minimize`.
+
+    Parameters
+    ----------
+    data : ndarray
+        The data to fit.
+    x0 : tuple[float, float, float]
+        The initial guess for the minimization.
+    minimizer_kwargs : Mapping[str, Any]
+        The keyword arguments to pass to `scipy.optimize.minimize`.
+
+    Returns
+    -------
+    result : OptimizeResult
+    """
     return opt.minimize(residual, x0=x0, args=(data, True), **minimizer_kwargs)
 
 
@@ -297,6 +330,21 @@ def scipy_optimize_minimize(
 def scipy_optimize_leastsquares(
     data: NDArray[np.float64], x0: _X0T, minimizer_kwargs: Mapping[str, Any]
 ) -> opt.OptimizeResult:
+    """Minimize the residual using `scipy.optimize.least_squares`.
+
+    Parameters
+    ----------
+    data : ndarray
+        The data to fit.
+    x0 : tuple[float, float, float]
+        The initial guess for the rotation angle and origin.
+    minimizer_kwargs : Mapping[str, Any]
+        The keyword arguments to pass to `scipy.optimize.least_squares`.
+
+    Returns
+    -------
+    result : OptimizeResult
+    """
     return opt.least_squares(residual, x0=x0, args=(data, False), **minimizer_kwargs)
 
 

@@ -2,15 +2,11 @@
 
 """Examples Coordinate Utilities."""
 
-
-__all__ = ["get_transform_matrix"]
-
-
-##############################################################################
-# IMPORTS
+from __future__ import annotations
 
 # STDLIB
-from typing import TYPE_CHECKING, Sequence
+from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 # THIRD PARTY
 import astropy.coordinates as coord
@@ -21,8 +17,8 @@ if TYPE_CHECKING:
     # LOCAL
     from trackstream._type_hints import CoordinateType
 
-##############################################################################
-# PARAMETERS
+
+__all__ = ["get_transform_matrix"]
 
 ##############################################################################
 # CODE

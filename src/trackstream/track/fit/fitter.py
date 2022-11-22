@@ -109,7 +109,8 @@ class FitterStreamArmTrack:
             raise ValueError
 
     def _kalman_validator(self, _: Any, value: FirstOrderNewtonianKalmanFilter) -> None:
-        """TODO!"""
+        """Validate the Kalman Filter."""
+        # TODO!
         # if value.onsky != self.onsky:
         #     raise ValueError
         # if value.kinematics != self.kinematics:
@@ -129,6 +130,7 @@ class FitterStreamArmTrack:
         som_kw: dict[str, Any] | None = None,
         kalman_kw: dict | None = None,
     ) -> Any:  # https://github.com/python/mypy/issues/11727
+        """Create a FitterStreamArmTrack from an object."""
         raise NotImplementedError("not dispatched")
 
     @from_format.register(StreamArm)
@@ -272,8 +274,9 @@ class FitterStreamArmTrack:
 
         kfkw = {} if kalman_kw is None else copy.deepcopy(kalman_kw)  # decouple so can't mutate
 
-        # Stream Width FIXME don't do separation from SOM, instead do separation
-        # from fake prototypes, which are avg of ordered data in segments.
+        # Stream Width  # TODO: don't do separation from SOM, instead do
+        # separation from fake prototypes, which are avg of ordered data in
+        # segments.
         wb = self.som.separation(data)
         stream_width = np.convolve(wb, np.ones((10,)) / 10, mode="same")
         stream_width = cast("Widths", stream_width)
@@ -309,7 +312,7 @@ class FitterStreamArmTrack:
             stream,
             path,
             name=stream.full_name,
-            meta=dict(som=self.som, visit_order=order, kalman=self.kalman),
+            meta={"som": self.som, "visit_order": order, "kalman": self.kalman},
         )
 
         return track

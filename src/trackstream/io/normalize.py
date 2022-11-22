@@ -1,12 +1,11 @@
-##############################################################################
-# IMPORTS
+"""Normalize data."""
 
 from __future__ import annotations
 
 # STDLIB
 import copy
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Mapping
 
 # THIRD PARTY
 import astropy.units as u

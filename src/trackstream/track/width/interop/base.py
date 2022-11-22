@@ -1,11 +1,11 @@
-##############################################################################
-# IMPORTS
+"""Interoperability."""
 
 from __future__ import annotations
 
 # STDLIB
+from collections.abc import Sequence
 from dataclasses import fields, replace
-from typing import Literal, Sequence, TypeVar
+from typing import Literal, TypeVar
 
 # THIRD PARTY
 import numpy as np

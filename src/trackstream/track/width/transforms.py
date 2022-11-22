@@ -1,5 +1,4 @@
-##############################################################################
-# IMPORTS
+"""Width transformations."""
 
 from __future__ import annotations
 
@@ -39,6 +38,7 @@ BW = TypeVar("BW", bound="BaseWidth")
 def represent_as(
     w1: object, w2type: type[W2], point: BaseRepresentation
 ) -> Any:  # https://github.com/python/mypy/issues/11727
+    """Represent as a new width type."""
     raise NotImplementedError("not dispatched")
 
 
@@ -64,12 +64,18 @@ WIDTH_TRANSFORMATIONS: dict[tuple[type, type], Callable[[Any, BaseRepresentation
 
 
 class Transformer(Protocol[W1, W2]):
+    """Width transformation callable."""
+
     def __call__(self, cw: W1, point: BaseRepresentation) -> W2:
+        """Transform a width."""
         ...
 
 
 def register_transformation(w1type: type[W1], w2type: type[W2]) -> Callable[[Transformer[W1, W2]], Transformer[W1, W2]]:
+    """Register a width transformation."""
+
     def decorator(func: Transformer[W1, W2]) -> Transformer[W1, W2]:
+        """Decorator."""
         WIDTH_TRANSFORMATIONS[(w1type, w2type)] = func
         return func
 

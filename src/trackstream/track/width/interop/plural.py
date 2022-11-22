@@ -1,11 +1,11 @@
-##############################################################################
-# IMPORTS
+"""Interoperability for `trackstream.track.width.plural.Widths`."""
 
 from __future__ import annotations
 
 # STDLIB
 import warnings
-from typing import Literal, Sequence, TypeVar
+from collections.abc import Sequence
+from typing import Literal, TypeVar
 
 # THIRD PARTY
 import numpy as np
@@ -29,6 +29,7 @@ WS = TypeVar("WS", bound=Widths)
 
 @WS_FUNCS.implements(np.convolve, dispatch_on=Widths, types=(Widths, np.ndarray))
 def convolve(a: WS, v: np.ndarray, mode: Literal["valid", "full", "same"] = "full") -> WS:
+    """Returns the discrete, linear convolution of widths."""
     # Apply convolution to each contained field.
     ws = {}
     for k, w in a.items():
@@ -45,6 +46,7 @@ def concatenate(
     dtype: np.dtype | None = None,
     casting: Literal["no", "equiv", "safe", "same_kind", "unsafe"] = "same_kind",
 ) -> WS:
+    """Join a sequence of widths along an existing axis."""
     # Insure
     cls = type(seqws[0])
     if not all(type(ws) is cls for ws in seqws):

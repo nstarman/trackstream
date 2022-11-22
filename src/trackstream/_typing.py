@@ -10,17 +10,12 @@ Note that this is not (necessarily) static typing.
 from __future__ import annotations
 
 # STDLIB
-from typing import TYPE_CHECKING, Protocol, TypeVar, Union
+from typing import Protocol, TypeVar
 
 # THIRD PARTY
 from astropy.coordinates import BaseCoordinateFrame, SkyCoord
 from numpy import floating
 from numpy.typing import NBitBase, NDArray
-
-if TYPE_CHECKING:
-    # THIRD PARTY
-    from typing_extensions import TypeAlias
-
 
 __all__: list[str] = []
 
@@ -46,9 +41,9 @@ NDFloat = NDArray[floating[N1]]
 # -------------------------------------
 # Astropy types
 
-CoordinateType: TypeAlias = Union[BaseCoordinateFrame, SkyCoord]
+CoordinateType = BaseCoordinateFrame | SkyCoord
 
-FrameLikeType: TypeAlias = Union[BaseCoordinateFrame, str]
+FrameLikeType = BaseCoordinateFrame | str
 
 
 class HasFrame(Protocol):

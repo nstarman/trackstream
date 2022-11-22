@@ -1,5 +1,4 @@
-##############################################################################
-# IMPORTS
+"""Widths."""
 
 from __future__ import annotations
 
@@ -8,17 +7,8 @@ import copy as pycopy
 from collections.abc import Mapping
 from dataclasses import fields
 from functools import singledispatchmethod
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    ClassVar,
-    Iterator,
-    KeysView,
-    MutableMapping,
-    TypeVar,
-    ValuesView,
-    cast,
-)
+from types import NotImplementedType
+from typing import TYPE_CHECKING, Any, ClassVar, TypeVar, cast
 
 # THIRD PARTY
 import astropy.units as u
@@ -28,7 +18,11 @@ from overload_numpy import NPArrayOverloadMixin, NumPyOverloader
 from override_toformat import ToFormatOverloadMixin
 
 # LOCAL
-from trackstream.track.utils import is_structured
+from trackstream.track.utils import (
+    PhysicalTypeKeyMapping,
+    PhysicalTypeKeyMutableMapping,
+    is_structured,
+)
 from trackstream.track.width.base import FMT_OVERLOADS, WidthBase
 from trackstream.track.width.core import BASEWIDTH_KIND, LENGTH
 
@@ -62,7 +56,9 @@ WS_FUNCS = NumPyOverloader()
 ##############################################################################
 
 
-class Widths(MutableMapping[u.PhysicalType, W1], NPArrayOverloadMixin, ToFormatOverloadMixin):
+class Widths(PhysicalTypeKeyMutableMapping[W1], NPArrayOverloadMixin, ToFormatOverloadMixin):
+    """Widths."""
+
     # TODO! make work with Interpolated
 
     NP_OVERLOADS: ClassVar[NumPyOverloader] = WS_FUNCS
@@ -75,7 +71,7 @@ class Widths(MutableMapping[u.PhysicalType, W1], NPArrayOverloadMixin, ToFormatO
         if any(not isinstance(k, u.PhysicalType) for k in widths.keys()):
             raise ValueError("all keys must be a PhysicalType")
 
-        self._spaces: dict[u.PhysicalType, W1] = widths
+        self._mapping: dict[u.PhysicalType, W1] = widths
 
     @singledispatchmethod
     def __getitem__(self, key: object) -> Any:  # https://github.com/python/mypy/issues/11727
@@ -88,6 +84,20 @@ class Widths(MutableMapping[u.PhysicalType, W1], NPArrayOverloadMixin, ToFormatO
     # ===============================================================
 
     def represent_as(self, width_type: type[W1], point: BaseRepresentation) -> W1:
+        """Represent as a new width type.
+
+        Parameters
+        ----------
+        width_type : type[WidthBase]
+            The width type to represent as.
+        point : BaseRepresentation
+            The point to represent at.
+
+        Returns
+        -------
+        WidthBase
+            The width of the new type, at the point.
+        """
         # # LOCAL
         # from trackstream.track.width.transforms import represent_as
 
@@ -95,6 +105,18 @@ class Widths(MutableMapping[u.PhysicalType, W1], NPArrayOverloadMixin, ToFormatO
         raise NotImplementedError("TODO!")
 
     def interpolated(self, affine: u.Quantity) -> InterpolatedWidths:
+        """Interpolate the widths.
+
+        Parameters
+        ----------
+        affine : Quantity
+            The affine parameter to interpolate at.
+
+        Returns
+        -------
+        InterpolatedWidths
+            The interpolated widths.
+        """
         if len(self) < 2:
             raise ValueError("cannot interpolate; too short.")
         # LOCAL
@@ -113,30 +135,12 @@ class Widths(MutableMapping[u.PhysicalType, W1], NPArrayOverloadMixin, ToFormatO
     @__getitem__.register(str)
     @__getitem__.register(u.PhysicalType)
     def _getitem_key(self, key: str | u.PhysicalType) -> W1:
-        return self._spaces[self._get_key(key)]
+        return self._mapping[self._get_key(key)]
 
     @__setitem__.register(str)
     @__setitem__.register(u.PhysicalType)
     def _setitem_str_or_PT(self, k: str | u.PhysicalType, v: W1) -> None:
-        self._spaces[self._get_key(k)] = v
-
-    def __delitem__(self, k: str | u.PhysicalType) -> None:
-        del self._spaces[self._get_key(k)]
-
-    def __iter__(self) -> Iterator[u.PhysicalType]:
-        return iter(self._spaces)
-
-    def __len__(self) -> int:
-        return len(self._spaces)
-
-    def keys(self) -> KeysView[u.PhysicalType]:
-        return self._spaces.keys()
-
-    def values(self) -> ValuesView[W1]:
-        return self._spaces.values()
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({self._spaces!r})"
+        self._mapping[self._get_key(k)] = v
 
     # ===============================================================
     # I/O
@@ -144,6 +148,17 @@ class Widths(MutableMapping[u.PhysicalType, W1], NPArrayOverloadMixin, ToFormatO
     @singledispatchmethod
     @classmethod
     def from_format(cls, data: object) -> Widths:
+        """Create from an object.
+
+        Parameters
+        ----------
+        data : object
+            The object to create from.
+
+        Returns
+        -------
+        Widths
+        """
         # copy over from `data`
         ws: dict[u.PhysicalType, W1] = {}
         for wcls, k in BASEWIDTH_KIND.items():
@@ -210,18 +225,18 @@ class Widths(MutableMapping[u.PhysicalType, W1], NPArrayOverloadMixin, ToFormatO
     @__setitem__.register(Mapping)
     def _setitem_mapping(
         self, key: Mapping[u.PhysicalType, Mapping[str, Any]], value: Mapping[u.PhysicalType, W1]
-    ) -> None:
+    ) -> None | NotImplementedType:
         if key.keys() != self.keys():
-            return NotImplemented
+            raise ValueError
         elif key.keys() != value.keys():
-            return NotImplemented
+            raise ValueError
 
         # Delegate to contained Width
         for k in self.keys():
             self[k][key[k]] = value[k]
 
     def __deepcopy__(self, memo: dict[Any, Any]) -> Widths:
-        return type(self)(pycopy.deepcopy(self._spaces, memo))
+        return type(self)(pycopy.deepcopy(self._mapping, memo))
 
 
 ##############################################################################
@@ -240,8 +255,8 @@ def _to_format_quantity(cls, data, *args):
 
 
 @Widths.__lt__.register(Widths)
-def _lt_widths(self, other: Widths) -> dict[u.PhysicalType, np.ndarray]:
-    if any(k not in self for k in other.keys()):
+def _lt_widths(self, other: Widths) -> PhysicalTypeKeyMapping[np.ndarray]:
+    if not set(other.keys()).issubset(self.keys()):
         return NotImplemented
 
-    return {k: self[k] < v for k, v in other.items()}
+    return PhysicalTypeKeyMapping({k: self[k] < v for k, v in other.items()})

@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 # STDLIB
+from collections.abc import Sequence
 from dataclasses import InitVar, dataclass
 from functools import singledispatchmethod
 from typing import (
@@ -15,7 +16,6 @@ from typing import (
     ClassVar,
     Literal,
     NamedTuple,
-    Sequence,
     cast,
     overload,
 )
@@ -38,7 +38,7 @@ from trackstream.utils.visualization import PlotDescriptorBase
 
 if TYPE_CHECKING:
     # THIRD PARTY
-    from interpolated_coordinates.utils import (
+    from interpolated_coordinates.utils import (  # noqa: N817
         InterpolatedUnivariateSplinewithUnits as IUSU,
     )
 
@@ -56,6 +56,8 @@ PATH_FUNCS = NumPyOverloader()
 
 
 class path_moments(NamedTuple):
+    """Moments of a path."""
+
     mean: coords.SkyCoord
     width: u.Quantity | Widths | None
 
@@ -159,6 +161,29 @@ class Path(NPArrayOverloadMixin):
         metadata: dict | None = None,
         **kwargs: Any,
     ) -> Any:  # https://github.com/python/mypy/issues/11727
+        """Create a path from an object.
+
+        Parameters
+        ----------
+        data : object
+            The data to create the Path from.
+        width : `Quantity` scalar or array or callable, optional
+            The width around the Path.
+        amplitude : callable, optional
+            The density.
+        affine : `Quantity` array, keyword-only
+            Affine parameter along the Path.
+        name : str, optional keyword-only
+            Name of the Path.
+        metadata : dict, optional keyword-only
+            Metadata of the Path.
+        **kwargs : Any
+            Additional keyword arguments to pass to the constructor.
+
+        Returns
+        -------
+        path : `Path`
+        """
         raise NotImplementedError("not dispatched")
 
     @from_format.register(coords.SkyCoord)
@@ -339,7 +364,6 @@ class Path(NPArrayOverloadMixin):
     ) -> coords.Angle:
         ...
 
-    @format_doc(icoords.InterpolatedSkyCoord.separation.__doc__)
     def separation(
         self,
         point: CoordinateType,
@@ -347,6 +371,18 @@ class Path(NPArrayOverloadMixin):
         interpolate: bool = True,
         affine: u.Quantity | None = None,
     ) -> coords.Angle | IUSU:
+        """Return the separation between the track and a point.
+
+        Parameters
+        ----------
+        point : |SkyCoord| or |BaseCoordinateFrame|
+            The point to calculate the separation to.
+        interpolate : bool, optional keyword-only
+            Whether to interpolate the separation. If True (default), return
+            an `~scipy.interpolate.InterpolatedUnivariateSpline` object.
+        affine : `~astropy.units.Quantity` array-like or None, optional
+            The affine interpolation parameter.
+        """
         return self.data.separation(point, interpolate=interpolate, affine=affine)
 
     # -------------------------------------------
@@ -379,6 +415,7 @@ class Path(NPArrayOverloadMixin):
         interpolate: bool = True,
         affine: u.Quantity | None = None,
     ) -> coords.Distance | IUSU:
+        """Return the 3D separation between the track and a point."""
         return self.data.separation_3d(point, interpolate=interpolate, affine=affine)
 
     # -----------------------------------------------------
@@ -386,7 +423,7 @@ class Path(NPArrayOverloadMixin):
     def _closest_res_to_point(
         self, point: CoordinateType, *, angular: bool = False, affine: u.Quantity | None = None
     ) -> OptimizeResult:
-        """Closest to stream, ignoring width"""
+        """Closest to stream, ignoring width."""
         if angular:
             sep_fn = self.separation(point, interpolate=True, affine=affine)
         else:
@@ -402,7 +439,7 @@ class Path(NPArrayOverloadMixin):
     def closest_affine_to_point(
         self, point: CoordinateType, *, angular: bool = False, affine: u.Quantity | None = None
     ) -> u.Quantity:
-        """Closest affine, ignoring width"""
+        """Closest affine, ignoring width."""
         afn = self.affine if affine is None else affine
         res = self._closest_res_to_point(point, angular=angular, affine=afn)
         pt_afn = res.x << afn.unit
@@ -411,7 +448,7 @@ class Path(NPArrayOverloadMixin):
     def closest_position_to_point(
         self, point: CoordinateType, *, angular: bool = False, affine: u.Quantity | None = None
     ) -> coords.SkyCoord:
-        """Closest point, ignoring width"""
+        """Closest point, ignoring width."""
         return self.position(self.closest_affine_to_point(point, angular=angular, affine=affine))
 
 
@@ -427,6 +464,7 @@ def concatenate(
     dtype: np.dtype | None = None,
     casting: str = "same_kind",
 ) -> Path:
+    """Concatenate a sequence of Paths."""
     # ----------------------------------------
     # Validation
 

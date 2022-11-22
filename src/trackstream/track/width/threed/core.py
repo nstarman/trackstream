@@ -1,3 +1,5 @@
+"""Three-dimensional widths."""
+
 from __future__ import annotations
 
 # STDLIB
@@ -33,10 +35,12 @@ class Cartesian3DWidth(Cartesian2DWidth):
 
     @classproperty
     def corresponding_representation_type(cls) -> type[coords.CartesianRepresentation]:
+        """Representation type corresponding to the width type."""
         return coords.CartesianRepresentation
 
     @property
     def corresponding_width_types(self) -> dict[u.PhysicalType, None | type[BaseWidth]]:
+        """The width types corresponding to this width type."""
         return {LENGTH: self.__class__, SPEED: Cartesian2DiffWidth}
 
 
@@ -49,10 +53,12 @@ class UnitSphericalWidth(AngularWidth):
 
     @classproperty
     def corresponding_representation_type(cls) -> type[coords.UnitSphericalRepresentation]:
+        """Representation type corresponding to the width type."""
         return coords.UnitSphericalRepresentation
 
     @property
     def corresponding_width_types(self) -> dict[u.PhysicalType, None | type[BaseWidth]]:
+        """The width types corresponding to this width type."""
         return {LENGTH: self.__class__, SPEED: UnitSphericalDiffWidth}
 
 
@@ -66,10 +72,12 @@ class SphericalWidth(UnitSphericalWidth, PolarWidth):
 
     @classproperty
     def corresponding_representation_type(cls) -> type[coords.SphericalRepresentation]:
+        """Representation type corresponding to the width type."""
         return coords.SphericalRepresentation
 
     @property
     def corresponding_width_types(self) -> dict[u.PhysicalType, None | type[BaseWidth]]:
+        """The width types corresponding to this width type."""
         return {LENGTH: self.__class__, SPEED: SphericalDiffWidth}
 
 
@@ -85,10 +93,12 @@ class Cartesian3DiffWidth(Cartesian2DiffWidth):
 
     @property
     def corresponding_width_types(self) -> dict[u.PhysicalType, None | type[BaseWidth]]:
+        """The width types corresponding to this width type."""
         return {LENGTH: Cartesian3DWidth, SPEED: self.__class__}
 
     @classproperty
     def corresponding_representation_type(cls) -> type[coords.CartesianDifferential]:
+        """Representation type corresponding to the width type."""
         return coords.CartesianDifferential
 
 
@@ -101,10 +111,12 @@ class UnitSphericalDiffWidth(AngularDiffWidth):
 
     @classproperty
     def corresponding_representation_type(cls) -> type[coords.UnitSphericalDifferential]:
+        """Representation type corresponding to the width type."""
         return coords.UnitSphericalDifferential
 
     @property
     def corresponding_width_types(self) -> dict[u.PhysicalType, None | type[BaseWidth]]:
+        """The width types corresponding to this width type."""
         return {LENGTH: UnitSphericalWidth, SPEED: self.__class__}
 
 
@@ -118,8 +130,10 @@ class SphericalDiffWidth(UnitSphericalWidth, PolarDiffWidth):
 
     @classproperty
     def corresponding_representation_type(cls) -> type[coords.SphericalDifferential]:
+        """Representation type corresponding to the width type."""
         return coords.SphericalDifferential
 
     @property
     def corresponding_width_types(self) -> dict[u.PhysicalType, None | type[BaseWidth]]:
+        """The width types corresponding to this width type."""
         return {LENGTH: SphericalWidth, SPEED: self.__class__}

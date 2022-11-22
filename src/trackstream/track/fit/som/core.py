@@ -1,3 +1,5 @@
+"""SOM."""
+
 from __future__ import annotations
 
 # STDLIB
@@ -43,6 +45,8 @@ __all__: list[str] = []
 
 @dataclass
 class SOMPlotDescriptor(CommonPlotDescriptorBase["SelfOrganizingMap"]):
+    """Plot descriptor for SOM."""
+
     def current(
         self,
         kind: DKindT = "positions",
@@ -54,6 +58,31 @@ class SOMPlotDescriptor(CommonPlotDescriptorBase["SelfOrganizingMap"]):
         ax: Axes | None = None,
         format_ax: bool = False,
     ) -> Axes:
+        """Plot the current state of SOM.
+
+        Parameters
+        ----------
+        kind : DKindT, optional
+            The kind of data to plot. This can be ``"positions"``,
+            ``"velocities"``.
+        origin : bool, optional
+            Whether to plot the origin of the stream.
+        connect : bool, optional
+            Whether to connect the SOM.
+        x_offset : u.Quantity, optional
+            The offset to apply to the x-axis.
+        y_offset : u.Quantity, optional
+            The offset to apply to the y-axis.
+        ax : Axes, optional
+            The axes to plot on. If not provided, the current axes will be used.
+        format_ax : bool, optional
+            Whether to format the axes.
+
+        Returns
+        -------
+        Axes
+            The axes that was plotted on.
+        """
         som, _ax, _ = self._setup(ax=ax)
         (x, xn), (y, yn) = self._get_xy(som.prototypes, kind=kind)
 
@@ -78,6 +107,30 @@ class SOMPlotDescriptor(CommonPlotDescriptorBase["SelfOrganizingMap"]):
         ax: Axes | None = None,
         format_ax: bool = False,
     ) -> Axes:
+        """Plot the initial state of SOM.
+
+        Parameters
+        ----------
+        kind : DKindT, optional
+            The kind of data to plot. This can be ``"positions"`` or ``"velocities"``.
+        origin : bool, optional keyword-only
+            Whether to plot the origin of the stream.
+        connect : bool, optional keyword-only
+            Whether to connect the SOM.
+        x_offset : u.Quantity, optional keyword-only
+            The offset to apply to the x-axis.
+        y_offset : u.Quantity, optional keyword-only
+            The offset to apply to the y-axis.
+        ax : Axes, optional keyword-only
+            The axes to plot on. If not provided, the current axes will be used.
+        format_ax : bool, optional keyword-only
+            Whether to format the axes.
+
+        Returns
+        -------
+        Axes
+            The axes that was plotted on.
+        """
         som, _ax, _ = self._setup(ax=ax)
         (x, xn), (y, yn) = self._get_xy(som.init_prototypes, kind=kind)
 
@@ -103,6 +156,32 @@ class SOMPlotDescriptor(CommonPlotDescriptorBase["SelfOrganizingMap"]):
         ax: Axes | None = None,
         format_ax: bool = False,
     ) -> Axes:
+        """Plot the SOM.
+
+        Parameters
+        ----------
+        kind : DKindT, optional
+            Kind of data to plot, by default "positions".
+        origin : bool, optional
+            Whether to plot the origin, by default `True`.
+        connect : bool, optional
+            Whether to connect the prototypes, by default `True`.
+        initial_prototypes : bool, optional
+            Whether to plot the initial prototypes, by default `False`.
+        x_offset : u.Quantity | Literal[0], optional
+            Offset in the x-axis, by default 0.
+        y_offset : u.Quantity | Literal[0], optional
+            Offset in the y-axis, by default 0.
+        ax : Axes, optional
+            Axes to plot on, by default `None`.
+        format_ax : bool, optional
+            Whether to format the axes, by default `False`.
+
+        Returns
+        -------
+        Axes
+            Axes with the plot.
+        """
         if initial_prototypes:
             _ax = self.initial(kind=kind, origin=False, connect=False, x_offset=0, y_offset=0, ax=ax, format_ax=False)
         else:
@@ -162,7 +241,7 @@ class SelfOrganizingMap:
         sigma: float = 0.1,
         learning_rate: float = 0.3,
         rng: Generator | int | None = None,
-        prototype_kw: dict[str, Any] = {},
+        prototype_kw: dict[str, Any] | None = None,
     ) -> Any:  # https://github.com/python/mypy/issues/11727
         """Make Self-Organiizing Map from data.
 
@@ -212,7 +291,7 @@ class SelfOrganizingMap:
         sigma: float = 0.1,
         learning_rate: float = 0.3,
         rng: Generator | int | None = None,
-        prototype_kw: dict[str, Any] = {},
+        prototype_kw: dict[str, Any] | None = None,
     ) -> SelfOrganizingMap:
         if arm.frame is None:
             # LOCAL
@@ -247,7 +326,7 @@ class SelfOrganizingMap:
         sigma: float = 0.1,
         learning_rate: float = 0.3,
         rng: Generator | int | None = None,
-        prototype_kw: dict[str, Any] = {},
+        prototype_kw: dict[str, Any] | None = None,
     ) -> dict[str, SOM1DBase]:
         out: dict[str, SOM1DBase] = {}
         for k, arm in arms.items():
@@ -359,18 +438,6 @@ class SelfOrganizingMap:
 
             sep = armep.separation(self.origin) if self.onsky else armep.separation_3d(self.origin)
 
-            # import pdb
-            # import matplotlib.pyplot as plt
-
-            # line = plt.scatter(data.x[ordering], data.y[ordering], c=np.arange(len(data)))
-            # plt.scatter(armep.x[0], armep.y[0], c="red")
-            # plt.scatter(armep.x[1], armep.y[1], c="green")
-            # plt.scatter(self.prototypes.x, self.prototypes.y, c="k", s=2)
-            # plt.colorbar(line)
-            # plt.show()
-
-            # pdb.set_trace()
-
             if np.argmin(sep) == 1:  # End point is closer, flip order
                 ordering = ordering[::-1]
                 projdata = projdata[::-1]
@@ -378,14 +445,27 @@ class SelfOrganizingMap:
         return projdata, ordering
 
     def fit_predict(
-        self,
-        data: coords.SkyCoord,
-        /,
-        num_iteration: int = int(1e5),
-        random_order: bool = False,
-        progress: bool = True,
-        split: int | None = None,
+        self, data: coords.SkyCoord, /, num_iteration: int = int(1e5), random_order: bool = False, progress: bool = True
     ) -> tuple[coords.SkyCoord, np.ndarray]:
+        """Fit and predict.
+
+        Parameters
+        ----------
+        data : SkyCoord
+            Data.
+        num_iteration : int, optional
+            Number of iterations when fitting, by default 10^5.
+        random_order : bool, optional
+            Whether to introduce data in order (`False`, default), or randomly
+            (`True`).
+        progress : bool, optional
+            Whether to show a progress bar (`True`, default).
+
+        Returns
+        -------
+        SkyCoord, ndarray[int]
+            Projection (ordered) and ordering.
+        """
         self.fit(data, num_iteration=num_iteration, random_order=random_order, progress=progress)
         projdata, order = self.predict(data)
         return projdata, order

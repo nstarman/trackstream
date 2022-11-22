@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, TypeVar, cast
 
 # THIRD PARTY
 import numpy as np
-from astropy.coordinates import BaseCoordinateFrame, SkyCoord  # noqa: TC002
+from astropy.coordinates import BaseCoordinateFrame, SkyCoord
 from astropy.io.registry import UnifiedReadWriteMethod
 from numpy.lib.recfunctions import structured_to_unstructured
 from typing_extensions import TypedDict
@@ -73,7 +73,7 @@ class _StreamArmCache(TypedDict):
 
 @dataclass(frozen=True)
 class StreamArm(StreamBase):
-    """An arm of a stream"""
+    """An arm of a stream."""
 
     _CACHE_CLS: ClassVar[type] = _StreamArmCache
 
@@ -110,7 +110,7 @@ class StreamArm(StreamBase):
 
     @property
     def mask(self) -> NDArray[np.bool_]:
-        """Full mask: minPmemb & include_order"""
+        """Full mask: minPmemb & include_order."""
         return self.get_mask(minPmemb=None, include_order=True)
 
     @property
@@ -167,7 +167,7 @@ class StreamArm(StreamBase):
 
     def mask_outliers(
         self,
-        outlier_method: str | OutlierDetectorBase = "scipyKDTreeLOF",
+        outlier_method: str | OutlierDetectorBase = "ScipyKDTreeLOF",
         # kinematics: bool = False,
         *,
         verbose: bool = False,

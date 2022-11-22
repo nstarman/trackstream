@@ -23,7 +23,7 @@ from trackstream.utils.visualization import AX_LABELS, CommonPlotDescriptorBase,
 
 if TYPE_CHECKING:
     # THIRD PARTY
-    from matplotlib.pyplot import Axes  # type: ignore
+    from matplotlib.pyplot import Axes
 
     # LOCAL
     from trackstream._typing import CoordinateType, FrameLikeType

@@ -1,5 +1,4 @@
-##############################################################################
-# IMPORTS
+"""Class-level property."""
 
 from __future__ import annotations
 

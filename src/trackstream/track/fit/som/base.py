@@ -1,5 +1,4 @@
-##############################################################################
-# IMPORTS
+"""SOM base class."""
 
 from __future__ import annotations
 
@@ -41,6 +40,8 @@ warnings.filterwarnings("ignore", message="sigma is too high for the dimension o
 @final
 @dataclass(frozen=True)
 class SOMInfo(FrameInfo):
+    """SOM info class."""
+
     REGISTRY: ClassVar[dict[type, SOMInfo]] = {}
 
 
@@ -142,8 +143,31 @@ class SOM1DBase:
         sigma: float = 0.1,
         learning_rate: float = 0.3,
         rng: Generator | int | None = None,
-        prototype_kw: dict[str, Any] = {},
+        prototype_kw: dict[str, Any] | None = None,
     ) -> Any:  # https://github.com/python/mypy/issues/11727
+        """Initialize a SOM from an object.
+
+        Parameters
+        ----------
+        arm : object, positional-only
+            The object to initialize from.
+        kinematics : bool, optional
+            Whether to use kinematics. If `None`, will use kinematics if available.
+        nlattice : int | None, optional
+            Number of lattice points.
+        sigma : float | None, optional
+            Spread of the neighborhood function, needs to be adequate to the dimensions of the map.
+        learning_rate : float | None, optional
+            Initial learning rate.
+        rng : int, optional
+            Random seed to use.
+        prototype_kw : dict | None, optional
+            Keyword arguments to pass to the prototype initialization function.
+
+        Returns
+        -------
+        SOM1DBase
+        """
         raise NotImplementedError("not dispatched")
 
     @from_format.register(StreamArm)
@@ -158,7 +182,7 @@ class SOM1DBase:
         sigma: float = 0.1,
         learning_rate: float = 0.3,
         rng: Generator | int | None = None,
-        prototype_kw: dict[str, Any] = {},
+        prototype_kw: dict[str, Any] | None = None,
     ) -> SOM1DBase:
         # flags
         if kinematics is None:
@@ -167,7 +191,7 @@ class SOM1DBase:
             raise EXCEPT_NO_KINEMATICS
         D = len(cls.info.components(kinematics))  # index for slicing
 
-        prototype_kw = copy.copy(prototype_kw)
+        prototype_kw = copy.copy(prototype_kw) if prototype_kw is not None else {}
         if prototype_kw.setdefault("maxsep") is not None:
             prototype_kw["maxsep"] = prototype_kw["maxsep"].to_value(cls.info.units[0][0])
             # it's just spatial
@@ -204,7 +228,7 @@ class SOM1DBase:
         sigma: float = 0.1,
         learning_rate: float = 0.3,
         rng: Generator | int | None = None,
-        prototype_kw: dict[str, Any] = {},
+        prototype_kw: dict[str, Any] | None = None,
     ) -> dict[str, SOM1DBase]:
         out: dict[str, SOM1DBase] = {}
         for k, arm in arms.items():
@@ -223,6 +247,7 @@ class SOM1DBase:
 
     @property
     def init_prototypes(self) -> ndarray:
+        """Initial prototypes."""
         return self._init_prototypes
 
     # ---------------------------------------------------------------

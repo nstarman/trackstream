@@ -1,5 +1,4 @@
-##############################################################################
-# IMPORTS
+"""I/O."""
 
 from __future__ import annotations
 
@@ -15,7 +14,7 @@ if TYPE_CHECKING:
 
 
 __all__: list[str] = []
-__doctest_skip__ = __all__
+__doctest_skip__ = ["*"]
 
 
 ##############################################################################
@@ -84,6 +83,7 @@ class StreamArmRead(UnifiedReadWrite):  # type: ignore
         super().__init__(stream, stream_cls, "read", registry=readwrite_registry)
 
     def __call__(self, *args: Any, **kwargs: Any) -> StreamArm:
+        """Read and parse data to a `~stream.StreamArm`."""
         # LOCAL
         from trackstream import StreamArm
 
@@ -142,6 +142,7 @@ class StreamArmWrite(UnifiedReadWrite):  # type: ignore
         super().__init__(stream, stream_cls, "write", registry=readwrite_registry)
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        """Write this StreamArm object out in the specified format."""
         self.registry.write(self._instance, *args, **kwargs)
 
 
@@ -205,6 +206,7 @@ class StreamArmFromFormat(UnifiedReadWrite):  # type: ignore
         super().__init__(instance, stream_cls, "read", registry=convert_registry)
 
     def __call__(self, obj: Any, *args: Any, **kwargs: Any) -> StreamArm:
+        """Transform object to a `~stream.StreamArm`."""
         # LOCAL
         from trackstream import StreamArm
 
@@ -263,5 +265,6 @@ class StreamArmToFormat(UnifiedReadWrite):  # type: ignore
     def __init__(self, stream: StreamArm, stream_cls: type[StreamArm]) -> None:
         super().__init__(stream, stream_cls, "write", registry=convert_registry)
 
-    def __call__(self, format: str, *args: Any, **kwargs: Any) -> Any:
+    def __call__(self, format: str, *args: Any, **kwargs: Any) -> Any:  # noqa: A002
+        """Transform this StreamArm to another format."""
         return self.registry.write(self._instance, None, *args, format=format, **kwargs)

@@ -7,6 +7,7 @@
 
 # STDLIB
 from abc import ABCMeta, abstractmethod
+from types import NoneType
 
 # THIRD PARTY
 import numpy as np
@@ -16,33 +17,27 @@ from astropy.table import QTable
 from attr import define
 
 # LOCAL
-from trackstream.base import StreamBase, StreamBasePlotDescriptor
-from trackstream.tests.test_visualization import Test_StreamPlotDescriptorBase
-
-##############################################################################
-# TESTS
-
-NoneType = type(None)
+from trackstream.stream.base import StreamBase
 
 ##############################################################################
 # TESTS
 ##############################################################################
 
 
-class Test_StreamBasePlotDescriptor(Test_StreamPlotDescriptorBase):
-    """Test `trackstream.base.StreamBasePlotDescriptor`."""
+# class Test_StreamBasePlotDescriptor(Test_StreamPlotDescriptorBase):
+#     """Test `trackstream.base.StreamBasePlotDescriptor`."""
 
-    @pytest.fixture(scope="class")
-    def descriptor_cls(self):
-        return StreamBasePlotDescriptor
+#     @pytest.fixture(scope="class")
+#     def descriptor_cls(self):
+#         return StreamBasePlotDescriptor
 
-    # ===============================================================
-    # Method Tests
+#     # ===============================================================
+#     # Method Tests
 
-    @pytest.mark.skip("TODO!")
-    def test_in_frame(self, descriptor, axs):
-        """Test ``in_frame``."""
-        super().test_in_frame(descriptor, axs)
+#     @pytest.mark.skip("TODO!")
+#     def test_in_frame(self, descriptor, axs):
+#         """Test ``in_frame``."""
+#         super().test_in_frame(descriptor, axs)
 
 
 ##############################################################################

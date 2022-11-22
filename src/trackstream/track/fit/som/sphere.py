@@ -1,3 +1,5 @@
+"""SOM on the sphere."""
+
 from __future__ import annotations
 
 # STDLIB

@@ -7,19 +7,10 @@ from __future__ import annotations
 
 # STDLIB
 import inspect
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from types import MappingProxyType
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Literal,
-    Sequence,
-    TypeVar,
-    Union,
-    cast,
-    get_args,
-    overload,
-)
+from typing import TYPE_CHECKING, Any, Literal, TypeVar, cast, get_args, overload
 
 # THIRD PARTY
 import astropy.units as u
@@ -40,7 +31,7 @@ from trackstream.utils.coord_utils import parse_framelike
 
 if TYPE_CHECKING:
     # THIRD PARTY
-    from matplotlib.pyplot import Axes  # type: ignore
+    from matplotlib.pyplot import Axes
     from typing_extensions import Unpack
 
     # LOCAL
@@ -60,8 +51,8 @@ quantity_support()
 # Types
 BndTo = TypeVar("BndTo")
 CollectionBaseT = TypeVar("CollectionBaseT", bound="CollectionBase")
-CLike = Union[str, Sequence[float], Quantity]
-DKindT = Union[Literal["positions"], Literal["kinematics"]]
+CLike = str | Sequence[float] | Quantity
+DKindT = Literal["positions"] | Literal["kinematics"]
 
 
 AX_LABELS = MappingProxyType(
@@ -195,7 +186,7 @@ class PlotDescriptorBase(BoundDescriptor[BndTo]):
             raise ValueError(f"kind must be in {get_args(DKindT)}, not {kind!r}")
 
         # TODO! reps with 1 dim, like RadialRepresentation
-        namedict = cast("dict", getattr(frame, "get_representation_component_names")(which))
+        namedict = cast("dict", frame.get_representation_component_names(which))
         xn, yn, *_ = tuple(namedict.keys())
 
         return xn, yn
@@ -231,6 +222,8 @@ class PlotDescriptorBase(BoundDescriptor[BndTo]):
 
 @dataclass
 class CommonPlotDescriptorBase(PlotDescriptorBase[BndTo]):
+    """Common plot descriptor base class."""
+
     def _parse_frame(self, framelike: FrameLikeType, /) -> tuple[BaseCoordinateFrame, str]:
         """Return the frame and its name.
 
@@ -366,6 +359,8 @@ class CommonPlotDescriptorBase(PlotDescriptorBase[BndTo]):
 # todo: make a subclass of CollectionBase
 @dataclass
 class PlotCollectionBase(BoundDescriptor[CollectionBaseT]):
+    """Base class for plotting collections."""
+
     def __iter__(self):
         enclosing = self.enclosing
         yield from (enclosing[k].plot for k in enclosing.keys())

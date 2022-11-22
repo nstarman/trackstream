@@ -1,8 +1,11 @@
+"""Cache descriptors and Protocols."""
+
 from __future__ import annotations
 
 # STDLIB
+from collections.abc import Mapping
 from types import MappingProxyType
-from typing import Any, Generic, Mapping, Protocol, TypeVar, overload
+from typing import Any, Generic, Protocol, TypeVar, overload
 
 
 class _HasInitCache(Protocol):
@@ -56,6 +59,6 @@ class CacheProperty(Generic[EnclT]):
     @staticmethod
     def _init_cache(instance: EnclT) -> dict[str, Any]:
         """Initiallize cache on enclosing instance."""
-        cache_cls = getattr(instance, "_CACHE_CLS", dict())
-        cache = dict.fromkeys(getattr(cache_cls, "__annotations__", dict()).keys())
+        cache_cls = getattr(instance, "_CACHE_CLS", {})
+        cache = dict.fromkeys(getattr(cache_cls, "__annotations__", {}).keys())
         return cache

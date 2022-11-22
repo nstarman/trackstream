@@ -1,3 +1,5 @@
+"""One-dimensionsal widths."""
+
 from __future__ import annotations
 
 # STDLIB
@@ -33,10 +35,12 @@ class Cartesian1DWidth(ConfigSpaceWidth):
 
     @classproperty
     def corresponding_representation_type(cls) -> type[coords.RadialRepresentation]:
+        """Representation type corresponding to the width type."""
         return coords.RadialRepresentation
 
     @property
     def corresponding_width_types(cls) -> dict[u.PhysicalType, None | type[BaseWidth]]:
+        """The width types corresponding to this width type."""
         return {LENGTH: cls.__class__, SPEED: Cartesian1DiffWidth}
 
 
@@ -48,10 +52,12 @@ class AngularWidth(ConfigSpaceWidth):
 
     @classproperty
     def corresponding_representation_type(cls) -> type[coords.RadialRepresentation]:
+        """Representation type corresponding to the width type."""
         return coords.RadialRepresentation
 
     @property
     def corresponding_width_types(cls) -> dict[u.PhysicalType, None | type[BaseWidth]]:
+        """The width types corresponding to this width type."""
         return {LENGTH: cls.__class__, SPEED: AngularDiffWidth}
 
 
@@ -67,10 +73,12 @@ class Cartesian1DiffWidth(KinematicSpaceWidth):
 
     @classproperty
     def corresponding_representation_type(cls) -> type[coords.RadialDifferential]:
+        """Representation type corresponding to the width type."""
         return coords.RadialDifferential
 
     @property
     def corresponding_width_types(self) -> dict[u.PhysicalType, None | type[BaseWidth]]:
+        """The width types corresponding to this width type."""
         return {LENGTH: Cartesian1DWidth, SPEED: self.__class__}
 
 
@@ -82,8 +90,10 @@ class AngularDiffWidth(KinematicSpaceWidth):
 
     @classproperty
     def corresponding_representation_type(cls) -> type[coords.RadialDifferential]:
+        """Representation type corresponding to the width type."""
         return coords.RadialDifferential
 
     @property
     def corresponding_width_types(self) -> dict[u.PhysicalType, None | type[BaseWidth]]:
+        """The width types corresponding to this width type."""
         return {LENGTH: AngularWidth, SPEED: self.__class__}

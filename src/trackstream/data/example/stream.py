@@ -6,7 +6,7 @@
 # STDLIB
 import os
 import pathlib
-from typing import Optional, Union, cast
+from typing import cast
 
 # THIRD PARTY
 import astropy.coordinates as coords
@@ -19,7 +19,6 @@ from astropy.utils.misc import NumpyRNGContext
 from galpy.df import streamspraydf
 from galpy.orbit import Orbit
 from galpy.potential import LogarithmicHaloPotential
-from typing_extensions import TypeAlias  # noqa: TC002
 
 __all__ = ["get_example_stream"]
 
@@ -28,22 +27,30 @@ __all__ = ["get_example_stream"]
 # PARAMETERS
 
 DIR = pathlib.Path(__file__).parent
-FullPathLike: TypeAlias = Union[str, bytes, os.PathLike]
+FullPathLike = str | bytes | os.PathLike
 
 ##############################################################################
 # CODE
 ##############################################################################
 
 
-def make_stream_from_Vasiliev18(
-    name: str, tdisrupt: Quantity = Quantity(5, u.Gyr), *, write: Optional[FullPathLike] = None
+def make_stream_from_vasiliev18(
+    name: str, tdisrupt: Quantity = Quantity(5, u.Gyr), *, write: FullPathLike | None = None
 ) -> QTable:
     """Make and write data table.
 
     Parameters
     ----------
     name : str
+        The name of the stream.
     tdisrupt : `~astropy.units.Quantity`
+        The time at which the stream is disrupted.
+    write : str | bytes | `os.PathLike` | None
+        If not `None`, write the data table to this path.
+
+    Returns
+    -------
+    `astropy.table.QTable`
     """
     # Tead data
     fname = get_pkg_data_filename("Vasiliev18.ecsv", package="trackstream.data")
@@ -92,7 +99,7 @@ def make_stream_from_Vasiliev18(
     data_t = Orbit(RvR_t.T, ro=ro, vo=vo).SkyCoord()
 
     # Turn into QTable
-    data = QTable(dict(coord=coords.concatenate((data_l, data_t))))
+    data = QTable({"coord": coords.concatenate((data_l, data_t))})
     data["x_err"] = Quantity(0, u.kpc)
     data["y_err"] = Quantity(0, u.kpc)
     data["z_err"] = Quantity(0, u.kpc)
@@ -119,13 +126,13 @@ def get_example_stream(name: str) -> QTable:
 
     Returns
     -------
-    QTable
+    `astropy.table.QTable`
         Data table.
     """
     try:
         fname = get_pkg_data_filename(f"example_data/{name}_ex.ecsv", package="trackstream")
     except Exception:
-        data = make_stream_from_Vasiliev18(name=name, write=DIR / f"{name}_ex.ecsv")
+        data = make_stream_from_vasiliev18(name=name, write=DIR / f"{name}_ex.ecsv")
     else:
         data = QTable.read(fname)
 

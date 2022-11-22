@@ -1,11 +1,11 @@
-##############################################################################
-# IMPORTS
+"""Common code for trackstream."""
 
 from __future__ import annotations
 
 # STDLIB
+from collections.abc import ItemsView, Iterator, KeysView, Mapping, ValuesView
 from types import MappingProxyType
-from typing import Any, ItemsView, Iterator, KeysView, Mapping, TypeVar, ValuesView
+from typing import Any, TypeVar
 
 __all__ = ["CollectionBase"]
 
@@ -97,12 +97,15 @@ class CollectionBase(Mapping[str, V]):
         return f"{type(self).__name__}({self._data!r})"
 
     def keys(self) -> KeysView[str]:
+        """Return a `~collections.KeysView` of the collection."""
         return self._data.keys()
 
     def values(self) -> ValuesView[V]:
+        """Return a `~collections.ValuesView` of the collection."""
         return self._data.values()
 
     def items(self) -> ItemsView[str, V]:
+        """Return an `~collections.ItemsView` of the collection."""
         return self._data.items()
 
     @property
