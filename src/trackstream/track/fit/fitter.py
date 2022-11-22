@@ -274,8 +274,9 @@ class FitterStreamArmTrack:
 
         kfkw = {} if kalman_kw is None else copy.deepcopy(kalman_kw)  # decouple so can't mutate
 
-        # Stream Width FIXME don't do separation from SOM, instead do separation
-        # from fake prototypes, which are avg of ordered data in segments.
+        # Stream Width  # TODO: don't do separation from SOM, instead do
+        # separation from fake prototypes, which are avg of ordered data in
+        # segments.
         wb = self.som.separation(data)
         stream_width = np.convolve(wb, np.ones((10,)) / 10, mode="same")
         stream_width = cast("Widths", stream_width)

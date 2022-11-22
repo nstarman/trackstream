@@ -467,6 +467,7 @@ class Stream(StreamArmsBase, StreamBase):
         for k, arm in self.items():
             kw = copy.deepcopy(kwargs)  # ensure kwargs are decoupled
             tracks[k] = arm.fit_track(fitter=fitters.get(k, True), tune=tune, force=force, **kw)
+
         # -------------------
         # Currently only two arms are supported, so the tracks can be combined
         # together into a single path. One arm needs to be in reverse order to

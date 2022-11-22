@@ -291,7 +291,7 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
 
         nstd = kwargs.get("std", 1)
         if connect:
-            _ax.plot(x.value, y.value, label=f"track {track.name} : {nstd} std", zorder=100, c=kwargs.get("c"))
+            _ax.plot(x.value, y.value, label=f"track {track.name}", zorder=100, c=kwargs.get("c"))
         else:
             # still need to auto-set the axes bounds since an EllipseCollection does not.
             _ax.scatter(x.value, y.value, alpha=0)
@@ -586,7 +586,7 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
             )
 
         # Kalman filter plot
-        kalman_kw = {"std": 3} if kalman_kw is None else kalman_kw
+        kalman_kw = {"std": 1} if kalman_kw is None else kalman_kw
         kalman_in_frame_kw = (kalman_kw or {}).pop("in_frame_kw", {})
         self(
             ax=axs[2, 0],

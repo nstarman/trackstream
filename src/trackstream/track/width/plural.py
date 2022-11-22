@@ -227,9 +227,9 @@ class Widths(PhysicalTypeKeyMutableMapping[W1], NPArrayOverloadMixin, ToFormatOv
         self, key: Mapping[u.PhysicalType, Mapping[str, Any]], value: Mapping[u.PhysicalType, W1]
     ) -> None | NotImplementedType:
         if key.keys() != self.keys():
-            return NotImplemented
+            raise ValueError
         elif key.keys() != value.keys():
-            return NotImplemented
+            raise ValueError
 
         # Delegate to contained Width
         for k in self.keys():
@@ -255,7 +255,7 @@ def _to_format_quantity(cls, data, *args):
 
 
 @Widths.__lt__.register(Widths)
-def _lt_widths(self, other: Widths) -> dict[u.PhysicalType, np.ndarray]:
+def _lt_widths(self, other: Widths) -> PhysicalTypeKeyMapping[np.ndarray]:
     if not set(other.keys()).issubset(self.keys()):
         return NotImplemented
 
