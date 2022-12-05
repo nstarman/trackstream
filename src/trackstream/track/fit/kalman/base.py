@@ -200,7 +200,6 @@ class FONKFBase:
         crds.representation_type = info.representation_type
         crds.differential_type = info.differential_type
         svs = f2q(crds, flatten=True)
-        # vs = rfn.structured_to_unstructured(f2q(crds).to_value(info.units))[:, :nfeature]
 
         orgn = arm.origin.transform_to(arm.frame)
         orgn.representation_type = info.representation_type
