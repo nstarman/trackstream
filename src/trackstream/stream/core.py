@@ -185,7 +185,6 @@ class StreamArm(StreamBase):
         mask = self.get_mask(include_order=False)
         data_coords = self.data["coords"][~mask]
         # TODO! more complete, with units
-        # data = structured_to_unstructured(data_coords.data._values)
         data = structured_to_unstructured(f2q(data_coords, flatten=True).value)
 
         # step 1: predict outlier
