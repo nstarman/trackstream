@@ -188,7 +188,7 @@ class SOM1DBase:
             kinematics = arm.has_kinematics
         elif kinematics is True and not arm.has_kinematics:
             raise EXCEPT_NO_KINEMATICS
-        D = len(cls.info.components(kinematics))  # index for slicing
+        D = len(cls.info.components(kinematics=kinematics))  # index for slicing
 
         prototype_kw = copy.copy(prototype_kw) if prototype_kw is not None else {}
         if prototype_kw.setdefault("maxsep") is not None:
