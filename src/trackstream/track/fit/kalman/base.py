@@ -239,7 +239,7 @@ class FONKFBase:
 
         ws: list[np.ndarray] = []
         ps: list[np.ndarray] = []
-        for rn, fn in zip(info.components(kinematics=kinematics), svs.dtype.names, strict=True):
+        for rn, fn in zip(info.components(kinematics=kinematics), svs.dtype.names, strict=False):
             # ^ relying on zip-shortest to cut off svs iter b/c that always
             # includes the kinematics.
             unit = flat_units[rn]
