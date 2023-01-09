@@ -87,7 +87,7 @@ def reference_to_skyoffset_matrix(
 
 
 def residual(
-    v: tuple[float, float, float], data: NDArray[np.float64], *, scalar: bool = False
+    v: tuple[float, float, float], data: NDArray[np.float64], scalar: bool = False  # noqa: FBT001, FBT002
 ) -> float | NDArray[np.float64]:
     r"""How close phi2, the rotated |Latitude| (e.g. dec), is to flat.
 
