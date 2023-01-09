@@ -34,13 +34,6 @@ Subpackages
 
    trackstream/index
 
-.. toctree::
-   :caption: Preprocessing:
-   :name: preprocessing_subpackage
-   :maxdepth: 1
-
-   trackstream/preprocess/index
-
 
 ***********
 Attribution

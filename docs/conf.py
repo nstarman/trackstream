@@ -134,7 +134,7 @@ numpydoc_xref_aliases.update(numpydoc_xref_astropy_aliases)
 
 
 # extensions
-extensions += ["nbsphinx", "IPython.sphinxext.ipython_console_highlighting", "sphinxcontrib.bibtex"]
+extensions += ["nbsphinx", "IPython.sphinxext.ipython_console_highlighting"]
 
 # Show / hide TODO blocks
 todo_include_todos = True

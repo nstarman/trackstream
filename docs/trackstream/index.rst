@@ -34,7 +34,3 @@ Reference/API
    :no-heading:
    :no-main-docstr:
    :include-all-objects:
-
-
-.. automodapi:: trackstream.tests
-   :include-all-objects:

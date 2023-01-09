@@ -15,7 +15,7 @@ from astropy.coordinates.matrix_utilities import matrix_product
 
 if TYPE_CHECKING:
     # LOCAL
-    from trackstream._type_hints import CoordinateType
+    from trackstream._typing import CoordinateType
 
 
 __all__ = ["get_transform_matrix"]
