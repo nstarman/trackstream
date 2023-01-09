@@ -95,16 +95,17 @@ class CartesianSOM(SOM1DBase):
         if maxsep is not None:
             # Check respacing is even possible
             if (abs(max(x) - min(x)) / nlattice) > maxsep:
-                raise ValueError(
+                msg = (
                     f"{nlattice} bins is not enough to cover [{min(x)}, {max(x)}] "
                     f"with a maximum bin separation of {maxsep}"
                 )
+                raise ValueError(msg)
             # Respace bins
             bins = _respace_bins(  # TODO! speed up
                 deepcopy(bins), maxsep, onsky=False, eps=2 * np.finfo(maxsep.dtype).eps
             )
 
-        res = binned_statistic(x, data.T, bins=bins, statistic="median")  # type: ignore
+        res = binned_statistic(x, data.T, bins=bins, statistic="median")
         prototypes: ndarray = res.statistic.T
 
         # When there is no data in a bin, it is set to NaN.
@@ -118,8 +119,7 @@ class CartesianSOM(SOM1DBase):
     # ===============================================================
 
     def _activation_distance(self, x: ndarray, w: ndarray) -> ndarray:
-        distance: ndarray
-        distance = norm(subtract(x, w), axis=-1)  # works for both q & p
+        distance: ndarray = norm(subtract(x, w), axis=-1)  # works for both q & p
         return distance
 
     # ---------------------------------------------------------------
@@ -143,5 +143,4 @@ class CartesianSOM(SOM1DBase):
         # improves the performances
         ibmu = self._best_matching_unit_index(x)
         g = self._neighborhood(ibmu, sig) * eta
-        # w_new = eta * neighborhood_function * (x-w)
-        self.prototypes[:] += g[:, None] * (x - self.prototypes)  # type: ignore
+        self.prototypes[:] += g[:, None] * (x - self.prototypes)

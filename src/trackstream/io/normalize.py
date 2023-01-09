@@ -168,10 +168,11 @@ class StreamArmDataNormalizer:
         # 1) the data
 
         # First look for a column "coords"
-        if "coords" in original.colnames:
-            osc = SkyCoord(original["coords"], copy=False)
-        else:
-            osc = SkyCoord.guess_from_table(original)
+        osc = (
+            SkyCoord(original["coords"], copy=False)
+            if "coords" in original.colnames
+            else SkyCoord.guess_from_table(original)
+        )
 
         # Add coordinates to stream
         if self.frame is None:  # no new frame
@@ -191,8 +192,6 @@ class StreamArmDataNormalizer:
         # ----------
         # 2) the error
         # TODO! want the ability to convert errors into the frame of the data.
-        # import gala.coordinates as gc
-        # cov = array([[1, 0], [0, 1]])
         # gc.transform_pm_cov(sc.icrs, repeat(cov[None, :], len(sc), axis=0),
         #                     coord.Galactic())
 
@@ -228,5 +227,5 @@ class StreamArmDataNormalizer:
         else:  # Make, if not.
             out["order"] = MaskedColumn(-1 * ones(len(original)), dtype=int)  # sentinel value
             # pairwise iterate, making per-arm ordering
-            for i, j in zip(out.groups.indices[:-1], out.groups.indices[1:]):
+            for i, j in zip(out.groups.indices[:-1], out.groups.indices[1:], strict=True):
                 out["order"][i:j] = MaskedColumn(arange(j - i), dtype=int)

@@ -69,7 +69,8 @@ class StreamLike(Protocol):
 ##############################################################################
 # PARAMETER
 
-FRAME_NONE_ERR = ValueError("frame is None; need to fit a frame")
+msg = "frame is None; need to fit a frame"
+FRAME_NONE_ERR = ValueError(msg)
 
 
 _ABC_MSG = "Can't instantiate abstract class {} with abstract method {}"
@@ -129,13 +130,9 @@ class StreamBase:
     # Initializatino
 
     # TODO! py3.10 fixes the problems of ordering in subclasses
-    # data: QTable
     # """The stream data table."""
-    # name: str | None
     # """The name of the stream."""
-    # prior_cache: InitVar[dict] | None = None
     # def __post_init__(self, prior_cache: dict | None) -> None:
-    #     self.cache = prior_cache
 
     # this is included only for type hinting
     def __post_init__(self) -> None:
@@ -172,7 +169,6 @@ class StreamBase:
     # @abstractmethod
     # def origin(self) -> SkyCoord:
     #     """The origin of the stream."""
-    #     raise TypeError(_ABC_MSG.format(self.__class__.__qualname__, "origin"))
 
     @property
     # @abstractmethod
@@ -204,7 +200,7 @@ class StreamBase:
 
     # ===============================================================
 
-    def __base_repr__(self, max_lines: int | None = None) -> list[str]:
+    def __base_repr__(self, max_lines: int | None = None) -> list[str]:  # noqa: ARG002
         rs = []
 
         # 0) header (standard repr)

@@ -99,7 +99,7 @@ class StreamArm(StreamBase):
     # ===============================================================
     # Directly from Data
 
-    def get_mask(self, minPmemb: Quantity | None = None, include_order: bool = True) -> NDArray[np.bool_]:
+    def get_mask(self, minPmemb: Quantity | None = None, *, include_order: bool = True) -> NDArray[np.bool_]:
         """Which elements of the stream are masked."""
         minPmemb = self.flags.minPmemb if minPmemb is None else minPmemb
         mask = (self.data["Pmemb"] < minPmemb).unmasked | self.data["Pmemb"].mask
@@ -141,13 +141,12 @@ class StreamArm(StreamBase):
         unsorter = np.argsort(np.argsort(iorder))
         neworder = np.arange(len(iorder), dtype=int)[unsorter]
 
-        return neworder
+        return neworder  # noqa: RET504
 
     @property
     def _best_frame(self) -> BaseCoordinateFrame:
         """:attr:`Stream.frame` unless its `None`, else :attr:`Stream.data_frame`."""
-        frame = self.frame if self.frame is not None else self.data_frame
-        return frame
+        return self.frame if self.frame is not None else self.data_frame
 
     @property
     def coords(self) -> SkyCoord:
@@ -168,7 +167,6 @@ class StreamArm(StreamBase):
     def mask_outliers(
         self,
         outlier_method: str | OutlierDetectorBase = "ScipyKDTreeLOF",
-        # kinematics: bool = False,
         *,
         verbose: bool = False,
         **kwargs: Any,
@@ -180,7 +178,8 @@ class StreamArm(StreamBase):
         if isinstance(outlier_method, str):
             outlier_method = OUTLIER_DETECTOR_CLASSES[outlier_method]()
         elif not isinstance(outlier_method, OutlierDetectorBase):
-            raise TypeError("outlier_method must be a str or OutlierDetectorBase subclass instance")
+            msg = "outlier_method must be a str or OutlierDetectorBase subclass instance"
+            raise TypeError(msg)
 
         mask = self.get_mask(include_order=False)
         data_coords = self.data["coords"][~mask]
@@ -220,7 +219,8 @@ class StreamArm(StreamBase):
         """
         track = self.cache["track"]
         if track is None:
-            raise ValueError("need to fit track. See ``arm.fit_track(...)``.")
+            msg = "need to fit track. See ``arm.fit_track(...)``."
+            raise ValueError(msg)
         return track
 
     def fit_track(
@@ -257,7 +257,8 @@ class StreamArm(StreamBase):
         """
         # Check if already fit
         if not force and self.cache["track"] is not None:
-            raise ValueError("already fit. use ``force`` to re-fit.")
+            msg = "already fit. use ``force`` to re-fit."
+            raise ValueError(msg)
 
         # LOCAL
         from trackstream.track.fit.fitter import FitterStreamArmTrack
@@ -267,10 +268,11 @@ class StreamArm(StreamBase):
             use_cached = fitter is True
             fitter = self.cache["track_fitter"]
 
-            if not use_cached or not isinstance(fitter, FitterStreamArmTrack):
-                thefitter = FitterStreamArmTrack.from_format(self)
-            else:
-                thefitter = fitter
+            thefitter = (
+                FitterStreamArmTrack.from_format(self)
+                if not use_cached or not isinstance(fitter, FitterStreamArmTrack)
+                else fitter
+            )
         else:
             thefitter = fitter
 

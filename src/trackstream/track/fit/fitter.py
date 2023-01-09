@@ -56,9 +56,6 @@ P = ParamSpec("P")
 # class _TSCacheDict(TypedDict):
 #     """Cache for FitterStreamArmTrack."""
 
-#     # visit_order: ndarray | None
-#     # mean_path: kalman_output | None
-
 
 @final
 @dataclass(frozen=True)
@@ -76,15 +73,11 @@ class FitterStreamArmTrack:
         Should the track be fit with or without kinematic information.
     """
 
-    # _CACHE_CLS: ClassVar[type] = _TSCacheDict
-    # cache = CacheProperty()
-
     # The bad de
     som: SelfOrganizingMap
     """Self-Organizing Map"""
     kalman: FirstOrderNewtonianKalmanFilter
     """The Kalman Filter"""
-    # _: KW_ONLY
     onsky: bool
     """Whether to fit on-sky or 3d."""
     kinematics: bool
@@ -123,15 +116,16 @@ class FitterStreamArmTrack:
     @classmethod
     def from_format(
         cls,
-        arm: object,
-        onsky: bool | None = None,
-        kinematics: bool | None = None,
+        arm: object,  # noqa: ARG003
+        onsky: bool | None = None,  # noqa: ARG003
+        kinematics: bool | None = None,  # noqa: ARG003
         *,
-        som_kw: dict[str, Any] | None = None,
-        kalman_kw: dict | None = None,
+        som_kw: dict[str, Any] | None = None,  # noqa: ARG003
+        kalman_kw: dict | None = None,  # noqa: ARG003
     ) -> Any:  # https://github.com/python/mypy/issues/11727
         """Create a FitterStreamArmTrack from an object."""
-        raise NotImplementedError("not dispatched")
+        msg = "not dispatched"
+        raise NotImplementedError(msg)
 
     @from_format.register(StreamArm)
     @classmethod
@@ -185,33 +179,30 @@ class FitterStreamArmTrack:
 
     @property
     def _default_dt0(self) -> Times:
-        dt0 = Times(
+        return Times(
             {
                 LENGTH: u.Quantity(0.5, u.deg) if self.kalman.onsky else u.Quantity(10.0, u.pc),
                 SPEED: u.Quantity(0.01, u.Unit("mas / yr")) if self.kalman.onsky else u.Quantity(1.0, u.km / u.s),
             }
         )
-        return dt0
 
     @property
     def _default_dtmin(self) -> Times:
-        dtmin = Times(
+        return Times(
             {
                 LENGTH: u.Quantity(0.01, u.deg) if self.kalman.onsky else u.Quantity(0.01, u.pc),
                 SPEED: u.Quantity(0.01, u.Unit("mas / yr")) if self.kalman.onsky else u.Quantity(0.01, u.km / u.s),
             }
         )
-        return dtmin
 
     @property
     def _default_dtmax(self) -> Times:
-        dtmax = Times(
+        return Times(
             {
                 LENGTH: u.Quantity(np.inf, u.deg) if self.kalman.onsky else u.Quantity(np.inf, u.pc),
                 SPEED: u.Quantity(np.inf, u.Unit("mas / yr")) if self.kalman.onsky else u.Quantity(np.inf, u.km / u.s),
             }
         )
-        return dtmax
 
     def fit(
         self,

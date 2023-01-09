@@ -71,7 +71,7 @@ def pytest_configure(config: pytest.Config) -> None:
 # doctest fixtures
 
 
-@pytest.fixture(autouse=True)  # type: ignore
+@pytest.fixture(autouse=True)
 def add_numpy(doctest_namespace: dict[str, Any]) -> None:
     """Add NumPy to Pytest.
 
@@ -81,13 +81,13 @@ def add_numpy(doctest_namespace: dict[str, Any]) -> None:
 
     """
     # THIRD PARTY
-    import numpy
+    import numpy as np
 
     # add to namespace
-    doctest_namespace["np"] = numpy
+    doctest_namespace["np"] = np
 
 
-@pytest.fixture(autouse=True)  # type: ignore
+@pytest.fixture(autouse=True)
 def add_astropy(doctest_namespace: dict[str, Any]) -> None:
     """Add Astropy stuff to Pytest.
 
@@ -124,15 +124,13 @@ def num() -> int:
 @pytest.fixture(scope="session")
 def affine(num: int) -> coords.Angle:
     """Fixture returning the affine |Angle|."""
-    afn = coords.Angle(np.linspace(0, 10, num=num), u.deg)
-    return afn
+    return coords.Angle(np.linspace(0, 10, num=num), u.deg)
 
 
 @pytest.fixture(scope="session")
 def dif_type() -> type[coords.BaseDifferential]:
     """Fixture returning the differential type."""
-    dt: type[coords.BaseDifferential] = coords.CartesianDifferential
-    return dt
+    return coords.CartesianDifferential
 
 
 @pytest.fixture(scope="session")
@@ -162,13 +160,12 @@ def rep(
     rep_type: type[coords.CartesianRepresentation], dif: coords.BaseDifferential, num: int
 ) -> coords.CartesianRepresentation:
     """Fixture returning the representation, with attached differentials."""
-    r = rep_type(
+    return rep_type(
         x=np.linspace(0, 1, num=num) * u.kpc,
         y=np.linspace(1, 2, num=num) * u.kpc,
         z=np.linspace(2, 3, num=num) * u.kpc,
         differentials=dif,
     )
-    return r
 
 
 @pytest.fixture(scope="session")
@@ -182,15 +179,13 @@ def frame(
     rep_type: type[coords.BaseRepresentation], dif_type: type[coords.BaseDifferential]
 ) -> coords.BaseCoordinateFrame:
     """Fixture returning the frame, |ICRS|."""
-    frame = coords.ICRS(representation_type=rep_type, differential_type=dif_type)
-    return frame
+    return coords.ICRS(representation_type=rep_type, differential_type=dif_type)
 
 
 @pytest.fixture(scope="session")
 def crd(frame: coords.BaseCoordinateFrame, rep: coords.BaseRepresentation) -> coords.BaseCoordinateFrame:
     """Fixture returning the coordinate frame."""
-    c = frame.realize_frame(rep, representation_type=type(rep))
-    return c
+    return frame.realize_frame(rep, representation_type=type(rep))
 
 
 @pytest.fixture(scope="session")
@@ -220,16 +215,14 @@ def path_cls() -> type[Path]:
 @pytest.fixture(scope="session")
 def path(path_cls: type[Path], iscrd: InterpolatedSkyCoord, width: InterpolatedWidths) -> Path:
     """Fixture returning the Path instance."""
-    p = path_cls(iscrd, width, name="conftest")
-    return p
+    return path_cls(iscrd, width, name="conftest")
 
 
 @pytest.fixture(scope="session")
 def width(num: int) -> InterpolatedWidths:
     """Fixture returning the width."""
     x = Quantity(np.ones(num) * 100, u.pc)
-    ws = InterpolatedWidths.from_format({"length": Cartesian1DWidth(x)})
-    return ws
+    return InterpolatedWidths.from_format({"length": Cartesian1DWidth(x)})
 
 
 @pytest.fixture(scope="session")

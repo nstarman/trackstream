@@ -1,3 +1,5 @@
+"""Fitting a track."""
+
 # LOCAL
 from trackstream.track.fit.fitter import FitterStreamArmTrack
 from trackstream.track.fit.kalman.core import FirstOrderNewtonianKalmanFilter

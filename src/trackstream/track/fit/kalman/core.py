@@ -94,7 +94,7 @@ class FirstOrderNewtonianKalmanFilter:
     @property
     def onsky(self) -> bool:
         """If the KF works o nthe sky or in 3D."""
-        return True if isinstance(self.kf, USphereFONKF) else False
+        return bool(isinstance(self.kf, USphereFONKF))
 
     @property
     def kinematics(self) -> bool:
@@ -103,7 +103,7 @@ class FirstOrderNewtonianKalmanFilter:
         kfs = (CartesianFONKF, USphereFONKF)
         nf = (6, 4)
         i = kfs.index(type(self.kf))
-        return True if self.nfeature == nf[i] else False
+        return bool(self.nfeature == nf[i])
 
     @property
     def nfeature(self) -> int:
@@ -116,11 +116,11 @@ class FirstOrderNewtonianKalmanFilter:
     @classmethod
     def from_format(
         cls,
-        arm: object,
-        onsky: bool | None = None,
-        kinematics: bool | None = None,
+        arm: object,  # noqa: ARG003
+        onsky: bool | None = None,  # noqa: ARG003
+        kinematics: bool | None = None,  # noqa: ARG003
         *,
-        width0: None | Widths = None,
+        width0: None | Widths = None,  # noqa: ARG003
     ) -> Any:  # https://github.com/python/mypy/issues/11727
         """Create a Kalman filter from an object.
 
@@ -140,7 +140,8 @@ class FirstOrderNewtonianKalmanFilter:
         FirstOrderNewtonianKalmanFilter | Any
             The Kalman filter or similar object, depending on the input, over which this method is dispatched.
         """
-        raise NotImplementedError("not dispatched")
+        msg = "not dispatched"
+        raise NotImplementedError(msg)
 
     @from_format.register(StreamArm)
     @classmethod
@@ -244,10 +245,11 @@ class FirstOrderNewtonianKalmanFilter:
         ws = np.c_[_ws]
 
         # timesteps
-        if self.kinematics:
-            tu = u.StructuredUnit((self.kf.info.units[0][0], self.kf.info.units[1][0]))
-        else:
-            tu = self.kf.info.units[0][0]
+        tu = (
+            u.StructuredUnit((self.kf.info.units[0][0], self.kf.info.units[1][0]))
+            if self.kinematics
+            else self.kf.info.units[0][0]
+        )
         dts = rfn.structured_to_unstructured(timesteps.to_format(u.Quantity).to_value(tu))
 
         result, smooth = self.kf.fit(zs, errors=errs, widths=ws, timesteps=dts)
@@ -255,7 +257,6 @@ class FirstOrderNewtonianKalmanFilter:
         # ------ make path ------
 
         # Measured Xs
-        # mXs = dot(self.H, smooth.x.T).T  # (N, D)
         # needs to be C-continuous
         mc = _v2c(self, np.array(smooth.x[:, ::2], copy=True))
 
@@ -286,7 +287,7 @@ class FirstOrderNewtonianKalmanFilter:
         minafn = u.Quantity(min(1e-10, 1e-10 * sp2p.value[0]), sp2p.unit)
         affine = u.Quantity(np.concatenate((np.atleast_1d(np.array(minafn, subok=True)), sp2p.cumsum())), copy=False)
 
-        path = Path.from_format(
+        return Path.from_format(
             mc,
             width=stream_width,
             amplitude=None,  # TODO!
@@ -294,5 +295,3 @@ class FirstOrderNewtonianKalmanFilter:
             affine=affine,
             metadata={"result": result, "smooth": smooth},
         )
-
-        return path

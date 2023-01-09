@@ -68,7 +68,8 @@ class StreamPlotDescriptorBase(CommonPlotDescriptorBase[BndTo]):
             The name of the parsed frame.
         """
         if not isinstance(frame, (BaseCoordinateFrame, str)):
-            raise ValueError(f"{frame} is not a BaseCoordinateFrame or str")
+            msg = f"{frame} is not a BaseCoordinateFrame or str"
+            raise ValueError(msg)
 
         if isinstance(frame, BaseCoordinateFrame):
             theframe = frame
@@ -83,10 +84,11 @@ class StreamPlotDescriptorBase(CommonPlotDescriptorBase[BndTo]):
                 raise FRAME_NONE_ERR
             theframe = maybeframe
 
-            if isinstance(theframe, SkyOffsetFrame) or frame_transform_graph.lookup_name(theframe.name) is None:
-                frame_name = "Stream"
-            else:
-                frame_name = theframe.name.capitalize()
+            frame_name = (
+                "Stream"
+                if isinstance(theframe, SkyOffsetFrame) or frame_transform_graph.lookup_name(theframe.name) is None
+                else theframe.name.capitalize()
+            )
         else:
             theframe = parse_framelike(frame)
             frame_name = theframe.__class__.__name__
@@ -143,7 +145,6 @@ class StreamPlotDescriptorBase(CommonPlotDescriptorBase[BndTo]):
         """
         ax.set_xlabel(f"{AX_LABELS.get(x, x)} ({frame}) [{ax.get_xlabel()}]", fontsize=13)
         ax.set_ylabel(f"{AX_LABELS.get(y, y)} ({frame}) [{ax.get_ylabel()}]", fontsize=13)
-        # ax.grid(True)
         ax.legend()
 
     # ===============================================================

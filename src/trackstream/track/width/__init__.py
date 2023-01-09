@@ -1,3 +1,5 @@
+"""Widths."""
+
 # LOCAL
 from trackstream.track.width.core import BaseWidth
 from trackstream.track.width.interpolated import InterpolatedWidth, InterpolatedWidths

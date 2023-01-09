@@ -79,7 +79,7 @@ class FrameOptimizeResultPlotDescriptor(PlotDescriptorBase["FrameOptimizeResult"
         rotation_angles = np.linspace(-180, 180, num=1_000, dtype=float)
         r = fr.origin.data
         xyz = (
-            stream.data_coords.represent_as(coords.UnitSphericalRepresentation)  # type: ignore
+            stream.data_coords.represent_as(coords.UnitSphericalRepresentation)
             .represent_as(coords.CartesianRepresentation)
             .xyz.value
         )
@@ -96,7 +96,7 @@ class FrameOptimizeResultPlotDescriptor(PlotDescriptorBase["FrameOptimizeResult"
             fr.rotation.value,
             c="k",
             ls="--",
-            label=f"best-fit rotation = {fr.rotation.value:.2f}" + r"$^\degree$",
+            label=rf"best-fit rotation = {fr.rotation.value:.2f} $^\degree$",
         )
         # and the next period
         next_period = 180 if (fr.rotation.value - 180) < rotation_angles.min() else -180
@@ -114,8 +114,8 @@ class FrameOptimizeResultPlotDescriptor(PlotDescriptorBase["FrameOptimizeResult"
     def _in_own_frame(
         self,
         stream: StreamBase,
-        origin: bool,
         *,
+        origin: bool,
         axs: Sequence[Axes],
         format_ax: bool,
         set_title: bool,
@@ -127,7 +127,7 @@ class FrameOptimizeResultPlotDescriptor(PlotDescriptorBase["FrameOptimizeResult"
             axs[0].set_title("Stream Star Positions")
 
         if plot_vs:
-            ORIGIN_HAS_VS = "s" in stream.origin.data.differentials  # type: ignore
+            ORIGIN_HAS_VS = "s" in stream.origin.data.differentials
 
             stream.plot.in_frame(frame="icrs", kind="kinematics", ax=axs[1], origin=origin and ORIGIN_HAS_VS, **kwargs)
             if format_ax and set_title:
@@ -145,7 +145,9 @@ class FrameOptimizeResultPlotDescriptor(PlotDescriptorBase["FrameOptimizeResult"
     ) -> None:
         kwargs.pop("c", None)  # setting from residual
         c: Quantity | dict[str, Quantity]
-        rotstr = r" ($\theta=$" + f"{fr.rotation.value:.4}" + r"$^\degree$)"
+        rotstr: str = r" ($\theta=$"
+        rotstr += f"{fr.rotation.value:.4}"
+        rotstr += r"$^\degree$)"
         full_name = stream.full_name or ""
 
         if isinstance(stream, CollectionBase):
@@ -158,7 +160,7 @@ class FrameOptimizeResultPlotDescriptor(PlotDescriptorBase["FrameOptimizeResult"
         stream.plot.in_frame(frame="stream", kind="positions", c=c, ax=axs[0], label=label, origin=origin, **kwargs)
 
         if plot_vs:
-            ORIGIN_HAS_VS = "s" in stream.origin.data.differentials  # type: ignore
+            ORIGIN_HAS_VS = "s" in stream.origin.data.differentials
 
             stream.plot.in_frame(
                 frame="stream",
@@ -221,7 +223,7 @@ class FrameOptimizeResultPlotDescriptor(PlotDescriptorBase["FrameOptimizeResult"
             plot_vs = stream.has_kinematics
             nrows = 2 if plot_vs else 1
             figsize = (16 if plot_vs else 8, 7)
-            fig, axs = plt.subplots(3, nrows, figsize=figsize)  # type: ignore
+            fig, axs = plt.subplots(3, nrows, figsize=figsize)
 
         set_title: bool = kwargs.pop("title", True)
         kwargs.setdefault("format_ax", format_ax)
@@ -319,11 +321,13 @@ class FrameOptimizeResult(Generic[R]):
             If the frame is not `None` and not equal to the frame in ``optimize_result``.
         """
         if not isinstance(optimize_result, cls):
-            raise NotImplementedError(f"optimize_result type {type(optimize_result)} is not known.")
+            msg = f"optimize_result type {type(optimize_result)} is not known."
+            raise NotImplementedError(msg)
 
         # overload + Self is implemented here until it works
         if frame is not None and frame != optimize_result.frame:
-            raise ValueError("frame must be None or the same as optimize_result's frame")
+            msg = "frame must be None or the same as optimize_result's frame"
+            raise ValueError(msg)
         return cls(frame=optimize_result.frame, result=optimize_result.result)
 
     @from_result.register(OptimizeResult)
@@ -344,7 +348,7 @@ class FrameOptimizeResult(Generic[R]):
 
     # ===============================================================
 
-    def calculate_residual(self, data: coords.SkyCoord, scalar: bool = False) -> Quantity:
+    def calculate_residual(self, data: coords.SkyCoord, *, scalar: bool = False) -> Quantity:
         """Calculate result residual given the fit frame.
 
         Parameters
@@ -359,6 +363,6 @@ class FrameOptimizeResult(Generic[R]):
         Quantity
             Scalar if ``scalar``, else length N.
         """
-        ur = data.transform_to(self.frame).represent_as(coords.UnitSphericalRepresentation)  # type: ignore
+        ur = data.transform_to(self.frame).represent_as(coords.UnitSphericalRepresentation)
         res: Quantity = np.abs(ur.lat - 0.0 * u.rad)
         return np.sum(res) if scalar else res

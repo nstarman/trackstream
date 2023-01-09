@@ -108,7 +108,8 @@ class StreamArmTrack(StreamArmTrackBase[StreamLikeT]):
         """The `~trackstream.Stream`, or `None` if the weak reference is broken."""
         strm = self._stream_ref()
         if strm is None:
-            raise AttributeError("the reference to the stream is broken")
+            msg = "the reference to the stream is broken"
+            raise AttributeError(msg)
         return strm
 
     @property
@@ -172,33 +173,13 @@ class StreamArmTrack(StreamArmTrackBase[StreamLikeT]):
 
     def probability(
         self,
-        point: coords.SkyCoord,
-        background_model: Callable[[coords.SkyCoord], Quantity[u.percent]] | None = None,
+        point: coords.SkyCoord,  # noqa: ARG002
+        background_model: Callable[[coords.SkyCoord], Quantity[u.percent]] | None = None,  # noqa: ARG002
         *,
-        angular: bool = False,
-        affine: Quantity | None = None,
+        angular: bool = False,  # noqa: ARG002
+        affine: Quantity | None = None,  # noqa: ARG002
     ) -> Quantity[u.percent]:
-        """Probability point is part of the stream.
-
-        .. todo:: angular probability
-
-        """
-        # # Background probability
-        # Pb = background_model(point) if background_model is not None else 0.0
-
-        # angular = False  # TODO: angular probability
-        # afn = self.path.closest_affine_to_point(point, angular=False, affine=affine)
-        # pt_w = getattr(self.path, "width_angular" if angular else "width")(afn)
-        # sep = getattr(self.path, "separation" if angular else "separation_3d")(
-        #     point,
-        #     interpolate=False,
-        #     affine=afn,
-        # )
-
-        # # cov = 1  # Assumption
-        # pdf = exp(-0.5 * sep ** 2) / power(2 * pi, 3.0 / 2)
-        # # TODO! multidimensional PDF
-
+        """Probability point is part of the stream."""
         raise NotImplementedError
 
     #######################################################

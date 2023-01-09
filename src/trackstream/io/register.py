@@ -27,7 +27,7 @@ __all__ = ["UnifiedIOEntryPointRegistrar"]
 class IdentifyCallable(Protocol):
     """Callable that identifies a format."""
 
-    def __call__(self, origin: str, format: str | None, /, *args: Any, **kwargs: Any) -> bool:  # noqa: A002
+    def __call__(self, origin: str, format: str | None, /, *args: Any, **kwargs: Any) -> bool:  # noqa: A002, ARG002
         """Identify a format."""
         ...
 
@@ -35,7 +35,7 @@ class IdentifyCallable(Protocol):
 class FuncCallable(Protocol):  # TODO!
     """Callable that reads or writes a format."""
 
-    def __call__(self, base: Any, /, *args: Any, **kwds: Any) -> Any:
+    def __call__(self, base: Any, /, *args: Any, **kwds: Any) -> Any:  # noqa: ARG002
         """Read or write a format."""
         ...
 
@@ -78,7 +78,7 @@ class UnifiedIOEntryPointRegistrar:
         # Load entrypoint
         try:
             value = entry_point.load()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             # This stops the fitting from choking if an entry_point produces an error.
             warnings.warn(
                 f"{type(e).__name__} error occurred in entry point {name!r} -- not registering.\n\t{e.args}",

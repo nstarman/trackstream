@@ -39,7 +39,8 @@ class classproperty(Generic[T]):
 
     def __get__(self, obj: object | None, objtype: None | type = None) -> T:
         if self.fget is None:
-            raise AttributeError(f"unreadable attribute {self._name}")
+            msg = f"unreadable attribute {self._name}"
+            raise AttributeError(msg)
         return self.fget(type(obj) if objtype is None else objtype)
 
     def getter(self, fget: Callable[..., T]) -> classproperty[T]:

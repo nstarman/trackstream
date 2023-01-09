@@ -59,7 +59,7 @@ __all__ = ["Stream"]
 ##############################################################################
 # PARAMETERS
 
-Self = TypeVar("Self", bound="CollectionBase")  # type: ignore  # from typing_extensions import Self
+Self = TypeVar("Self", bound="CollectionBase")
 
 
 class _StreamCache(TypedDict):
@@ -90,7 +90,7 @@ class StreamArmsDescriptor(StreamArms, BoundDescriptor["Stream"]):
         """The name of the attribute."""
         return self.enclosing.name
 
-    def __set__(self, obj: object, value: Any) -> NoReturn:
+    def __set__(self, obj: object, value: Any) -> NoReturn:  # noqa: ARG002
         raise AttributeError
 
 
@@ -101,7 +101,7 @@ class StreamPlotDescriptor(PlotCollectionBase["Stream"]):
     # todo move to StreamPlotCollection (DNE)
     def origin(
         self,
-        origin: CoordinateType,
+        origin: CoordinateType,  # noqa: ARG002
         /,
         frame: FrameLikeType | None = None,
         kind: DKindT = "positions",
@@ -256,21 +256,8 @@ class Stream(StreamArmsBase, StreamBase):
 
         # validate data length
         if len(self._data) > 2:
-            raise NotImplementedError(">2 stream arms are not yet supported")
-
-        # # validate that all the data frames are the same
-        # data_frame = self.data_frame
-        # origin = self.origin
-        # frame = self.frame
-        # for name, arm in self.items():
-        #     if not arm.data_frame == data_frame:
-        #         raise ValueError(f"arm {name} data-frame must match {data_frame}")
-
-        #     if not arm.origin == origin:
-        #         raise ValueError(f"arm {name} origin must match {origin}")
-
-        #     if not arm.frame == frame:
-        #         raise ValueError(f"arm {name} origin must match {frame}")
+            msg = ">2 stream arms are not yet supported"
+            raise NotImplementedError(msg)
 
     @classmethod
     def from_data(
@@ -356,11 +343,11 @@ class Stream(StreamArmsBase, StreamBase):
     @property
     def data_coords(self) -> SkyCoord:
         """The concatenated coordinates of all the arms."""
-        if len(self._data) > 1:
-            sc = concatenate_coords([arm.data_coords for arm in self.values()])
-        else:
-            sc = self._v0.data_coords
-        return sc
+        return (
+            concatenate_coords([arm.data_coords for arm in self.values()])
+            if len(self._data) > 1
+            else self._v0.data_coords
+        )
 
     @property
     def coords(self) -> SkyCoord:
@@ -370,13 +357,12 @@ class Stream(StreamArmsBase, StreamBase):
         else:
             arm0, arm1 = tuple(self.values())
             sc = concatenate_coords((arm0.coords[::-1], arm1.coords))
-        return sc
+        return sc  # noqa: RET504
 
     @property
     def frame(self) -> BaseCoordinateFrame | None:
         """Return a system-centric frame (or None)."""
-        frame = self[self._k0].frame
-        return frame
+        return self[self._k0].frame
 
     @property
     def has_distances(self) -> bool:
@@ -410,12 +396,14 @@ class Stream(StreamArmsBase, StreamBase):
         """
         track = self.cache["track"]
         if track is None:
-            raise ValueError("need to fit track. See ``Stream.fit_track(...)``.")
+            msg = "need to fit track. See ``Stream.fit_track(...)``."
+            raise ValueError(msg)
         return track
 
     def fit_track(
         self,
-        fitters: bool | Mapping[str, bool | FitterStreamArmTrack] = True,
+        fitters: bool | Mapping[str, bool | FitterStreamArmTrack] = True,  # noqa: FBT002
+        *,
         tune: bool = True,
         force: bool = False,
         composite: bool = True,
@@ -453,14 +441,15 @@ class Stream(StreamArmsBase, StreamBase):
         """
         # Check if already fit
         if not force and self.cache["track"] is not None:
-            raise ValueError("already fit. use ``force`` to re-fit.")
+            msg = "already fit. use ``force`` to re-fit."
+            raise ValueError(msg)
 
         if len(self._data) > 2:
-            raise NotImplementedError("TODO")
+            raise NotImplementedError("TODO")  # noqa: EM101
 
         # Broadcast bool -> Dict[arm_name, bool]
         if not isinstance(fitters, Mapping):
-            fitters = {k: fitters for k in self.keys()}
+            fitters = {k: fitters for k in self}
 
         # Fit all tracks
         tracks = {}
@@ -476,10 +465,11 @@ class Stream(StreamArmsBase, StreamBase):
         # LOCAL
         from trackstream.track.plural import StreamArmsTracks, StreamTrack
 
-        if composite:
-            track = StreamTrack.from_stream(self, name=(self.full_name or "").lstrip())
-        else:
-            track = StreamArmsTracks(tracks, name=(self.full_name or "").lstrip())
+        track = (
+            StreamTrack.from_stream(self, name=(self.full_name or "").lstrip())
+            if composite
+            else StreamArmsTracks(tracks, name=(self.full_name or "").lstrip())
+        )
 
         self._cache["track"] = track
         self._cache["fitters"] = MappingProxyType({k: arm.cache["track_fitter"] for k, arm in self.items()})

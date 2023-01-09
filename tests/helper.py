@@ -49,4 +49,3 @@ def IbataEtAl2017() -> dict[str, Any]:
 # @pytest.fixture
 # def STREAM_DATA_SET(IbataEtAl2017) -> Iterator[Dict[str, Any]]:
 #     """Fixture yielding all stream data sets."""
-#     yield from (IbataEtAl2017, )

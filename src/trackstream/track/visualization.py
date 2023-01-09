@@ -203,7 +203,7 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
             _ax.scatter(
                 x + x_offset,
                 y + y_offset,
-                marker="P",  # type: ignore
+                marker="P",
                 edgecolors="black",
                 facecolor="none",
             )
@@ -214,8 +214,8 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
 
                 _ax.scatter(
                     x,
-                    y - y_offset,  # type: ignore
-                    marker="X",  # type: ignore
+                    y - y_offset,
+                    marker="X",
                     edgecolors="gray",
                     facecolor="none",
                 )
@@ -297,10 +297,7 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
             _ax.scatter(x.value, y.value, alpha=0)
 
         # Covariance Ellipses
-        if isinstance(subselect, slice):
-            subsel = subselect
-        else:
-            subsel = slice(None, None, subselect)
+        subsel = subselect if isinstance(subselect, slice) else slice(None, None, subselect)
 
         mean = np.array((x, y)).reshape((2, -1)).T[subsel]
         angle, wh = covariance_ellipse(Ps[subsel], nstd=nstd)
@@ -526,7 +523,7 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
         """
         track, _, stream, *_ = self._setup(ax=False)
 
-        ORIGIN_HAS_VS = "s" in stream.origin.data.differentials  # type: ignore
+        ORIGIN_HAS_VS = "s" in stream.origin.data.differentials
         full_name = stream.full_name or ""
 
         # Plot setup
@@ -539,7 +536,7 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
             plot_vs = stream.has_kinematics
             ncols = 2 if plot_vs else 1
             figwidth = 16 if plot_vs else 8
-            fig, axs = plt.subplots(3, ncols, figsize=(figwidth, 12))  # type: ignore
+            fig, axs = plt.subplots(3, ncols, figsize=(figwidth, 12))
             if len(axs.shape) == 1:
                 axs.shape = (-1, 1)
 
@@ -578,7 +575,7 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
                 frame="stream",
                 kind="kinematics",
                 format_ax=format_ax,
-                origin=origin and "s" in stream.origin.data.differentials,  # type: ignore
+                origin=origin and "s" in stream.origin.data.differentials,
                 som=True,
                 som_kw=som_kw,
                 kalman=False,
@@ -605,7 +602,7 @@ class StreamArmTrackPlotDescriptor(StreamPlotDescriptorBase["StreamArmTrack"]):
                 frame="stream",
                 kind="kinematics",
                 format_ax=format_ax,
-                origin=origin and "s" in stream.origin.data.differentials,  # type: ignore
+                origin=origin and "s" in stream.origin.data.differentials,
                 som=False,
                 kalman=True,
                 kalman_kw=kalman_kw,

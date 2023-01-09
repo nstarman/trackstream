@@ -62,7 +62,7 @@ class CollectionBase(Mapping[str, V]):
     The contained type is homogeneous, allowing
     `~trackstream.common.CollectionBase` to reach into each field.
 
-        >>> collection.dtype
+        >>> collection.dtype  # doctest: +SKIP
         mappingproxy({'a': dtype('int64'), 'b': dtype('int64')})
     """
 
@@ -126,4 +126,5 @@ class CollectionBase(Mapping[str, V]):
         # Check if the underlying data has the key, erroring if it doesn't.
         elif hasattr(self._v0, key):
             return MappingProxyType({k: getattr(v, key) for k, v in self.items()})
-        raise AttributeError(f"{self.__class__.__name__!r} object has no attribute {key!r}")
+        msg = f"{self.__class__.__name__!r} object has no attribute {key!r}"
+        raise AttributeError(msg)

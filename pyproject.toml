@@ -3,7 +3,7 @@
   version = "0.1.0"
   description = "Stellar Stream Tracker"
   readme = "README.rst"
-  requires-python = ">=3.8"
+  requires-python = ">=3.9"
   license = {file = "licenses/LICENSE.rst"}
   keywords = ["stellar streams", "astronomy"]
   authors = [
@@ -27,7 +27,7 @@
     "importlib_metadata",
     "interpolated_coordinates  @ git+https://github.com/GalOrrery/interpolated-coordinates.git",
     "matplotlib",
-    "numpy>=1.22",
+    "numpy>=1.22,<1.24",
     "overload_numpy >= 0.1",
     "override_toformat @ git+https://github.com/nstarman/override_toformat.git",
     "scipy>1.3",
@@ -144,11 +144,20 @@
 
 [tool.ruff]
 line-length = 120
-select = ["A", "B", "D", "E", "F", "N", "Q", "RUF", "S", "T", "U", "W", "YTT"]
-ignore = ["B008", "D105", "D107", "D203", "D213", "D417", "N80", "B011"]
+select = ["ALL"]
+ignore = [
+  "ANN001", "ANN101", "ANN102", "ANN401",
+  "B008", "B011",
+  "D105", "D107", "D203", "D213", "D417",
+  "I001",
+  "N80",
+  "PD",
+  "PT",
+  "RET505", "RET506"
+]
 
 [tool.ruff.per-file-ignores]
-"test_*.py" = ["B027", "D", "N801", "S101"]
+"test_*.py" = ["ANN", "ARG002", "B027", "D", "N801", "S101"]
 "src/trackstream/io/core.py" = ["D414"]
 "src/trackstream/stream/base.py" = ["N815"]
 

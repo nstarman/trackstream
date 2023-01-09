@@ -109,7 +109,8 @@ def parse_framelike(frame: object) -> Any:  # https://github.com/python/mypy/iss
         >>> parse_framelike(ICRS(ra=10 * u.deg, dec=10*u.deg))
         <ICRS Frame>
     """
-    raise NotImplementedError(f"frame type {type(frame)} not dispatched")
+    msg = f"frame type {type(frame)} not dispatched"
+    raise NotImplementedError(msg)
 
 
 @functools.singledispatch
@@ -162,7 +163,8 @@ def get_frame(frame: object) -> BaseCoordinateFrame:
         >>> get_frame(SkyCoord(ICRS(ra=10 * u.deg, dec=10*u.deg)))
         <ICRS Frame>
     """
-    raise NotImplementedError(f"frame type {type(frame)} not dispatched")
+    msg = f"frame type {type(frame)} not dispatched"
+    raise NotImplementedError(msg)
 
 
 @get_frame.register(str)
@@ -172,7 +174,8 @@ def _parse_framelike_str(name: str) -> BaseCoordinateFrame:
 
     if frame_cls is None:
         frame_names = frame_transform_graph.get_names()
-        raise ValueError(f"Coordinate frame name {name!r} is not a known coordinate frame ({sorted(frame_names)})")
+        msg = f"Coordinate frame name {name!r} is not a known coordinate frame ({sorted(frame_names)})"
+        raise ValueError(msg)
 
     return frame_cls()
 
@@ -200,10 +203,10 @@ _DifT: TypeAlias = type[BaseDifferential] | None | Literal["base"]
 
 @functools.singledispatch
 def deep_transform_to(
-    crd: object,
-    frame: BaseCoordinateFrame,
-    representation_type: type[BaseRepresentation],
-    differential_type: _DifT,
+    crd: object,  # noqa: ARG001
+    frame: BaseCoordinateFrame,  # noqa: ARG001
+    representation_type: type[BaseRepresentation],  # noqa: ARG001
+    differential_type: _DifT,  # noqa: ARG001
 ) -> Any:  # https://github.com/python/mypy/issues/11727
     """Transform a coordinate to a frame and representation type.
 
@@ -228,7 +231,8 @@ def deep_transform_to(
     crd : SkyCoord or BaseCoordinateFrame
         Transformed to ``frame`` and ``representation_type``.
     """
-    raise NotImplementedError("not dispatched")
+    msg = "not dispatched"
+    raise NotImplementedError(msg)
 
 
 @deep_transform_to.register
@@ -249,7 +253,7 @@ def _deep_transform_frame(
     f = crd.transform_to(frame)
     frame = f.realize_frame(r, representation_type=representation_type, differential_type=dt, copy=False)
 
-    return frame
+    return frame  # noqa: RET504
 
 
 @deep_transform_to.register
@@ -306,7 +310,7 @@ def _f2q_helper(crds: BaseCoordinateFrame | SkyCoord, which: str) -> u.Quantity:
     return u.Quantity(arr, dtype=dt, unit=u.StructuredUnit(tuple(us)))
 
 
-def f2q(crds: BaseCoordinateFrame | SkyCoord, flatten: bool = False) -> u.Quantity:
+def f2q(crds: BaseCoordinateFrame | SkyCoord, *, flatten: bool = False) -> u.Quantity:
     """Return coordinate as a structured, flattened Quantity.
 
     Parameters
@@ -332,7 +336,7 @@ def f2q(crds: BaseCoordinateFrame | SkyCoord, flatten: bool = False) -> u.Quanti
     q = _f2q_helper(crds, "base")  # positions
 
     # Velocities
-    HAS_V = False if ("s" not in crds.data.differentials) else True
+    HAS_V = not "s" not in crds.data.differentials
 
     # Output, possibly flattening
     if flatten and not HAS_V:

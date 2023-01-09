@@ -182,14 +182,14 @@ class SOMPlotDescriptor(CommonPlotDescriptorBase["SelfOrganizingMap"]):
         Axes
             Axes with the plot.
         """
-        if initial_prototypes:
-            _ax = self.initial(kind=kind, origin=False, connect=False, x_offset=0, y_offset=0, ax=ax, format_ax=False)
-        else:
-            _ax = ax
-        axes = self.current(
+        _ax = (
+            self.initial(kind=kind, origin=False, connect=False, x_offset=0, y_offset=0, ax=ax, format_ax=False)
+            if initial_prototypes
+            else ax
+        )
+        return self.current(
             kind=kind, origin=origin, connect=connect, x_offset=x_offset, y_offset=y_offset, ax=_ax, format_ax=format_ax
         )
-        return axes
 
 
 #####################################################################
@@ -233,15 +233,15 @@ class SelfOrganizingMap:
     @classmethod
     def from_format(
         cls,
-        arm: object,
+        arm: object,  # noqa: ARG003
         /,
-        onsky: bool,
         *,
-        nlattice: int | None = None,
-        sigma: float = 0.1,
-        learning_rate: float = 0.3,
-        rng: Generator | int | None = None,
-        prototype_kw: dict[str, Any] | None = None,
+        onsky: bool,  # noqa: ARG003
+        nlattice: int | None = None,  # noqa: ARG003
+        sigma: float = 0.1,  # noqa: ARG003
+        learning_rate: float = 0.3,  # noqa: ARG003
+        rng: Generator | int | None = None,  # noqa: ARG003
+        prototype_kw: dict[str, Any] | None = None,  # noqa: ARG003
     ) -> Any:  # https://github.com/python/mypy/issues/11727
         """Make Self-Organiizing Map from data.
 
@@ -276,7 +276,8 @@ class SelfOrganizingMap:
         NotImplementedError
             If there is no dispatched method.
         """
-        raise NotImplementedError("not dispatched")
+        msg = "not dispatched"
+        raise NotImplementedError(msg)
 
     @from_format.register(StreamArm)
     @classmethod
@@ -284,9 +285,9 @@ class SelfOrganizingMap:
         cls,
         arm: StreamArm,
         /,
+        *,
         onsky: bool,
         kinematics: bool | None = None,
-        *,
         nlattice: int | None = None,
         sigma: float = 0.1,
         learning_rate: float = 0.3,
@@ -319,9 +320,9 @@ class SelfOrganizingMap:
         cls,
         arms: StreamArmsBase,
         /,
+        *,
         onsky: bool,
         kinematics: bool | None = None,
-        *,
         nlattice: int | None = None,
         sigma: float = 0.1,
         learning_rate: float = 0.3,
@@ -371,7 +372,7 @@ class SelfOrganizingMap:
     @property
     def onsky(self) -> bool:
         """Whether the SOM is run on-sky or in 3D space."""
-        return True if isinstance(self.som, USphereSOM) else False
+        return bool(isinstance(self.som, USphereSOM))
 
     @property
     def kinematics(self) -> bool:
@@ -380,7 +381,7 @@ class SelfOrganizingMap:
         soms = (CartesianSOM, USphereSOM)
         nf = (6, 4)  # number of features
         i = soms.index(type(self.som))
-        return True if self.som.nfeature == nf[i] else False
+        return bool(self.som.nfeature == nf[i])
 
     # ===============================================================
 
@@ -388,6 +389,7 @@ class SelfOrganizingMap:
         self,
         data: coords.SkyCoord,
         num_iteration: int = int(1e5),
+        *,
         random_order: bool = False,
         progress: bool = True,
     ) -> None:
@@ -445,7 +447,13 @@ class SelfOrganizingMap:
         return projdata, ordering
 
     def fit_predict(
-        self, data: coords.SkyCoord, /, num_iteration: int = int(1e5), random_order: bool = False, progress: bool = True
+        self,
+        data: coords.SkyCoord,
+        /,
+        num_iteration: int = int(1e5),
+        *,
+        random_order: bool = False,
+        progress: bool = True,
     ) -> tuple[coords.SkyCoord, np.ndarray]:
         """Fit and predict.
 

@@ -1,5 +1,3 @@
-# type: ignore
-
 """Testing :mod:`~trackstream.stream.core`."""
 
 from __future__ import annotations

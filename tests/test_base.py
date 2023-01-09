@@ -1,5 +1,3 @@
-# type: ignore
-
 """Testing :mod:`~trackstream.stream.base`."""
 
 ##############################################################################
@@ -29,15 +27,12 @@ from trackstream.stream.base import StreamBase
 
 #     @pytest.fixture(scope="class")
 #     def descriptor_cls(self):
-#         return StreamBasePlotDescriptor
 
-#     # ===============================================================
 #     # Method Tests
 
 #     @pytest.mark.skip("TODO!")
 #     def test_in_frame(self, descriptor, axs):
 #         """Test ``in_frame``."""
-#         super().test_in_frame(descriptor, axs)
 
 
 ##############################################################################
@@ -81,7 +76,6 @@ class StreamBaseTest(metaclass=ABCMeta):
 
     # def stream(self, stream_cls, data_table, data_error_table, origin, frame):
     #     """Stream instance."""
-    #     return stream_cls(data_table, origin, data_err=data_error_table, frame=frame)
 
     # ===============================================================
 

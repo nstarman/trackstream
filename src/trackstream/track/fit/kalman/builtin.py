@@ -76,7 +76,5 @@ class USphereFONKF(FONKFBase):
         x[0] -= 2 * wlon if (x[0] >= wlon) else 0
 
         # # similar unwrapping of the |Latitude|
-        # x[1] += wlat if (x[1] < -wlat) else 0
-        # x[1] -= wlat if (x[1] >= wlat) else 0
 
         return x

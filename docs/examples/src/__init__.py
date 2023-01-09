@@ -4,7 +4,6 @@
 #
 # TITLE   : Code for the Examples
 # AUTHOR  : Nathaniel Starkman
-# PROJECT : TrackStream
 #
 # ----------------------------------------------------------------------------
 

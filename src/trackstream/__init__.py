@@ -6,7 +6,6 @@
 from importlib.metadata import version as _get_version
 
 # LOCAL
-from trackstream import utils  # noqa: F401
 from trackstream.stream.core import StreamArm
 from trackstream.stream.stream import Stream
 

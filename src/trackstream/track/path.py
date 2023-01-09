@@ -127,9 +127,11 @@ class Path(NPArrayOverloadMixin):
     def __post_init__(self, metadata: dict[str, Any] | None) -> None:
         # Validation
         if not isinstance(self.data, icoords.InterpolatedSkyCoord):
-            raise TypeError("use `Path.from_format` instead")
+            msg = "use `Path.from_format` instead"
+            raise TypeError(msg)
         elif self.width is not None and not np.array_equal(self.data.affine, self.width.affine):
-            raise ValueError("data.affine != width.affine")
+            msg = "data.affine != width.affine"
+            raise ValueError(msg)
 
         # Init
         self._meta: dict[Any, Any]
@@ -152,14 +154,14 @@ class Path(NPArrayOverloadMixin):
     @classmethod
     def from_format(
         cls,
-        data: object,
-        width: u.Quantity | Callable | None,
-        amplitude: Callable | None = None,
+        data: object,  # noqa: ARG003
+        width: u.Quantity | Callable | None,  # noqa: ARG003
+        amplitude: Callable | None = None,  # noqa: ARG003
         *,
-        affine: u.Quantity,
-        name: str | None = None,
-        metadata: dict | None = None,
-        **kwargs: Any,
+        affine: u.Quantity,  # noqa: ARG003
+        name: str | None = None,  # noqa: ARG003
+        metadata: dict | None = None,  # noqa: ARG003
+        **kwargs: Any,  # noqa: ARG003
     ) -> Any:  # https://github.com/python/mypy/issues/11727
         """Create a path from an object.
 
@@ -184,7 +186,8 @@ class Path(NPArrayOverloadMixin):
         -------
         path : `Path`
         """
-        raise NotImplementedError("not dispatched")
+        msg = "not dispatched"
+        raise NotImplementedError(msg)
 
     @from_format.register(coords.SkyCoord)
     @classmethod
@@ -197,7 +200,7 @@ class Path(NPArrayOverloadMixin):
         affine: u.Quantity,
         name: str | None = None,
         metadata: dict | None = None,
-        **kwargs: Any,
+        **_: Any,
     ) -> Path:
         if isinstance(data, icoords.InterpolatedSkyCoord) and data.affine != affine:
             raise ValueError
@@ -220,12 +223,12 @@ class Path(NPArrayOverloadMixin):
         affine: u.Quantity,
         name: str | None = None,
         metadata: dict | None = None,
-        **kwargs: Any,
+        **_: Any,
     ) -> Path:
         if isinstance(data, icoords.InterpolatedCoordinateFrame) and not np.array_equal(data.affine, affine):
             raise ValueError
 
-        data_if = icoords.InterpolatedCoordinateFrame(data, affine=affine)  # type: ignore
+        data_if = icoords.InterpolatedCoordinateFrame(data, affine=affine)
         data_sc = coords.SkyCoord(data_if, copy=False)
 
         return cls.from_format(data_sc, width=width, amplitude=amplitude, affine=affine, name=name, metadata=metadata)
@@ -243,14 +246,11 @@ class Path(NPArrayOverloadMixin):
         name: str | None = None,
         metadata: dict | None = None,
         frame: FrameLikeType,
-        **kwargs: Any,
+        **_: Any,
     ) -> Path:
         theframe = parse_framelike(frame)
         rep_type = data.__class__
-        if "s" in data.differentials:
-            dif_type = data.differentials["s"].__class__
-        else:
-            dif_type = None
+        dif_type = data.differentials["s"].__class__ if "s" in data.differentials else None
 
         data_f = theframe.realize_frame(data, representation_type=rep_type, differential_type=dif_type)
         return cls.from_format(data_f, width=width, amplitude=amplitude, affine=affine, name=name, metadata=metadata)
@@ -288,10 +288,7 @@ class Path(NPArrayOverloadMixin):
             For the 2nd element of the `trackstream.utils.path.path_moments`.
         """
         mean = self.position(affine)
-        if self.width is not None:
-            width = self.width(affine) if not angular else self.width_angular(affine)
-        else:
-            width = None
+        width = (self.width(affine) if not angular else self.width_angular(affine)) if self.width is not None else None
         # TODO! add amplitude (density)
         return path_moments(mean, width)
 
@@ -424,10 +421,11 @@ class Path(NPArrayOverloadMixin):
         self, point: CoordinateType, *, angular: bool = False, affine: u.Quantity | None = None
     ) -> OptimizeResult:
         """Closest to stream, ignoring width."""
-        if angular:
-            sep_fn = self.separation(point, interpolate=True, affine=affine)
-        else:
-            sep_fn = self.separation_3d(point, interpolate=True, affine=affine)
+        sep_fn = (
+            self.separation(point, interpolate=True, affine=affine)
+            if angular
+            else self.separation_3d(point, interpolate=True, affine=affine)
+        )
 
         afn = self.affine if affine is None else affine
         res: OptimizeResult = minimize_scalar(
@@ -442,8 +440,7 @@ class Path(NPArrayOverloadMixin):
         """Closest affine, ignoring width."""
         afn = self.affine if affine is None else affine
         res = self._closest_res_to_point(point, angular=angular, affine=afn)
-        pt_afn = res.x << afn.unit
-        return pt_afn
+        return res.x << afn.unit
 
     def closest_position_to_point(
         self, point: CoordinateType, *, angular: bool = False, affine: u.Quantity | None = None
@@ -457,12 +454,12 @@ class Path(NPArrayOverloadMixin):
 
 
 @Path.NP_OVERLOADS.implements(np.concatenate, dispatch_on=Path)
-def concatenate(
+def concatenate(  # noqa: C901
     seqpaths: Sequence[Path],
     axis: int = 0,
     out: Path | None = None,
     dtype: np.dtype | None = None,
-    casting: str = "same_kind",
+    _: str = "same_kind",
 ) -> Path:
     """Concatenate a sequence of Paths."""
     # ----------------------------------------
@@ -470,18 +467,23 @@ def concatenate(
 
     N = len(seqpaths)
     if N == 0:
-        raise ValueError("need at least one array to concatenate")
+        msg = "need at least one array to concatenate"
+        raise ValueError(msg)
     elif N > 2:
-        raise ValueError("cannot concatenate more than 2 paths")
+        msg = "cannot concatenate more than 2 paths"
+        raise ValueError(msg)
 
     if out is not None:
-        raise ValueError("out must be None")
+        msg = "out must be None"
+        raise ValueError(msg)
     elif dtype is not None:
-        raise ValueError("dtype must be None")
+        msg = "dtype must be None"
+        raise ValueError(msg)
 
     if N == 1:
         if axis != 0:
-            raise ValueError("axis must be 0 for 1 path")
+            msg = "axis must be 0 for 1 path"
+            raise ValueError(msg)
         return seqpaths[0]
     # else:  N == 2
 
@@ -489,9 +491,11 @@ def concatenate(
 
     npth, ppth = seqpaths
     if npth.frame != ppth.frame:
-        raise ValueError("the paths must have the same frame")
+        msg = "the paths must have the same frame"
+        raise ValueError(msg)
     elif npth.frame.representation_type != ppth.frame.representation_type:
-        raise ValueError("the paths must have the same representation_type")
+        msg = "the paths must have the same representation_type"
+        raise ValueError(msg)
 
     affine = cast("u.Quantity", np.concatenate((-npth.affine[::-1], ppth.affine)))
 
@@ -512,7 +516,8 @@ def concatenate(
     if negow is None and posow is None:
         width = None
     elif negow is None or posow is None:
-        raise ValueError("negow and posow is None")
+        msg = "negow and posow is None"
+        raise ValueError(msg)
     else:
         uninterp_width = np.concatenate((negow.uninterpolated[::-1], posow.uninterpolated))
         uninterp_width = cast("BaseWidth", uninterp_width)
@@ -523,7 +528,6 @@ def concatenate(
 
     # Metadata
     # TODO! a better merge
-    # metadata = merge(npth.meta, ppth.meta, metadata_conflicts="warn")
     metadata = {"npth": npth.meta, "ppth": ppth.meta}
 
     # TODO! amplitude

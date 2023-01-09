@@ -28,7 +28,7 @@ __doctest_skip__ = ["*"]
 readwrite_registry = UnifiedIORegistry()
 
 
-class StreamArmRead(UnifiedReadWrite):  # type: ignore
+class StreamArmRead(UnifiedReadWrite):
     """Read and parse data to a `~stream.StreamArm`.
 
     This function provides the StreamArm interface to the Astropy unified I/O
@@ -93,17 +93,19 @@ class StreamArmRead(UnifiedReadWrite):  # type: ignore
             # check that it is the correct class.
             valid = (self._cls,)
             if kwargs["Stream"] not in valid:
-                raise ValueError("keyword argument `Stream` must be the class.")
+                msg = "keyword argument `Stream` must be the class."
+                raise ValueError(msg)
 
         arm = self.registry.read(self._cls, *args, **kwargs)
 
         if not isinstance(arm, StreamArm):
-            raise TypeError("arm is not an instance of StreamArm")
+            msg = "arm is not an instance of StreamArm"
+            raise TypeError(msg)
 
-        return arm  # type: ignore
+        return arm
 
 
-class StreamArmWrite(UnifiedReadWrite):  # type: ignore
+class StreamArmWrite(UnifiedReadWrite):
     """Write this StreamArm object out in the specified format.
 
     This function provides the StreamArm interface to the astropy unified I/O
@@ -153,7 +155,7 @@ class StreamArmWrite(UnifiedReadWrite):  # type: ignore
 convert_registry = UnifiedIORegistry()
 
 
-class StreamArmFromFormat(UnifiedReadWrite):  # type: ignore
+class StreamArmFromFormat(UnifiedReadWrite):
     """Transform object to a `~stream.StreamArm`.
 
     This function provides the StreamArm interface to the Astropy unified I/O
@@ -219,7 +221,8 @@ class StreamArmFromFormat(UnifiedReadWrite):  # type: ignore
             # passes in e.g. `Stream.read(..., Stream=...)`
             valid = (self._cls,)
             if kwargs["Stream"] not in valid:
-                raise ValueError("keyword argument `Stream` must be the class.")
+                msg = "keyword argument `Stream` must be the class."
+                raise ValueError(msg)
 
         arm = self.registry.read(self._cls, obj, *args, **kwargs)
 
@@ -229,7 +232,7 @@ class StreamArmFromFormat(UnifiedReadWrite):  # type: ignore
         return arm
 
 
-class StreamArmToFormat(UnifiedReadWrite):  # type: ignore
+class StreamArmToFormat(UnifiedReadWrite):
     """Transform this StreamArm to another format.
 
     This function provides the StreamArm interface to the astropy unified I/O

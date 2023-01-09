@@ -50,7 +50,8 @@ class CacheProperty(Generic[EnclT]):
             cache.update(value or {})
             object.__setattr__(instance, "_cache", cache)
         else:
-            raise AttributeError("can't set attribute")
+            msg = "can't set attribute"
+            raise AttributeError(msg)
 
     def __delete__(self, instance: EnclT) -> None:
         instance._cache.clear()
@@ -60,5 +61,4 @@ class CacheProperty(Generic[EnclT]):
     def _init_cache(instance: EnclT) -> dict[str, Any]:
         """Initiallize cache on enclosing instance."""
         cache_cls = getattr(instance, "_CACHE_CLS", {})
-        cache = dict.fromkeys(getattr(cache_cls, "__annotations__", {}).keys())
-        return cache
+        return dict.fromkeys(getattr(cache_cls, "__annotations__", {}).keys())

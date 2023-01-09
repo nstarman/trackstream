@@ -42,7 +42,7 @@ def convolve(a: WS, v: np.ndarray, mode: Literal["valid", "full", "same"] = "ful
 def concatenate(
     seqws: Sequence[WS],
     axis: int = 0,
-    out: WS | None = None,
+    _: WS | None = None,
     dtype: np.dtype | None = None,
     casting: Literal["no", "equiv", "safe", "same_kind", "unsafe"] = "same_kind",
 ) -> WS:
@@ -50,7 +50,8 @@ def concatenate(
     # Insure
     cls = type(seqws[0])
     if not all(type(ws) is cls for ws in seqws):
-        raise ValueError(f"widths must all be the same type: {cls}")
+        msg = f"widths must all be the same type: {cls}"
+        raise ValueError(msg)
 
     # Get intersecting (& not) keys
     same_keys = set(seqws[0].keys())

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 # STDLIB
 import inspect
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Literal, TypeVar, cast, get_args, overload
@@ -183,7 +183,8 @@ class PlotDescriptorBase(BoundDescriptor[BndTo]):
         elif kind == "kinematics":
             which = "s"
         else:
-            raise ValueError(f"kind must be in {get_args(DKindT)}, not {kind!r}")
+            msg = f"kind must be in {get_args(DKindT)}, not {kind!r}"
+            raise ValueError(msg)
 
         # TODO! reps with 1 dim, like RadialRepresentation
         namedict = cast("dict", frame.get_representation_component_names(which))
@@ -242,7 +243,8 @@ class CommonPlotDescriptorBase(PlotDescriptorBase[BndTo]):
             The name of the parsed frame.
         """
         if not isinstance(framelike, (BaseCoordinateFrame, str)):
-            raise ValueError(f"{framelike} is not a BaseCoordinateFrame or str")
+            msg = f"{framelike} is not a BaseCoordinateFrame or str"
+            raise ValueError(msg)
 
         if isinstance(framelike, BaseCoordinateFrame):
             frame = framelike
@@ -350,7 +352,6 @@ class CommonPlotDescriptorBase(PlotDescriptorBase[BndTo]):
         """
         ax.set_xlabel(f"{AX_LABELS.get(x, x)} ({frame}) [{ax.get_xlabel()}]", fontsize=13)
         ax.set_ylabel(f"{AX_LABELS.get(y, y)} ({frame}) [{ax.get_ylabel()}]", fontsize=13)
-        # ax.grid(True)
         ax.legend()
 
 
@@ -361,14 +362,14 @@ class CommonPlotDescriptorBase(PlotDescriptorBase[BndTo]):
 class PlotCollectionBase(BoundDescriptor[CollectionBaseT]):
     """Base class for plotting collections."""
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[PlotDescriptorBase]:
         enclosing = self.enclosing
-        yield from (enclosing[k].plot for k in enclosing.keys())
+        yield from (enclosing[k].plot for k in enclosing)
 
     def __getitem__(self, key: str) -> PlotDescriptorBase:
         return self.enclosing[key].plot
 
-    def __getattr__(self, key: str) -> Any:
+    def __getattr__(self, key: str) -> Any:  # noqa: C901
         if key in ("__isabstractmethod__",):
             return object.__getattribute__(self, key)
         try:
@@ -392,10 +393,10 @@ class PlotCollectionBase(BoundDescriptor[CollectionBaseT]):
             for n, v in mainba.arguments.items():
                 param = sig.parameters[n]
                 if param.kind >= 3 and not isinstance(v, dict):
-                    mainba.arguments[n] = {k: v for k in enclosing.keys()}
+                    mainba.arguments[n] = {k: v for k in enclosing}
 
             out = {}
-            for name in enclosing.keys():
+            for name in enclosing:
                 method = getattr(self[name], key)
                 sig = inspect.signature(method)
                 ba = sig.bind_partial(*mainba.args, **mainba.kwargs)

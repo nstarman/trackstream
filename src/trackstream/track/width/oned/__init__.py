@@ -1,3 +1,5 @@
+"""One-dimensional widths."""
+
 # LOCAL
 from trackstream.track.width.oned.core import (
     AngularDiffWidth,

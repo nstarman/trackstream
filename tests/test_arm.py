@@ -1,5 +1,3 @@
-# type: ignore
-
 """Testing :mod:`~trackstream.stream.core`."""
 
 from __future__ import annotations
@@ -31,7 +29,7 @@ class StreamArmTestMixin:
     def arm(self, stream: Stream, request) -> StreamArm:
         return getattr(stream, request.param)
 
-    @pytest.fixture
+    @pytest.fixture()
     def arm_attr_name(self, arm: StreamArm) -> str:
         return arm._enclosing_attr
 
@@ -52,16 +50,11 @@ class StreamArmTestMixin:
             assert arm.name == "arm 2"
 
     def test_arm_full_name(self, arm, stream, name) -> None:
-        if name is None:
-            expected = f"Stream, {arm.name}"
-        else:
-            expected = f"{name}, {arm.name}"
+        expected = f"Stream, {arm.name}" if name is None else f"{name}, {arm.name}"
 
         assert arm.full_name == expected
 
     # def test_arm_index(self, arm, arm_attr_name, stream: S) -> None:
-    #     expected = stream.data["tail"] == arm_attr_name
-    #     assert all(arm.index == expected)
 
     def test_arm_has_data(self, arm, arm_attr_name, stream: S) -> None:
         expected = any(stream.data["tail"] == arm_attr_name)

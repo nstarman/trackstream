@@ -50,15 +50,18 @@ class Times(PhysicalTypeKeyMutableMapping[u.Quantity], ToFormatOverloadMixin):
 
     def __init__(self, ts: dict[u.PhysicalType, u.Quantity]) -> None:
         # Validate
-        if any(not isinstance(k, u.PhysicalType) for k in ts.keys()):
-            raise ValueError("all keys must be a PhysicalType")
+        if any(not isinstance(k, u.PhysicalType) for k in ts):
+            msg = "all keys must be a PhysicalType"
+            raise ValueError(msg)
 
         # Init
         self._mapping: dict[u.PhysicalType, u.Quantity] = ts
 
     @singledispatchmethod
-    def __getitem__(self, key: object) -> Any:  # https://github.com/python/mypy/issues/11727
-        raise NotImplementedError("not dispatched")
+    def __getitem__(self, key: object) -> Any:  # noqa: ARG002
+        # see https://github.com/python/mypy/issues/11727 for returning Any
+        msg = "not dispatched"
+        raise NotImplementedError(msg)
 
     # ===============================================================
     # Mapping
@@ -80,21 +83,25 @@ class Times(PhysicalTypeKeyMutableMapping[u.Quantity], ToFormatOverloadMixin):
 
     @singledispatchmethod
     @classmethod
-    def from_format(cls, data: object) -> Any:  # https://github.com/python/mypy/issues/11727
+    def from_format(cls, data: object) -> Any:  # noqa: ARG003
         """Construct from data of a given kind."""
-        raise NotImplementedError("not dispatched")
+        # see https://github.com/python/mypy/issues/11727 for returning Any
+        msg = "not dispatched"
+        raise NotImplementedError(msg)
 
     @from_format.register(Mapping)
     @classmethod
     def _from_format_mapping(cls, data: Mapping[str | u.PhysicalType, u.Quantity]) -> Times:
         if not all(isinstance(k, (str, u.PhysicalType)) and isinstance(v, u.Quantity) for k, v in data.items()):
-            raise ValueError("data must be a Mapping[str | u.PhysicalType, u.Quantity]")
+            msg = "data must be a Mapping[str | u.PhysicalType, u.Quantity]"
+            raise ValueError(msg)
 
         times: dict[u.PhysicalType, u.Quantity] = {}
         for k, v in data.items():
             pt = cls._get_key(k)
             if pt in times:
-                raise ValueError(f"key {k} repeats physical type {pt}")
+                msg = f"key {k} repeats physical type {pt}"
+                raise ValueError(msg)
             times[pt] = v
         return cls(times)
 
@@ -102,14 +109,16 @@ class Times(PhysicalTypeKeyMutableMapping[u.Quantity], ToFormatOverloadMixin):
     @classmethod
     def _from_format_structuredquantity(cls, data: u.Quantity) -> Times:
         if not is_structured(data):
-            raise ValueError("Quantity must be structured")
+            msg = "Quantity must be structured"
+            raise ValueError(msg)
 
         ns = list(map(str, data.dtype.names))
         times: dict[u.PhysicalType, u.Quantity] = {}
         for k in ns:
             pt = cls._get_key(k)
             if pt in times:
-                raise ValueError(f"key {k} repeats physical type {pt}")
+                msg = f"key {k} repeats physical type {pt}"
+                raise ValueError(msg)
             times[pt] = cast("u.Quantity", data[k])
         return cls(times)
 
@@ -141,5 +150,4 @@ def _to_format_ndarray(data: Times) -> np.ndarray:
 def _to_format_quantity(cls, data: Times) -> u.Quantity:
     arrs = np.array(data)
     units = u.StructuredUnit(tuple(v.unit for v in data.values()))
-    out = cls(arrs, unit=units)
-    return out
+    return cls(arrs, unit=units)

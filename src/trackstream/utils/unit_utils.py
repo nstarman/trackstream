@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 # STDLIB
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Iterator, Sequence
 from functools import reduce
 from operator import add
 from typing import Any
@@ -16,7 +16,7 @@ from astropy.units.quantity_helper.function_helpers import function_helper
 __all__ = ["merge_units"]
 
 
-def _izip_units_flat(iterable: Iterable[u.StructuredUnit | u.Unit] | u.StructuredUnit):
+def _izip_units_flat(iterable: Iterable[u.StructuredUnit | u.Unit] | u.StructuredUnit) -> Iterator[tuple[str, u.Unit]]:
     """Returns an iterator of collapsing any nested unit structure."""
     # Make Structured unit.
     units = iterable if isinstance(iterable, u.StructuredUnit) else u.StructuredUnit(iterable)
@@ -53,6 +53,7 @@ def merge_units(*units: u.UnitBase | u.StructuredUnit | None) -> u.StructuredUni
 def merge_arrays(
     seqarrays: u.Quantity | Sequence[u.Quantity],
     fill_value: float = -1,
+    *,
     flatten: bool = False,
     usemask: bool = False,
     asrecarray: bool = False,
@@ -90,9 +91,11 @@ def merge_arrays(
         If ``usemask`` is `True`.
     """
     if asrecarray:
-        raise ValueError("asrecarray=True is not supported.")
+        msg = "asrecarray=True is not supported."
+        raise ValueError(msg)
     elif usemask:
-        raise ValueError("usemask=True is not supported.")
+        msg = "usemask=True is not supported."
+        raise ValueError(msg)
 
     # Do we have a single ndarray as input ?
     if isinstance(seqarrays, u.Quantity):
@@ -102,10 +105,7 @@ def merge_arrays(
         arrays = tuple(a.value for a in seqarrays)
         units = (q.unit for q in seqarrays)
 
-    if flatten:
-        unit = merge_units(*units)
-    else:
-        unit = u.StructuredUnit(reduce(add, units))
+    unit = merge_units(*units) if flatten else u.StructuredUnit(reduce(add, units))
 
     return (
         (arrays,),

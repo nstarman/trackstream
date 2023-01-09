@@ -107,7 +107,7 @@ def make_stream_from_vasiliev18(
     data["arm"] = (["arm1"] * len(data_l)) + (["arm2"] * len(data_t))
 
     # Add some metadata
-    data.meta["origin"] = sgc  # type: ignore
+    data.meta["origin"] = sgc
 
     # save data
     if write is not None:
@@ -131,7 +131,7 @@ def get_example_stream(name: str) -> QTable:
     """
     try:
         fname = get_pkg_data_filename(f"example_data/{name}_ex.ecsv", package="trackstream")
-    except Exception:
+    except OSError:
         data = make_stream_from_vasiliev18(name=name, write=DIR / f"{name}_ex.ecsv")
     else:
         data = QTable.read(fname)
