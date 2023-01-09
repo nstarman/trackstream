@@ -4,9 +4,12 @@ Track-Stream
 
 This is the documentation for ``trackstream``.
 
-If you are looking for the trackstream paper, a link will be added **here**. For a (hopefully) complete list of all papers and presentations, see :ref:`papers-and-presentations`
+If you are looking for the trackstream paper, a link will be added **here**.
 
-The package is being actively developed in a `public repository on GitHub <https://github.com/nstarman/trackstream>`_ so if you have any trouble, `open an issue <https://github.com/nstarman/trackstream/issues>`_, or even better, a `PR <https://github.com/nstarman/trackstream/pulls>`_.
+The package is being actively developed in a `public repository on GitHub
+<https://github.com/nstarman/trackstream>`_ so if you have any trouble, `open an
+issue <https://github.com/nstarman/trackstream/issues>`_, or even better, a `PR
+<https://github.com/nstarman/trackstream/pulls>`_.
 
 .. container::
 
@@ -18,21 +21,11 @@ Code Documentation
 ******************
 
 .. toctree::
-  :maxdepth: 1
-
-  documentation/installation
-  documentation/testing
-  latest version changelog (v0.1) <whatsnew/0.1>
-
-
-***********
-Subpackages
-***********
-
-.. toctree::
    :maxdepth: 1
 
-   trackstream/index
+   documentation/installation
+   documentation/testing
+   latest version changelog (v0.1) <whatsnew/0.1>
 
 
 ***********
@@ -74,7 +67,6 @@ Project details
    credits
    whatsnew/index
    documentation/code_quality
-   papers_and_presentations/README
 
 
 ..

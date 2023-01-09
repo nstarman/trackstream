@@ -137,6 +137,6 @@ class StreamArms(StreamArmsBase):
 
     See Also
     --------
-    Stream
+    `~trackstream.Stream`
         An object that brings together 2 stream arms, but acts like 1 stream.
     """

@@ -15,11 +15,14 @@ With ``pip``
 	|PyPI| |PyPI Format|
 
 
-The easiest way to get *trackstream* is to install with `pip <https://pypi.org/project/trackstream/>`_. To install with pip::
+The easiest way to get *trackstream* is to install with `pip
+<https://pypi.org/project/trackstream/>`_. To install with pip::
 
     pip install trackstream
 
-See the `installation instructions <https://readthedocs.org/projects/trackstream/>`_ in the `documentation <https://readthedocs.org/projects/trackstream/>`_ for more information.
+See the `installation instructions
+<https://readthedocs.org/projects/trackstream/>`_ in the `documentation
+<https://readthedocs.org/projects/trackstream/>`_ for more information.
 
 
 .. Substitutions
