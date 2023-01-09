@@ -297,7 +297,7 @@ class SOM1DBase:
             self.rng.shuffle(iterations)
 
         # Fit the data by sequential update
-        with get_progress_bar(progress, len(iterations)) as pbar:
+        with get_progress_bar(display=progress, total=len(iterations)) as pbar:
             for t, i in enumerate(iterations):
                 pbar.update(1)
 
