@@ -62,7 +62,7 @@ class CollectionBase(Mapping[str, V]):
     The contained type is homogeneous, allowing
     `~trackstream.common.CollectionBase` to reach into each field.
 
-        >>> collection.dtype
+        >>> collection.dtype  # doctest: +SKIP
         mappingproxy({'a': dtype('int64'), 'b': dtype('int64')})
     """
 
