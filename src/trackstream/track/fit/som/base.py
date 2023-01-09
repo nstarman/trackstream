@@ -87,7 +87,6 @@ class SOM1DBase:
     """
 
     prototypes: ndarray
-    # _: KW_ONLY
     rng: Generator = default_rng()
     sigma: float = 0.3
     learning_rate: float = 0.3
@@ -135,15 +134,15 @@ class SOM1DBase:
     @classmethod
     def from_format(
         cls,
-        arm: object,
+        arm: object,  # noqa: ARG003
         /,
-        kinematics: bool | None = None,
+        kinematics: bool | None = None,  # noqa: ARG003
         *,
-        nlattice: int | None = None,
-        sigma: float = 0.1,
-        learning_rate: float = 0.3,
-        rng: Generator | int | None = None,
-        prototype_kw: dict[str, Any] | None = None,
+        nlattice: int | None = None,  # noqa: ARG003
+        sigma: float = 0.1,  # noqa: ARG003
+        learning_rate: float = 0.3,  # noqa: ARG003
+        rng: Generator | int | None = None,  # noqa: ARG003
+        prototype_kw: dict[str, Any] | None = None,  # noqa: ARG003
     ) -> Any:  # https://github.com/python/mypy/issues/11727
         """Initialize a SOM from an object.
 
@@ -168,7 +167,7 @@ class SOM1DBase:
         -------
         SOM1DBase
         """
-        raise NotImplementedError("not dispatched")
+        raise NotImplementedError("not dispatched")  # noqa: EM101
 
     @from_format.register(StreamArm)
     @classmethod
@@ -266,6 +265,7 @@ class SOM1DBase:
         self,
         data: ndarray,
         num_iteration: int = int(1e5),
+        *,
         random_order: bool = False,
         progress: bool = False,
     ) -> None:
@@ -326,8 +326,7 @@ class SOM1DBase:
             The index of the best-matching prototype.
         """
         activation_map = self._activation_distance(x, self.prototypes)
-        ibmu = int(activation_map.argmin())
-        return ibmu
+        return int(activation_map.argmin())
 
     # ---------------------------------------------------------------
     # Predicting structure
@@ -373,9 +372,9 @@ class SOM1DBase:
         data: ndarray,
         /,
         num_iteration: int = int(1e5),
+        *,
         random_order: bool = False,
         progress: bool = False,
-        split: int | None = None,
     ) -> tuple[ndarray, ndarray]:
         """Fit then predict.
 

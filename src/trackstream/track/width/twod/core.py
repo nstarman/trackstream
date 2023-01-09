@@ -52,7 +52,7 @@ class PolarWidth(AngularWidth):
     @classproperty
     def corresponding_representation_type(cls) -> None:
         """Return the corresponding representation type."""
-        return None
+        return
 
     @property
     def corresponding_width_types(self) -> dict[u.PhysicalType, None | type[BaseWidth]]:
@@ -78,7 +78,7 @@ class Cartesian2DiffWidth(Cartesian1DiffWidth):
     @classproperty
     def corresponding_representation_type(cls) -> None:
         """Return the corresponding representation type."""
-        return None
+        return
 
 
 @dataclass(frozen=True)
@@ -90,7 +90,7 @@ class PolarDiffWidth(AngularDiffWidth):
     @classproperty
     def corresponding_representation_type(cls) -> None:
         """Return the corresponding representation type."""
-        return None
+        return
 
     @property
     def corresponding_width_types(self) -> dict[u.PhysicalType, None | type[BaseWidth]]:

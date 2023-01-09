@@ -68,15 +68,9 @@ def get_transform_matrix(from_frame: CoordinateType, to_frame: CoordinateType) -
         The original function, of which this is a copy.
 
     """
-    if isinstance(from_frame, coord.BaseCoordinateFrame):
-        from_frame_cls = from_frame.__class__
-    else:
-        from_frame_cls = from_frame
+    from_frame_cls = from_frame.__class__ if isinstance(from_frame, coord.BaseCoordinateFrame) else from_frame
 
-    if isinstance(to_frame, coord.BaseCoordinateFrame):
-        to_frame_cls = to_frame.__class__
-    else:
-        to_frame_cls = to_frame
+    to_frame_cls = to_frame.__class__ if isinstance(to_frame, coord.BaseCoordinateFrame) else to_frame
 
     path, distance = coord.frame_transform_graph.find_shortest_path(from_frame_cls, to_frame_cls)
 
@@ -99,11 +93,12 @@ def get_transform_matrix(from_frame: CoordinateType, to_frame: CoordinateType) -
         elif isinstance(trans, coord.StaticMatrixTransform):
             M = trans.matrix
         else:
-            raise ValueError(
+            msg = (
                 "Transform path contains a '{}': cannot "
                 "be composed into a single transformation "
                 "matrix.".format(trans.__class__.__name__)
             )
+            raise ValueError(msg)
 
         matrices.append(M)
         currsys = p

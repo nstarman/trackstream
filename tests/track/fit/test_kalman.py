@@ -5,8 +5,6 @@
 # IMPORTS
 
 # THIRD PARTY
-# import numpy as np
-# import pytest
 
 ##############################################################################
 # TESTS

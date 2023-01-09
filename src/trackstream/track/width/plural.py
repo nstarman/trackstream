@@ -67,23 +67,29 @@ class Widths(PhysicalTypeKeyMutableMapping[W1], NPArrayOverloadMixin, ToFormatOv
     def __init__(self, widths: dict[u.PhysicalType, W1]) -> None:
         # Validate that have the necessary base of the tower
         if LENGTH not in widths:
-            raise ValueError("need positions")
-        if any(not isinstance(k, u.PhysicalType) for k in widths.keys()):
-            raise ValueError("all keys must be a PhysicalType")
+            msg = "need positions"
+            raise ValueError(msg)
+        if any(not isinstance(k, u.PhysicalType) for k in widths):
+            msg = "all keys must be a PhysicalType"
+            raise ValueError(msg)
 
         self._mapping: dict[u.PhysicalType, W1] = widths
 
     @singledispatchmethod
-    def __getitem__(self, key: object) -> Any:  # https://github.com/python/mypy/issues/11727
-        raise NotImplementedError("not dispatched")
+    def __getitem__(self, key: object) -> Any:  # noqa: ARG002
+        # see https://github.com/python/mypy/issues/11727 for why return Any
+        msg = "not dispatched"
+        raise NotImplementedError(msg)
 
     @singledispatchmethod
-    def __setitem__(self, key: object, value: Any) -> Any:  # https://github.com/python/mypy/issues/11727
-        raise NotImplementedError("not dispatched")
+    def __setitem__(self, key: object, value: Any) -> Any:  # noqa: ARG002
+        # see https://github.com/python/mypy/issues/11727 for why return Any
+        msg = "not dispatched"
+        raise NotImplementedError(msg)
 
     # ===============================================================
 
-    def represent_as(self, width_type: type[W1], point: BaseRepresentation) -> W1:
+    def represent_as(self, width_type: type[W1], point: BaseRepresentation) -> W1:  # noqa: ARG002
         """Represent as a new width type.
 
         Parameters
@@ -99,10 +105,8 @@ class Widths(PhysicalTypeKeyMutableMapping[W1], NPArrayOverloadMixin, ToFormatOv
             The width of the new type, at the point.
         """
         # # LOCAL
-        # from trackstream.track.width.transforms import represent_as
 
-        # return represent_as(self, width_type, point)
-        raise NotImplementedError("TODO!")
+        raise NotImplementedError("TODO!")  # noqa: EM101
 
     def interpolated(self, affine: u.Quantity) -> InterpolatedWidths:
         """Interpolate the widths.
@@ -118,7 +122,8 @@ class Widths(PhysicalTypeKeyMutableMapping[W1], NPArrayOverloadMixin, ToFormatOv
             The interpolated widths.
         """
         if len(self) < 2:
-            raise ValueError("cannot interpolate; too short.")
+            msg = "cannot interpolate; too short."
+            raise ValueError(msg)
         # LOCAL
         from trackstream.track.width.interpolated import InterpolatedWidths
 
@@ -129,8 +134,7 @@ class Widths(PhysicalTypeKeyMutableMapping[W1], NPArrayOverloadMixin, ToFormatOv
 
     @staticmethod
     def _get_key(key: str | u.PhysicalType) -> u.PhysicalType:
-        k = key if isinstance(key, u.PhysicalType) else cast("u.PhysicalType", u.get_physical_type(key))
-        return k
+        return key if isinstance(key, u.PhysicalType) else cast("u.PhysicalType", u.get_physical_type(key))
 
     @__getitem__.register(str)
     @__getitem__.register(u.PhysicalType)
@@ -164,7 +168,7 @@ class Widths(PhysicalTypeKeyMutableMapping[W1], NPArrayOverloadMixin, ToFormatOv
         for wcls, k in BASEWIDTH_KIND.items():
             try:
                 w = wcls.from_format(data)
-            except Exception:
+            except (NotImplementedError, ValueError):
                 continue
             if k in ws and len(fields(ws[k])) > len(fields(w)):
                 continue
@@ -183,7 +187,7 @@ class Widths(PhysicalTypeKeyMutableMapping[W1], NPArrayOverloadMixin, ToFormatOv
             if w is None:
                 try:
                     w = wcls.from_format(data)
-                except Exception:
+                except (NotImplementedError, ValueError):
                     continue
             # skip if there's a better match
             if k in ws and len(fields(ws[k])) > len(fields(w)):
@@ -219,7 +223,8 @@ class Widths(PhysicalTypeKeyMutableMapping[W1], NPArrayOverloadMixin, ToFormatOv
         return self.__class__({k: v[key] for k, v in self.items()})
 
     @singledispatchmethod
-    def __lt__(self, other: object) -> Any:  # https://github.com/python/mypy/issues/11727
+    def __lt__(self, other: object) -> Any:  # noqa: ARG002
+        # see https://github.com/python/mypy/issues/11727 for why returns Any
         return NotImplemented
 
     @__setitem__.register(Mapping)
@@ -232,7 +237,7 @@ class Widths(PhysicalTypeKeyMutableMapping[W1], NPArrayOverloadMixin, ToFormatOv
             raise ValueError
 
         # Delegate to contained Width
-        for k in self.keys():
+        for k in self:
             self[k][key[k]] = value[k]
 
     def __deepcopy__(self, memo: dict[Any, Any]) -> Widths:
@@ -243,15 +248,14 @@ class Widths(PhysicalTypeKeyMutableMapping[W1], NPArrayOverloadMixin, ToFormatOv
 
 
 @FMT_OVERLOADS.implements(to_format=np.ndarray, from_format=Widths)
-def _to_format_ndarray(cls, data, *args):
+def _to_format_ndarray(cls: type[Widths], data: Widths, *args: Any) -> np.ndarray:  # noqa: ARG001
     return np.array(data, *args)
 
 
 @FMT_OVERLOADS.implements(to_format=u.Quantity, from_format=Widths)
-def _to_format_quantity(cls, data, *args):
+def _to_format_quantity(cls: type[Widths], data: Widths, *args: Any) -> u.Quantity:  # noqa: ARG001
     unit = u.StructuredUnit(tuple(v.units for v in data.values()))
-    out = cls(np.array(data), unit=unit)
-    return out
+    return cls(np.array(data), unit=unit)
 
 
 @Widths.__lt__.register(Widths)

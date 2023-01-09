@@ -73,7 +73,7 @@ class BaseWidth(WidthBase, metaclass=ABCMeta):
 
     def __init_subclass__(cls) -> None:
         if inspect.isabstract(cls):  # skip ABCs
-            return None
+            return
 
         # Register class.
         if cls.corresponding_representation_type is not None:
@@ -88,13 +88,13 @@ class BaseWidth(WidthBase, metaclass=ABCMeta):
     @abstractmethod
     def corresponding_representation_type(cls) -> None | type[coords.BaseRepresentationOrDifferential]:
         """Representation type corresponding to the width type."""
-        return None
+        return
 
     @classproperty
     @abstractmethod
     def dimensions(cls) -> u.PhysicalType | None:
         """Physical type of the width (or `None`)."""
-        return None
+        return
 
     # TODO! make a classproperty. But problematic with ABCMeta
     @property
@@ -125,7 +125,8 @@ class BaseWidth(WidthBase, metaclass=ABCMeta):
             Same width instance, interpolated by the affine parameter.
         """
         if len(self) < 2:
-            raise ValueError("cannot interpolate; too short.")
+            msg = "cannot interpolate; too short."
+            raise ValueError(msg)
         # LOCAL
         from trackstream.track.width.interpolated import InterpolatedWidth
 
@@ -155,7 +156,8 @@ class BaseWidth(WidthBase, metaclass=ABCMeta):
     # Magic Methods
 
     @singledispatchmethod
-    def __lt__(self, other: object) -> Any:  # https://github.com/python/mypy/issues/11727
+    def __lt__(self, other: object) -> Any:  # noqa: ARG002
+        # see https://github.com/python/mypy/issues/11727 for returning Any
         return NotImplemented
 
     @singledispatchmethod
@@ -163,8 +165,10 @@ class BaseWidth(WidthBase, metaclass=ABCMeta):
         return replace(self, **{f.name: getattr(self, f.name)[key] for f in fields(self)})
 
     @singledispatchmethod
-    def __setitem__(self, key: object, value: Any) -> Any:  # https://github.com/python/mypy/issues/11727
-        raise NotImplementedError("not dispatched")
+    def __setitem__(self, key: object, value: Any) -> Any:  # noqa: ARG002
+        # see https://github.com/python/mypy/issues/11727 for returning Any
+        msg = "not dispatched"
+        raise NotImplementedError(msg)
 
     def __deepcopy__(self: W1, memo: dict[Any, Any]) -> W1:
         return type(self)(**{f.name: pycopy.deepcopy(getattr(self, f.name), memo=memo) for f in fields(self)})
@@ -174,7 +178,7 @@ class BaseWidth(WidthBase, metaclass=ABCMeta):
 
     @singledispatchmethod
     @classmethod
-    def from_format(cls, data: object):
+    def from_format(cls: type[Self], data: object) -> Self:
         """Construct this width instance from data of given type."""
         return super().from_format(data)
 
@@ -251,7 +255,7 @@ class ConfigSpaceWidth(BaseWidth, metaclass=ABCMeta):
     @abstractmethod
     def corresponding_representation_type(cls) -> None | type[coords.BaseRepresentation]:
         """Representation type corresponding to the width type."""
-        return None
+        return
 
     @property
     @abstractmethod
@@ -276,7 +280,7 @@ class KinematicSpaceWidth(BaseWidth):
     @classproperty
     def corresponding_representation_type(cls) -> None | type[coords.BaseDifferential]:
         """Representation type corresponding to the width type."""
-        return None
+        return
 
     @property
     @abstractmethod
@@ -289,12 +293,11 @@ class KinematicSpaceWidth(BaseWidth):
 
 
 @FMT_OVERLOADS.implements(to_format=np.ndarray, from_format=BaseWidth)
-def _to_format_ndarray(cls, data, *args):
+def _to_format_ndarray(cls: type[BaseWidth], data: BaseWidth, *args: Any) -> BaseWidth:  # noqa: ARG001
     return np.array(data, *args)
 
 
 @FMT_OVERLOADS.implements(to_format=u.Quantity, from_format=BaseWidth)
-def _to_format_quantity(cls, data, *args):
+def _to_format_quantity(cls: type[BaseWidth], data: BaseWidth, *args: Any) -> BaseWidth:
     unit = u.StructuredUnit(tuple(getattr(data, f.name).unit for f in fields(data)))
-    out = cls(np.array(data, *args), unit=unit)
-    return out
+    return cls(np.array(data, *args), unit=unit)

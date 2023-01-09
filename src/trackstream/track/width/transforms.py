@@ -36,17 +36,17 @@ BW = TypeVar("BW", bound="BaseWidth")
 
 @singledispatch
 def represent_as(
-    w1: object, w2type: type[W2], point: BaseRepresentation
+    w1: object, w2type: type[W2], point: BaseRepresentation  # noqa: ARG001
 ) -> Any:  # https://github.com/python/mypy/issues/11727
     """Represent as a new width type."""
-    raise NotImplementedError("not dispatched")
+    msg = "not dispatched"
+    raise NotImplementedError(msg)
 
 
 @represent_as.register(BaseWidth)
 def _represent_as_plainwidth(w1: BaseWidth, w2type: type[W2], point: BaseRepresentation) -> W2:
     func = WIDTH_TRANSFORMATIONS[(w1.__class__, w2type)]
-    w2 = func(w1, point)
-    return w2
+    return func(w1, point)
 
 
 @represent_as.register(InterpolatedWidth)
@@ -66,7 +66,7 @@ WIDTH_TRANSFORMATIONS: dict[tuple[type, type], Callable[[Any, BaseRepresentation
 class Transformer(Protocol[W1, W2]):
     """Width transformation callable."""
 
-    def __call__(self, cw: W1, point: BaseRepresentation) -> W2:
+    def __call__(self, cw: W1, point: BaseRepresentation) -> W2:  # noqa: ARG002
         """Transform a width."""
         ...
 

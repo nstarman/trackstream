@@ -42,7 +42,7 @@ class _NoOpPBar:
         pass
 
 
-def get_progress_bar(display: bool, total: int) -> _NoOpPBar | tqdm.tqdm:
+def get_progress_bar(*, display: bool, total: int) -> _NoOpPBar | tqdm.tqdm:
     """Get a progress bar.
 
     If :mod:`tqdm` is not installed, this will return a no-op.

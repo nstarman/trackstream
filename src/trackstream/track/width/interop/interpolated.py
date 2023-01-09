@@ -28,18 +28,18 @@ T = TypeVar("T")
 
 
 @WB_FUNCS.implements(np.convolve, dispatch_on=InterpolatedWidth, types=(InterpolatedWidth, np.ndarray))
-def convolve(a: T, v: np.ndarray, mode: Literal["valid", "full", "same"] = "full") -> T:
+def convolve(a: T, v: np.ndarray, mode: Literal["valid", "full", "same"] = "full") -> T:  # noqa: ARG001
     """Returns the discrete, linear convolution of an interpolated width."""
     raise ValueError
 
 
 @WB_FUNCS.implements(np.concatenate, dispatch_on=InterpolatedWidth, types=InterpolatedWidth)
 def concatenate(
-    seqwb: Sequence[T],
-    axis: int = 0,
-    out: T | None = None,
-    dtype: np.dtype | None = None,
-    casting: Literal["no", "equiv", "safe", "same_kind", "unsafe"] = "same_kind",
+    seqwb: Sequence[T],  # noqa: ARG001
+    axis: int = 0,  # noqa: ARG001
+    out: T | None = None,  # noqa: ARG001
+    dtype: np.dtype | None = None,  # noqa: ARG001
+    casting: Literal["no", "equiv", "safe", "same_kind", "unsafe"] = "same_kind",  # noqa: ARG001
 ) -> T:
     """Join a sequence of widths along an existing axis.
 

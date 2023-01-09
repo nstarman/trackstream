@@ -44,20 +44,18 @@ class WidthBase(NPArrayOverloadMixin, ToFormatOverloadMixin):
     NP_OVERLOADS: ClassVar[NumPyOverloader] = WB_FUNCS
     FMT_OVERLOADS: ClassVar[ToFormatOverloader] = FMT_OVERLOADS
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         qlen = None
         for f in fields(self):
-            # t, d = _get_q_and_d(f.type)
             # if not inspect.isclass(t) and not issubclass(t, u.Quantity):
-            #     continue
 
             q = getattr(self, f.name)
             qlen = np.shape(q) if qlen is None else qlen
 
             # if q.unit.physical_type != d:
-            #     raise u.UnitsError(f"{f.name!r} must have dimensions of {d!r}")
             if np.shape(q) != qlen:
-                raise ValueError(f"{f.name!r} must have length {qlen}")
+                msg = f"{f.name!r} must have length {qlen}"
+                raise ValueError(msg)
 
     # ===============================================================
 
@@ -72,9 +70,11 @@ class WidthBase(NPArrayOverloadMixin, ToFormatOverloadMixin):
 
     @singledispatchmethod
     @classmethod
-    def from_format(cls, data: object) -> Any:  # https://github.com/python/mypy/issues/11727
+    def from_format(cls, data: object) -> Any:  # noqa: ARG003
         """Construct this width instance from data of given type."""
-        raise NotImplementedError("not dispatched")
+        # see https://github.com/python/mypy/issues/11727 for return Any
+        msg = "not dispatched"
+        raise NotImplementedError(msg)
 
     @from_format.register(Mapping)
     @classmethod
@@ -85,7 +85,7 @@ class WidthBase(NPArrayOverloadMixin, ToFormatOverloadMixin):
     # ===============================================================
     # Dunder methods
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(getattr(self, fields(self)[0].name))
 
     @singledispatchmethod

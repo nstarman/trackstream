@@ -63,7 +63,8 @@ class Attribute(Generic[T]):
             else:
                 obj = maybeobj
 
-        return obj
+        return obj  # noqa: RET504
 
     def __set__(self, _: str, __: Any) -> NoReturn:
-        raise AttributeError("can't set attribute")
+        msg = "can't set attribute"
+        raise AttributeError(msg)

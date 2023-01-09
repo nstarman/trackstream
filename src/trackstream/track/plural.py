@@ -95,7 +95,7 @@ class StreamTrack(StreamArmTrack[Stream], StreamArmsTrackBase[Stream]):
     # ---------------------------------------------------------------
 
     @classmethod
-    def from_stream(cls, stream: Stream, *, name: str, meta: dict | None = None):
+    def from_stream(cls, stream: Stream, *, name: str, meta: dict | None = None) -> StreamTrack:
         """Track from a `trackstream.stream.Stream`."""
         # Get StreamArmTrack from each stream arm.
         tracks = {k: arm.track for k, arm in stream.items()}
@@ -121,5 +121,6 @@ class StreamTrack(StreamArmTrack[Stream], StreamArmsTrackBase[Stream]):
         """The `~trackstream.Stream`, or `None` if the weak reference is broken."""
         strm = self._stream_ref()
         if strm is None:
-            raise AttributeError("the reference to the stream is broken")
+            msg = "the reference to the stream is broken"
+            raise AttributeError(msg)
         return strm

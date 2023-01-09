@@ -39,7 +39,7 @@ class StreamPlotDescriptor(PlotCollectionBase["StreamArmsBase"]):
     # todo move to StreamPlotCollection (DNE)
     def origin(
         self,
-        origin: CoordinateType,
+        origin: CoordinateType,  # noqa: ARG002
         /,
         frame: FrameLikeType | None = None,
         kind: DKindT = "positions",

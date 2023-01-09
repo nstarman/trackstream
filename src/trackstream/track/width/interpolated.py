@@ -109,9 +109,7 @@ class InterpolatedWidth(WidthBase, Generic[W1]):
         afn = self.affine if affine is None else Quantity(np.atleast_1d(affine), copy=False)
 
         ws = {k: v(afn) for k, v in self._interps.items()}
-        width = replace(self.width, **ws)
-
-        return width
+        return replace(self.width, **ws)
 
     def represent_as(self, width_type: type[W1], point: BaseRepresentation) -> InterpolatedWidth[W1]:
         """Transform the width to another representation type.
@@ -138,15 +136,17 @@ class InterpolatedWidth(WidthBase, Generic[W1]):
 
     @singledispatchmethod
     @classmethod
-    def from_format(cls, data: object, affine: Quantity | None) -> Any:  # https://github.com/python/mypy/issues/11727
+    def from_format(cls, _: object, __: Quantity | None) -> Any:  # https://github.com/python/mypy/issues/11727
         """Construct this width instance from data of given type."""
-        raise NotImplementedError("not dispatched")
+        msg = "not dispatched"
+        raise NotImplementedError(msg)
 
     @from_format.register(WidthBase)
     @classmethod
     def _from_format_self(cls, data: WidthBase, affine: Quantity | None) -> InterpolatedWidth:
         if not isinstance(data, cls):
-            raise NotImplementedError("not dispatched")
+            msg = "not dispatched"
+            raise NotImplementedError(msg)
         elif affine is not None and not np.array_equal(data.affine, affine):
             raise ValueError
 
@@ -175,7 +175,7 @@ class InterpolatedWidth(WidthBase, Generic[W1]):
     def __getattr__(self, key: str) -> Any:
         if key in self._interps:
             return self._interps[key]
-        return super().__getattr__(key)  # type: ignore
+        return super().__getattr__(key)
 
     def __dir__(self) -> Iterable[str]:
         return sorted(list(super().__dir__()) + list(self._interps.keys()))
@@ -202,21 +202,17 @@ class InterpolatedWidth(WidthBase, Generic[W1]):
             return replace(self, width=self(afn), affine=afn)
 
         elif all(isq[:2]) and s is None:
-            # ii = np.abs(self.affine - i).argmin()
-            # ff = np.abs(self.affine - f).argmin()
-
-            raise NotImplementedError("TODO!")
+            msg = "TODO!"
+            raise NotImplementedError(msg)
 
         else:
-            raise ValueError("invalid slice")
+            msg = "invalid slice"
+            raise ValueError(msg)
 
     # ===============================================================
     # Interoperability
 
     # def __array__(self, dtype: np.dtype | None = None) -> np.ndarray:
-    #     dt = np.dtype([("affine", self.affine.dtype)] + [(f.name, dtype) for f in fields(self.width)])
-    #     x = np.c_[(self.affine.value,) + tuple(getattr(self.width, f.name).value for f in fields(self.width))]
-    #     return rfn.unstructured_to_structured(x, dtype=dt)
 
 
 #####################################################################
@@ -241,13 +237,10 @@ class InterpolatedWidths(Widths[InterpolatedWidth[W1]]):
         """The uninterpolated widths."""
         return Widths({k: w.uninterpolated for k, w in self.items()})
 
-    def represent_as(self, width_type: type[W1], point: BaseRepresentation) -> W1:
+    def represent_as(self, _: type[W1], __: BaseRepresentation) -> W1:
         """Transform the width to another representation type."""
-        # # LOCAL
-        # from trackstream.track.width.transforms import represent_as
-
-        # return represent_as(self, width_type, point)
-        raise NotImplementedError("TODO!")
+        msg = "TODO!"
+        raise NotImplementedError(msg)
 
     def __call__(self, affine: Quantity | None = None) -> Widths:
         """Evaluate the widths at the given affine parameter."""
@@ -267,7 +260,7 @@ class InterpolatedWidths(Widths[InterpolatedWidth[W1]]):
         for wcls, k in BASEWIDTH_KIND.items():
             try:
                 w = InterpolatedWidth.from_format(wcls.from_format(data), affine=affine)
-            except Exception:
+            except (NotImplementedError, ValueError):
                 continue
             if k in ws and len(fields(ws[k])) > len(fields(w)):
                 continue
@@ -292,7 +285,8 @@ class InterpolatedWidths(Widths[InterpolatedWidth[W1]]):
     def _from_format_widths(cls, data: Widths, affine: Quantity) -> InterpolatedWidths:
         if isinstance(data, cls):  # more specialized
             if not np.array_equal(data.affine, affine):
-                raise ValueError("affine does not match data")
+                msg = "affine does not match data"
+                raise ValueError(msg)
 
             return data
 
@@ -303,7 +297,8 @@ class InterpolatedWidths(Widths[InterpolatedWidth[W1]]):
 
     @singledispatchmethod
     def __getitem__(self, key: object) -> Any:  # https://github.com/python/mypy/issues/11727
-        raise NotImplementedError(f"not dispatched on {key}")
+        msg = f"not dispatched on {key}"
+        raise NotImplementedError(msg)
 
     @__getitem__.register(u.PhysicalType)
     @__getitem__.register(str)
@@ -315,7 +310,7 @@ class InterpolatedWidths(Widths[InterpolatedWidth[W1]]):
     @__getitem__.register(bool)
     @__getitem__.register(slice)
     @__getitem__.register(int)
-    def _getitem_valid(self, key: Any) -> InterpolatedWidths[W1]:
+    def _getitem_valid(self, key: int | slice | bool | np.integer | np.ndarray) -> InterpolatedWidths[W1]:
         return self.__class__({k: v[key] for k, v in self.items()}, affine=cast("Quantity", self.affine[key]))
 
     # ===============================================================

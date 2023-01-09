@@ -50,14 +50,14 @@ class FrameInfo(Generic[T]):
 
     REGISTRY: ClassVar[MutableMapping[type, Any]] = {}
 
-    def __set_name__(self, enclosing_cls: type[T], name: str) -> None:
+    def __set_name__(self, enclosing_cls: type[T], _: str) -> None:
         self.enclosing_cls: type[T]
         object.__setattr__(self, "enclosing_cls", enclosing_cls)
 
         # Register
         self.REGISTRY[self.enclosing_cls] = self
 
-    def components(self, kinematics: bool) -> tuple[str, ...]:
+    def components(self, *, kinematics: bool) -> tuple[str, ...]:
         """Components.
 
         Parameters
@@ -114,8 +114,7 @@ def _c2v(obj: HasFrameAndInfo, c: SkyCoord, /) -> ndarray:
     ndarray
     """
     sc = deep_transform_to(c, obj.frame, obj.info.representation_type, obj.info.differential_type)
-    v = rfn.structured_to_unstructured(f2q(sc).to_value(obj.info.units))[:, : obj.nfeature]
-    return v
+    return rfn.structured_to_unstructured(f2q(sc).to_value(obj.info.units))[:, : obj.nfeature]
 
 
 def _v2c(obj: HasFrameAndInfo, arr: ndarray, /) -> BaseCoordinateFrame:
@@ -141,10 +140,9 @@ def _v2c(obj: HasFrameAndInfo, arr: ndarray, /) -> BaseCoordinateFrame:
     else:
         r = obj.info.representation_type(**q)
 
-    crd = obj.frame.realize_frame(
+    return obj.frame.realize_frame(
         r, representation_type=obj.info.representation_type, differential_type=obj.info.differential_type
     )
-    return crd
 
 
 ##############################################################################
@@ -211,14 +209,11 @@ def offset_by(lon: ndarray, lat: ndarray, posang: ndarray, distance: ndarray) ->
 
     # cosine rule: Know two sides: a,c and included angle: B; get unknown side b
     cos_b = cos_c * cos_a + sin_c * sin_a * cos_B
-    # sin_b = sqrt(1 - cos_b**2)
     # sine rule and cosine rule for A (using both lets arctan2 pick quadrant).
     # multiplying both sin_A and cos_A by x=sin_b * sin_c prevents /0 errors
     # at poles.  Correct for the x=0 multiplication a few lines down.
-    # sin_A/sin_a == sin_B/sin_b    # Sine rule
     xsin_A = sin_a * sin_B * sin_c
-    # cos_a == cos_b * cos_c + sin_b * sin_c * cos_A  # cosine rule
-    xcos_A = cos_a - cos_b * cos_c  # type: ignore
+    xcos_A = cos_a - cos_b * cos_c
 
     A = arctan2(xsin_A, xcos_A)  # radian
     # Treat the poles as if they are infinitesimally far from pole but at given lon

@@ -124,8 +124,6 @@ def make_timesteps(
 
     # Start with null.
     dts = Times({})
-    #     {LENGTH: u.Quantity(np.nan, u.dimensionless_unscaled), SPEED: u.Quantity(np.nan, u.dimensionless_unscaled)}
-    # )
 
     # Positions
     # point-to-point distance
@@ -135,14 +133,13 @@ def make_timesteps(
 
     if not kf.kinematics:
         # Make array the same length to avoid padding issues.
-        # dts["speed"] = (dts["length"].value * np.nan) << u.dimensionless_unscaled
         pass
     else:
         r0: coords.BaseRepresentation
         r1: coords.BaseRepresentation
 
-        r0 = data.data[:-1]  # type: ignore
-        r1 = data.data[1:]  # type: ignore
+        r0 = data.data[:-1]
+        r1 = data.data[1:]
 
         r0cart = r0.without_differentials().to_cartesian()
         r1cart = r1.without_differentials().to_cartesian()

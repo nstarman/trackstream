@@ -53,7 +53,7 @@ class OutlierDetectorBase(metaclass=ABCMeta):
     # cached signature of the ``.predict()`` method for faster signature binding
     # in ``fit_predict``.
 
-    def __init_subclass__(cls, register: bool = True) -> None:
+    def __init_subclass__(cls, *, register: bool = True) -> None:
         """Initialize subclass.
 
         Parameters
@@ -76,9 +76,8 @@ class OutlierDetectorBase(metaclass=ABCMeta):
         if register:
             qn = cls.__qualname__
             if qn in OUTLIER_DETECTOR_CLASSES:
-                raise TypeError(
-                    f"{qn} is already registered; to redefine, first remove from 'OUTLIER_DETECTOR_CLASSES'."
-                )
+                msg = f"{qn} is already registered; to redefine, first remove from 'OUTLIER_DETECTOR_CLASSES'."
+                raise TypeError(msg)
             OUTLIER_DETECTOR_CLASSES[qn] = cls
 
         # cache the signature of ``.predict()`` for use in ``fit_predict``.

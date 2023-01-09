@@ -31,6 +31,7 @@ __all__ = ["fit_frame_multipanel", "full_multipanel"]
 
 def fit_frame_multipanel(
     stream: StreamBase,
+    *,
     origin: bool = True,
     axes: ndarray | None = None,
     format_ax: bool = True,

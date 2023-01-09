@@ -35,8 +35,8 @@ from trackstream.utils.coord_utils import deep_transform_to, parse_framelike
 
 
 @pytest.mark.skip("Modified from astropy. Don't really need to test.")
-@pytest.mark.parametrize("lon, lat, rotation", [(1, 2, 100), (10, -12, Quantity(45, u.deg))])
-def test_reference_to_skyoffset_matrix(lon, lat, rotation):
+@pytest.mark.parametrize(("lon", "lat", "rotation"), [(1, 2, 100), (10, -12, Quantity(45, u.deg))])
+def test_reference_to_skyoffset_matrix(lon, lat, rotation):  # noqa: ARG001
     """Test :func:`trackstream.utils.coord_utils.reference_to_skyoffset_matrix`."""
     assert True
 

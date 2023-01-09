@@ -109,7 +109,7 @@ def make_error(stream: StreamArm, kf: FirstOrderNewtonianKalmanFilter, default: 
     crds.differential_type = kf.info.differential_type
     svs = f2q(crds, flatten=True)
 
-    for rn, fn in zip(kf.info.components(True), svs.dtype.names):
+    for rn, fn in zip(kf.info.components(kinematics=True), svs.dtype.names, strict=True):
         unit = flat_units[rn]
 
         if (fne := f"{fn}_err") in stream.data.columns:

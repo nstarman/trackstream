@@ -25,7 +25,7 @@ NDT = TypeVar("NDT", bound=ndarray)
 ##############################################################################
 
 
-def _respace_bins_from_left(bins: NDT, maxsep: ndarray, onsky: bool, eps: float | np.floating) -> NDT:
+def _respace_bins_from_left(bins: NDT, maxsep: ndarray, eps: float | np.floating, *, onsky: bool) -> NDT:
     """Respace bins to have a maximum separation.
 
     Bins are respaced from the left-most bin up to the penultimate bin. The
@@ -68,7 +68,7 @@ def _respace_bins_from_left(bins: NDT, maxsep: ndarray, onsky: bool, eps: float 
     return bins
 
 
-def _respace_bins(bins: NDT, maxsep: ndarray, onsky: bool, eps: float | np.floating) -> NDT:
+def _respace_bins(bins: NDT, maxsep: ndarray, eps: float | np.floating, *, onsky: bool) -> NDT:
     """Respace bins to have a maximum separation.
 
     Parameters
@@ -157,7 +157,6 @@ def _get_info_for_projection(
     # square distance from one point to next  (nL-1, nF)
     liip1 = np.sum(np.square(viip1), axis=1)
 
-    # data - point_i  (N, nL-1, nF)
     dmi = np.subtract(data[:, None, :], p1[None, :, :])
 
     # The line extending the segment is parameterized as p1 + t (p2 - p1).
@@ -180,8 +179,8 @@ def _get_info_for_projection(
 
     # Detect whether it is in the segment. Nodes are considered in the segment. The end segments are allowed to extend.
     not_in_projection = np.zeros(all_points.shape[:-1], dtype=bool)
-    not_in_projection[:, 1 + 2 : -2 : 2] = np.logical_or(tM[:, 1:-1] <= 0, 1 <= tM[:, 1:-1])
-    not_in_projection[:, 1] = 1 <= tM[:, 1]  # end segs are 1/2 open
+    not_in_projection[:, 1 + 2 : -2 : 2] = np.logical_or(tM[:, 1:-1] <= 0, tM[:, 1:-1] >= 1)
+    not_in_projection[:, 1] = tM[:, 1] >= 1  # end segs are 1/2 open
     not_in_projection[:, -2] = tM[:, -1] <= 0
 
     # make distances for not-in-segment infinity
@@ -283,7 +282,6 @@ def project_data_on_som(prototypes: ndarray, data: ndarray) -> tuple[ndarray, nd
     """
     lattice_p2p_distance, segment_projection, all_points, distances = _get_info_for_projection(data, prototypes)
 
-    # projdata = _get_projected_point(som, arr, all_points, distances)
     ind_best_distance = np.argmin(distances, axis=1)
     projpnts = all_points[np.arange(len(distances)), ind_best_distance, :]
 

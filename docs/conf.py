@@ -46,7 +46,7 @@ from sphinx_astropy.conf.v1 import (
 path = pathlib.Path(__file__).parent.parent / "pyproject.toml"
 with path.open() as f:
     toml = tomlkit.load(f)
-setup_cfg = dict(toml["project"])  # type: ignore
+setup_cfg = dict(toml["project"])
 
 # -- General configuration ----------------------------------------------------
 
@@ -144,10 +144,10 @@ todo_include_todos = True
 
 plot_rcparams = {}
 plot_rcparams["figure.figsize"] = (6, 6)
-plot_rcparams["savefig.facecolor"] = "none"  # type: ignore
-plot_rcparams["savefig.bbox"] = "tight"  # type: ignore
-plot_rcparams["axes.labelsize"] = "large"  # type: ignore
-plot_rcparams["figure.subplot.hspace"] = 0.5  # type: ignore
+plot_rcparams["savefig.facecolor"] = "none"
+plot_rcparams["savefig.bbox"] = "tight"
+plot_rcparams["axes.labelsize"] = "large"
+plot_rcparams["figure.subplot.hspace"] = 0.5
 
 plot_apply_rcparams = True
 plot_include_source = False
@@ -162,8 +162,8 @@ bibtex_bibfiles = "refs.bib"
 
 # This does not *have* to match the package name, but typically does
 project = str(setup_cfg["name"])
-author = ", ".join(d["name"] for d in setup_cfg["authors"])  # type: ignore
-copyright = f"{datetime.datetime.now().year}, {author}"  # noqa: A001
+author = ", ".join(d["name"] for d in setup_cfg["authors"])
+copyright = f"{datetime.datetime.now().year}, {author}"  # noqa: A001, DTZ005
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -194,12 +194,10 @@ modindex_common_prefix = [f"{project}."]
 
 # Add any paths that contain custom themes here, relative to this directory.
 # To use a different custom theme, add the directory containing the theme.
-# html_theme_path = []
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes. To override the custom theme, set this to the
 # name of a builtin theme or the name of a custom theme in html_theme_path.
-# html_theme = None
 
 
 html_theme_options = {
@@ -210,20 +208,16 @@ html_theme_options = {
 
 
 # Custom sidebar templates, maps document names to template names.
-# html_sidebars = {}
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-# html_logo = ''
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
-# html_favicon = ''
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
-# html_last_updated_fmt = ''
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
@@ -233,8 +227,6 @@ html_title = f"{project} v{release}"
 htmlhelp_basename = project + "doc"
 
 # custom css
-# html_static_path = ["_static"]
-# html_style = "trackstream.css"
 
 
 # -- Options for LaTeX output -------------------------------------------------
@@ -253,12 +245,10 @@ man_pages = [("index", project.lower(), project + " Documentation", [author], 1)
 
 # -- Resolving issue number to links in changelog -----------------------------
 
-github_issues_url = setup_cfg["urls"]["repository"] + "/issues/"  # type: ignore
+github_issues_url = setup_cfg["urls"]["repository"] + "/issues/"
 
 # -- Turn on nitpicky mode for sphinx (to warn about references not found) ----
 #
-# nitpicky = True
-# nitpick_ignore = []
 #
 # Some warnings are impossible to suppress, and you can list specific
 # references that should be ignored in a nitpick-exceptions file which should
@@ -276,7 +266,3 @@ github_issues_url = setup_cfg["urls"]["repository"] + "/issues/"  # type: ignore
 #
 # for line in open('nitpick-exceptions'):
 #     if line.strip() == "" or line.startswith("#"):
-#         continue
-#     dtype, target = line.split(None, 1)
-#     target = target.strip()
-#     nitpick_ignore.append((dtype, six.u(target)))

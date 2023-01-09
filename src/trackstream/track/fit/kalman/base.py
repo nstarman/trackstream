@@ -117,19 +117,24 @@ class FONKFBase:
 
     def _x0_validate(self, _, value: np.ndarray) -> None:
         if len(value.shape) != 1:
-            raise ValueError("x0 must be 1D")
+            msg = "x0 must be 1D"
+            raise ValueError(msg)
         elif len(value) % 2 != 0:
-            raise ValueError("x0 must have an even number of dimensions.")
+            msg = "x0 must have an even number of dimensions."
+            raise ValueError(msg)
 
         nd = self.nfeature
         if nd < 2 or nd > 6:
-            raise ValueError(f"x0 must have 2 <= x0 <= 6 components, not {nd}")
+            msg = f"x0 must have 2 <= x0 <= 6 components, not {nd}"
+            raise ValueError(msg)
 
     def _P0_validate(self, _, value: np.ndarray) -> None:
         if len(value.shape) != 2:
-            raise ValueError("P0 must be 2D")
+            msg = "P0 must be 2D"
+            raise ValueError(msg)
         if not np.all(np.array(value.shape) % 2 == 0):
-            raise ValueError("P0 must have an even number of dimensions.")
+            msg = "P0 must have an even number of dimensions."
+            raise ValueError(msg)
 
     # ===============================================================
 
@@ -137,10 +142,10 @@ class FONKFBase:
     @classmethod
     def from_format(
         cls,
-        arm: object,
+        arm: object,  # noqa: ARG003
         *,
-        kinematics: bool | None = None,
-        width0: None | Widths = None,
+        kinematics: bool | None = None,  # noqa: ARG003
+        width0: None | Widths = None,  # noqa: ARG003
     ) -> Any:  # https://github.com/python/mypy/issues/11727
         """Create a Kalman Filter from an object.
 
@@ -158,11 +163,12 @@ class FONKFBase:
         `~trackstream.track.fit.kalman.base.FONKFBase`
             The Kalman Filter.
         """
-        raise NotImplementedError("not dispatched")
+        msg = "not dispatched"
+        raise NotImplementedError(msg)
 
     @from_format.register(StreamArm)
     @classmethod
-    def _from_format_streamarm(
+    def _from_format_streamarm(  # noqa: C901
         cls: type[Self],
         arm: StreamArm,
         *,
@@ -233,7 +239,7 @@ class FONKFBase:
 
         ws: list[np.ndarray] = []
         ps: list[np.ndarray] = []
-        for rn, fn in zip(info.components(kinematics), svs.dtype.names):
+        for rn, fn in zip(info.components(kinematics), svs.dtype.names, strict=True):
             # ^ relying on zip-shortest to cut off svs iter b/c that always
             # includes the kinematics.
             unit = flat_units[rn]
@@ -262,7 +268,6 @@ class FONKFBase:
             pn = rn0**2 + wn0**2
 
             # covariance block
-            # p = np.array([[pn, 0], [0, 10 * pn]])
             p = np.array([[pn, 0], [0, pn]])
 
             ps.append(p)
@@ -305,12 +310,7 @@ class FONKFBase:
             raise ValueError
 
         # # make single block of F matrix
-        # # [[position to position, position from velocity]
-        # #  [velocity from position, velocity to velocity]]
-        # f = np.array([[1.0, dt], [0, 1.0]])
         # # F block-diagonal array
-        # F: ndarray = block_diag(*([f] * self.nfeature))
-        # return F
         nd = self.nfeature
         F = np.zeros((len(dt), 2 * nd, 2 * nd))
         idx = np.arange(2 * nd, dtype=int)[::2]
@@ -521,13 +521,17 @@ class FONKFBase:
         # Get the time deltas from the time steps.
         # Checking the time steps are compatible with the data.
         if len(timesteps) != N:
-            raise ValueError(f"len(timesteps)={len(timesteps)} is not {N}")
+            msg = f"len(timesteps)={len(timesteps)} is not {N}"
+            raise ValueError(msg)
         elif len(widths) != N:
-            raise ValueError(f"len(widths)={len(widths)} is not {N}")
+            msg = f"len(widths)={len(widths)} is not {N}"
+            raise ValueError(msg)
         elif len(errors) != N:
-            raise ValueError(f"len(errors)={len(errors)} is not {N}")
+            msg = f"len(errors)={len(errors)} is not {N}"
+            raise ValueError(msg)
         elif np.any(timesteps < 0):
-            raise ValueError("timesteps must be >= 0")
+            msg = "timesteps must be >= 0"
+            raise ValueError(msg)
 
         # Widths
         Ws = np.zeros((N, self.nfeature))
@@ -540,7 +544,6 @@ class FONKFBase:
         idx = np.arange(self.nfeature)  # diagonal indices
         Rs = np.zeros((N, self.nfeature, self.nfeature))
         Rs[:, idx, idx] = errors**2  # assign to diagonal
-        # Rs[:, idx, idx] += Ws[:]  # add stream width to uncertainty
 
         # ------ IC (i-1) ------
 
@@ -557,8 +560,7 @@ class FONKFBase:
         # ------ run ------
         # iterate predict & update steps
         z: np.ndarray
-        for i, (z, R, F, Q) in enumerate(zip(data, Rs, Fs, Qs)):
-            # F_(i-1, i)
+        for i, (z, R, F, Q) in enumerate(zip(data, Rs, Fs, Qs, strict=True)):
             R[idx, idx] += Ws[i]  # add stream width to uncertainty
             # TODO! this is at the previous step! need to
             # do it during predict / update, not before

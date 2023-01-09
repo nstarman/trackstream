@@ -67,14 +67,13 @@ class Test_PlotDescriptorBase:
     def descriptor_cls(self):
         return PlotDescriptorBase
 
-    @pytest.fixture
+    @pytest.fixture()
     def fig(self):
-        return plt.Figure()  # type: ignore
+        return plt.Figure()
 
-    @pytest.fixture
+    @pytest.fixture()
     def axs(self, fig):
-        axs = fig.subplots(nrows=1, ncols=1)
-        return axs
+        return fig.subplots(nrows=1, ncols=1)
 
     # ===============================================================
     # Method Tests
@@ -87,7 +86,6 @@ class Test_PlotDescriptorBase:
 
     def test_init(self, descriptor_cls):
         """Test the descriptor initialization."""
-        # super().test_init(descriptor_cls)  # TODO
 
         # default_scatter_kwargs
         descriptor = descriptor_cls(default_scatter_kwargs={})
@@ -196,7 +194,6 @@ class Test_StreamPlotDescriptorBase(Test_PlotDescriptorBase):
         assert name.lower() == coords.frame.name
         assert c == coords.frame
 
-        # Frame == "stream"
         c, name = descriptor._to_frame(coords, frame="stream")
 
         assert name == "Stream"
@@ -204,7 +201,6 @@ class Test_StreamPlotDescriptorBase(Test_PlotDescriptorBase):
         assert c.representation_type == SphericalRepresentation
         assert c.differential_type == SphericalDifferential
 
-        # Frame == "ICRS"
         c, name = descriptor._to_frame(coords, frame="ICRS")
 
         assert name == "ICRS"

@@ -133,7 +133,8 @@ class ScipyKDTreeLOF(KDTreeLOFBase["KDTree"]):
             If `k` <= 1.
         """
         if k == 1:
-            raise ValueError("k must be > 1")
+            msg = "k must be > 1"
+            raise ValueError(msg)
 
         # Query for k nearest
         dx, idx_knn = self.tree.query(data, k=k, **query_kw)

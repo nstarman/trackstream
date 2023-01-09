@@ -77,14 +77,15 @@ def _add_method_to_cls(cls: type, attr: str | None) -> Callable[[Callable[..., A
     return decorator
 
 
+# see https://github.com/python/mypy/issues/11727 for return Any
 @singledispatch
 def fit_stream(
-    self: object,
-    rot0: u.Quantity[u.deg] | None = u.Quantity(0, u.deg),
+    self: object,  # noqa: ARG001
+    rot0: u.Quantity[u.deg] | None = u.Quantity(0, u.deg),  # noqa: ARG001
     *,
-    force: bool = False,
-    **kwargs: Any,
-) -> Any:  # https://github.com/python/mypy/issues/11727
+    force: bool = False,  # noqa: ARG001
+    **kwargs: Any,  # noqa: ARG001
+) -> Any:
     """Convenience method to fit a frame to a stream.
 
     The frame is an on-sky rotated frame. To prevent a frame from being fit, the
@@ -113,7 +114,8 @@ def fit_stream(
         If a system frame was given at the object's initialization and ``force``
         is not True.
     """
-    raise NotImplementedError("not dispatched")
+    msg = "not dispatched"
+    raise NotImplementedError(msg)
 
 
 @_add_method_to_cls(StreamArm, "fit_frame")
@@ -126,7 +128,8 @@ def _fit_stream_StreamArm(
     **kwargs: Any,
 ) -> StreamArm:
     if arm.frame is not None and not force:
-        raise TypeError("a system frame was given at initialization. Use ``force`` to re-fit.")
+        msg = "a system frame was given at initialization. Use ``force`` to re-fit."
+        raise TypeError(msg)
 
     # LOCAL
     from trackstream.frame.fit import fit_frame
@@ -158,7 +161,8 @@ def _fit_stream_StreamArmsBase(
     if not force:
         for n, f in arms.frame.items():
             if f is not None:
-                raise TypeError(f"a system frame was given for {n} at initialization. Use ``force`` to re-fit.")
+                msg = f"a system frame was given for {n} at initialization. Use ``force`` to re-fit."
+                raise TypeError(msg)
 
     # LOCAL
     from trackstream.frame.fit import fit_frame
@@ -174,9 +178,7 @@ def _fit_stream_StreamArmsBase(
         newarm.flags.set(**asdict(arm.flags))
         data[k] = newarm
 
-    newstream = type(arms)(data)
-
-    return newstream
+    return type(arms)(data)
 
 
 _fit_stream_StreamArmsBase.__doc__ = fit_stream.__doc__
@@ -206,7 +208,8 @@ def _fit_stream_Stream(
     **kwargs: Any,
 ) -> Stream:
     if stream.frame is not None and not force:
-        raise TypeError("a system frame was given at initialization. Use ``force`` to re-fit.")
+        msg = "a system frame was given at initialization. Use ``force`` to re-fit."
+        raise TypeError(msg)
 
     # LOCAL
     from trackstream.frame.fit import fit_frame

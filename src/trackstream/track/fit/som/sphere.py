@@ -111,7 +111,7 @@ class USphereSOM(SOM1DBase):
             # TODO! this is only for 2 pops, what if 3+?
             x0, x1, lesser = x[label == 0], x[label == 1], 0
             # determine if there's more than one group. There might be only 1.
-            groups = True if (len(x0) >= 1 and len(x1) >= 1) else False
+            groups = bool(len(x0) >= 1 and len(x1) >= 1)
             if groups and min(x1) < min(x0):  # rearrange to correct order
                 lesser = 1
                 x0, x1 = x1, x0
@@ -119,7 +119,6 @@ class USphereSOM(SOM1DBase):
                 idx = label == lesser
 
                 x[idx] = x[idx] + 2 * pi
-                # xq[idx] = xq[idx] + 2 * pi * u.rad  # x is a view
                 data[idx, 0] = data[idx, 0] + 2 * pi
 
         # Create equi-frequency bins
@@ -133,15 +132,16 @@ class USphereSOM(SOM1DBase):
         if maxsep is not None:
             # Check respacing is even possible
             if (abs(max(x) - min(x)) / nlattice) > maxsep:
-                raise ValueError(
+                msg = (
                     f"{nlattice} bins is not enough to cover [{min(x)}, {max(x)}] "
                     f"with a maximum bin separation of {maxsep}"
                 )
+                raise ValueError(msg)
 
             # Respace bins
             bins = _respace_bins(deepcopy(bins), maxsep, onsky=True, eps=2 * np.finfo(maxsep.dtype).eps)
 
-        res = binned_statistic(x, data.T, bins=bins, statistic="median")  # type: ignore
+        res = binned_statistic(x, data.T, bins=bins, statistic="median")
         prototypes: ndarray = res.statistic.T
 
         # When there is no data in a bin, it is set to NaN.
@@ -216,9 +216,8 @@ class USphereSOM(SOM1DBase):
         self.prototypes[:, :2] = np.c_[newlon, newlat]  # assign on view (works around frozen)
 
         # TODO! better treatment of on-sphere
-        # w_new = eta * neighborhood_function * (x-w)
         if ps.shape[1] > 2:  # kinematics
-            self.prototypes[:, 2:] += g[:, None] * (x[2:] - ps[:, 2:])  # type: ignore
+            self.prototypes[:, 2:] += g[:, None] * (x[2:] - ps[:, 2:])
 
     # ---------------------------------------------------------------
     # predicting structure

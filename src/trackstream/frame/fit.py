@@ -87,7 +87,7 @@ def reference_to_skyoffset_matrix(
 
 
 def residual(
-    v: tuple[float, float, float], data: NDArray[np.float64], scalar: bool = False
+    v: tuple[float, float, float], data: NDArray[np.float64], *, scalar: bool = False
 ) -> float | NDArray[np.float64]:
     r"""How close phi2, the rotated |Latitude| (e.g. dec), is to flat.
 
@@ -126,7 +126,6 @@ def residual(
     rot_xyz: Quantity = np.dot(rot_matrix, data).T
     _, phi2 = erfa_ufunc.c2s(rot_xyz)
 
-    # Residual = phi2 - 0
     res: NDArray[np.float64] = np.abs(phi2 - 0.0) / len(phi2)
 
     return np.sum(res) if scalar else res
@@ -148,7 +147,11 @@ class _FitFrameNeededInfo(TypedDict):
 
 @functools.singledispatch
 def fit_frame(
-    data: object, rot0: _Rot0, *, minimizer: str | Callable[..., Any] = _default_minimize, **minimizer_kwargs: Any
+    data: object,
+    rot0: _Rot0,  # noqa: ARG001
+    *,
+    minimizer: str | Callable[..., Any] = _default_minimize,  # noqa: ARG001
+    **minimizer_kwargs: Any,  # noqa: ARG001
 ) -> Any:
     """Fit a frame to a set of data.
 
@@ -168,7 +171,8 @@ def fit_frame(
     result : |FrameOptimizeResult|
         The result of the fit.
     """
-    raise NotImplementedError(f"data type {type(data)} has no registered dispatch")
+    msg = f"data type {type(data)} has no registered dispatch"
+    raise NotImplementedError(msg)
 
 
 @fit_frame.register(dict)
@@ -185,7 +189,7 @@ def _fit_frame_dict(
     # Represent that data in unitless on-unit-sphere Cartesian coordinates.
     # Routing through UnitSphericalRepresentation to strip units and be on unit sphere.
     usrep: coords.UnitSphericalRepresentation
-    usrep = info["data"].represent_as(coords.UnitSphericalRepresentation)  # type: ignore
+    usrep = info["data"].represent_as(coords.UnitSphericalRepresentation)
 
     crep = cast("coords.CartesianRepresentation", usrep.represent_as(coords.CartesianRepresentation))
     xyz: Quantity = crep.xyz
@@ -379,6 +383,7 @@ def run_minimizer(
     """
     hashed = hash(minimizer)
     if hashed not in MINIMIZER_DIPATCHER:
-        raise NotImplementedError(f"minimizer {minimizer} not dispatched")
+        msg = f"minimizer {minimizer} not dispatched"
+        raise NotImplementedError(msg)
 
     return MINIMIZER_DIPATCHER[hashed](data, x0, minimizer_kwargs)

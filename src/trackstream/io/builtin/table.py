@@ -28,7 +28,7 @@ __all__: list[str] = []
 # ===================================================================
 
 
-def stream_arm_from_table(
+def stream_arm_from_table(  # noqa: C901
     table: Table,
     /,
     data_err: QTable | None = None,
@@ -54,22 +54,24 @@ def stream_arm_from_table(
     if _cache is None:
         _cache = meta_cache
     else:
-        raise ValueError("conflicting caches")
+        msg = "conflicting caches"
+        raise ValueError(msg)
     cache: dict[str, Any] = {} if _cache is None else _cache
 
     # Name:
     meta_name = table_meta.pop("name", None)
     name = meta_name if name is None else name
 
-    # Frame (CoordinateFrame | None)
     meta_frame = table_meta.pop("frame", None)
     cache_frame = cache.get("frame")
     if frame is None:
         frame = cache_frame if meta_frame is None else meta_frame
     elif meta_frame is not None and frame != meta_frame:
-        raise ValueError("frame != one in table meta")
+        msg = "frame != one in table meta"
+        raise ValueError(msg)
     elif cache_frame is not None and frame != cache_frame:
-        raise ValueError("frame != one in table meta")
+        msg = "frame != one in table meta"
+        raise ValueError(msg)
     frame = parse_framelike(frame) if frame is not None else None
 
     # Origin (SkyCoord) can also be on table meta
@@ -77,13 +79,14 @@ def stream_arm_from_table(
     if origin is None:
         origin = meta_origin
     elif meta_origin is not None and origin != meta_origin:
-        raise ValueError("origin != one in table meta")
+        msg = "origin != one in table meta"
+        raise ValueError(msg)
     if origin is None:
-        raise ValueError("need arg origin or origin in table meta")
+        msg = "need arg origin or origin in table meta"
+        raise ValueError(msg)
     elif not isinstance(origin, SkyCoord):
         raise TypeError
 
-    # Data (Table)
     # TODO! offer different normalizers
     data: QTable
     data = StreamArmDataNormalizer(frame)(table, data_err)
@@ -92,17 +95,17 @@ def stream_arm_from_table(
     return stream
 
 
-def table_identify(origin: str, format: str | None, /, *args: Any, **kwargs: Any) -> bool:  # noqa: A002
+def table_identify(origin: str, format: str | None, /, *args: Any, **kwargs: Any) -> bool:  # noqa: A002, ARG001
     """Identify if object uses the Table format.
 
     Returns
     -------
     bool
     """
-    itis = False
+    itis: bool = False
     if origin == "read":
         itis = isinstance(args[1], Table) and (format in (None, "astropy.table"))
-    return itis
+    return itis  # noqa: RET504
 
 
 # ===================================================================

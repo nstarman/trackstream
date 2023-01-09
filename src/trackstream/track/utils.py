@@ -79,7 +79,8 @@ def covariance_ellipse(P: ndarray, *, nstd: int | ndarray = 1) -> tuple[Quantity
     wh = nstd * sqrt(s[..., :2])
 
     if any(wh[..., 1] > wh[..., 0]):
-        raise ValueError("width must be greater than height")
+        msg = "width must be greater than height"
+        raise ValueError(msg)
 
     return orientation, wh
 
@@ -95,8 +96,7 @@ class PhysicalTypeKeyMapping(Mapping[u.PhysicalType, V]):
 
     @staticmethod
     def _get_key(key: str | u.PhysicalType) -> u.PhysicalType:
-        k = key if isinstance(key, u.PhysicalType) else cast("u.PhysicalType", u.get_physical_type(key))
-        return k
+        return key if isinstance(key, u.PhysicalType) else cast("u.PhysicalType", u.get_physical_type(key))
 
     def __getitem__(self, key: str | u.PhysicalType, /) -> V:
         return self._mapping[self._get_key(key)]

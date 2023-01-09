@@ -40,26 +40,31 @@ def concatenate(
     axis: int = 0,
     out: T | None = None,
     dtype: np.dtype | None = None,
-    casting: Literal["no", "equiv", "safe", "same_kind", "unsafe"] = "same_kind",
+    casting: Literal["no", "equiv", "safe", "same_kind", "unsafe"] = "same_kind",  # noqa: ARG001
 ) -> T:
     """Join a sequence of arrays along an existing axis."""
     # Check types are the same
     cls = type(seqwb[0])
     if not all(type(wb) is cls for wb in seqwb):
-        raise ValueError(f"widths must all be the same type: {cls}")
+        msg = f"widths must all be the same type: {cls}"
+        raise ValueError(msg)
 
     N = len(seqwb)
     if N == 0:
-        raise ValueError("need at least one array to concatenate")
+        msg = "need at least one array to concatenate"
+        raise ValueError(msg)
 
     if out is not None:
-        raise ValueError("out must be None")
+        msg = "out must be None"
+        raise ValueError()
     elif dtype is not None:
-        raise ValueError("dtype must be None")
+        msg = "dtype must be None"
+        raise ValueError(msg)
 
     if N == 1:
         if axis != 0:
-            raise ValueError("axis must be 0 for 1 width")
+            msg = "axis must be 0 for 1 width"
+            raise ValueError(msg)
         return seqwb[0]
     # else:  N == 2
 
