@@ -19,7 +19,6 @@ from astropy.utils.metadata import MetaAttribute
 from trackstream.common import CollectionBase
 from trackstream.stream.stream import Stream
 from trackstream.track.core import StreamArmTrack, StreamArmTrackBase
-from trackstream.track.visualization import StreamArmsTrackBasePlotDescriptor
 
 if TYPE_CHECKING:
     # LOCAL
@@ -36,8 +35,6 @@ __all__: list[str] = []
 
 class StreamArmsTrackBase(CollectionBase[StreamArmTrack["StreamLikeT"]], StreamArmTrackBase["StreamLikeT"]):
     """Base class for stream arms tracks."""
-
-    plot = StreamArmsTrackBasePlotDescriptor()
 
     @property
     def stream(self) -> MappingProxyType[str, StreamLikeT]:
@@ -60,8 +57,6 @@ class StreamTrack(StreamArmTrack[Stream], StreamArmsTrackBase[Stream]):
 
     Currently only works for 2 arms.
     """
-
-    plot = StreamArmsTrackBasePlotDescriptor()
 
     def __init__(
         self,

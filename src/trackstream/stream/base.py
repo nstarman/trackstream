@@ -15,7 +15,6 @@ from astropy.coordinates import BaseCoordinateFrame, RadialDifferential, SkyCoor
 from astropy.utils.misc import indent
 
 # LOCAL
-from trackstream.stream.visualization import StreamPlotDescriptorBase
 from trackstream.utils.descriptors.attribute import Attribute
 from trackstream.utils.descriptors.cache import CacheProperty
 
@@ -39,11 +38,6 @@ class StreamLike(Protocol):
 
     cache: CacheProperty
     flags: Any
-
-    @property
-    def plot(self) -> object:
-        """Plotting descriptor."""
-        ...
 
     @property
     def full_name(self) -> str | None:
@@ -123,8 +117,6 @@ class StreamBase:
 
     cache = CacheProperty["StreamBase"]()
     flags = Attribute(Flags(minPmemb=u.Quantity(90, unit=u.percent), table_repr_max_lines=10), attrs_loc="__dict__")
-
-    plot = StreamPlotDescriptorBase[StreamBaseT]()
 
     # ===============================================================
     # Initializatino
