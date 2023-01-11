@@ -37,14 +37,10 @@ from trackstream.stream.core import StreamArm
 from trackstream.stream.plural import StreamArms, StreamArmsBase
 from trackstream.utils.coord_utils import get_frame, parse_framelike
 from trackstream.utils.descriptors.cache import CacheProperty
-from trackstream.utils.visualization import DKindT, PlotCollectionBase
 
 if TYPE_CHECKING:
-    # THIRD PARTY
-    from matplotlib.axes import Axes
-
     # LOCAL
-    from trackstream._typing import CoordinateType, FrameLikeType
+    from trackstream._typing import FrameLikeType
     from trackstream.clean.base import OutlierDetectorBase
     from trackstream.common import CollectionBase
     from trackstream.frame.fit.result import FrameOptimizeResult
@@ -92,97 +88,6 @@ class StreamArmsDescriptor(StreamArms, BoundDescriptor["Stream"]):
 
     def __set__(self, obj: object, value: Any) -> NoReturn:  # noqa: ARG002
         raise AttributeError
-
-
-@dataclass
-class StreamPlotDescriptor(PlotCollectionBase["Stream"]):
-    """Stream plot descriptor."""
-
-    # todo move to StreamPlotCollection (DNE)
-    def origin(
-        self,
-        origin: CoordinateType,  # noqa: ARG002
-        /,
-        frame: FrameLikeType | None = None,
-        kind: DKindT = "positions",
-        *,
-        ax: Axes | None,
-        format_ax: bool = True,
-    ) -> Axes:
-        """Plot the origin of the stream.
-
-        Parameters
-        ----------
-        origin : CoordinateType
-            The origin of the stream.
-        frame : FrameLikeType, optional
-            The frame of the origin. If not provided, the frame of the stream
-            will be used.
-        kind : DKindT, optional
-            The kind of data to plot, by default "positions".
-        ax : Axes, optional
-            The axes to plot on. If not provided, the current axes will be used.
-        format_ax : bool, optional
-            Whether to format the axes, by default `True`.
-
-        Returns
-        -------
-        Axes
-            The axes the origin was plotted on.
-        """
-        arm0 = next(iter(self.enclosing.values()))
-        return arm0.plot.origin(frame=frame, kind=kind, ax=ax, format_ax=format_ax)
-
-    def in_frame(
-        self,
-        frame: str = "icrs",
-        kind: DKindT = "positions",
-        *,
-        origin: bool = False,
-        ax: Axes | None = None,
-        format_ax: bool = True,
-        **kwargs: Any,
-    ) -> dict[str, Any]:
-        """Plot the stream in a frame.
-
-        Parameters
-        ----------
-        frame : str, optional
-            The frame to plot in, by default "icrs".
-        kind : DKindT, optional
-            The kind of data to plot, by default "positions".
-        origin : bool, optional
-            Whether to plot the origin, by default `False`.
-        ax : Axes, optional
-            The axes to plot on. If not provided, the current axes will be used.
-        format_ax : bool, optional
-            Whether to format the axes, by default `True`.
-        kwargs
-            Additional keyword arguments to pass to the plotting function.
-
-        Returns
-        -------
-        dict[str, Any]
-            The plotting results.
-        """
-        stream = self.enclosing
-        last = len(stream.arms) - 1
-
-        out = {}
-        for i, n in enumerate(stream.keys()):
-            # allow for arm-specific kwargs.
-            kw = {k: (v[n] if (isinstance(v, Mapping) and n in v) else v) for k, v in kwargs.items()}
-
-            out[n] = stream[n].plot.in_frame(
-                frame=frame,
-                kind=kind,
-                origin=False if i != last else origin,
-                ax=ax,
-                format_ax=False if i != last else format_ax,
-                **kw,
-            )
-
-        return out
 
 
 @dataclass(frozen=True)
@@ -239,7 +144,6 @@ class Stream(StreamArmsBase, StreamBase):
 
     _CACHE_CLS: ClassVar[type] = _StreamCache
     cache = CacheProperty["StreamBase"]()
-    plot = StreamPlotDescriptor()
     arms = StreamArmsDescriptor()
     flags = StreamFlags()
 

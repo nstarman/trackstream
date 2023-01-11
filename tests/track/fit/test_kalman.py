@@ -1,10 +1,4 @@
-"""Testing :mod:`~trackstream.visualization`."""
-
-
-##############################################################################
-# IMPORTS
-
-# THIRD PARTY
+"""Testing :mod:`~trackstream.track.fit.kalman`."""
 
 ##############################################################################
 # TESTS

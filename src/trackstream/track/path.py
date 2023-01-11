@@ -34,7 +34,6 @@ from scipy.optimize import OptimizeResult, minimize_scalar
 from trackstream.track.width.core import BaseWidth
 from trackstream.track.width.interpolated import InterpolatedWidths
 from trackstream.utils.coord_utils import get_frame, parse_framelike
-from trackstream.utils.visualization import PlotDescriptorBase
 
 if TYPE_CHECKING:
     # THIRD PARTY
@@ -116,7 +115,6 @@ class Path(NPArrayOverloadMixin):
     NP_OVERLOADS: ClassVar[NumPyOverloader] = PATH_FUNCS
 
     meta = MetaData(copy=True)
-    plot = PlotDescriptorBase["Path"]()
 
     data: icoords.InterpolatedSkyCoord
     width: InterpolatedWidths | None = None

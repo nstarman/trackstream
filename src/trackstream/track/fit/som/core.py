@@ -5,7 +5,7 @@ from __future__ import annotations
 # STDLIB
 from dataclasses import dataclass
 from functools import singledispatchmethod
-from typing import TYPE_CHECKING, Any, Literal, final
+from typing import TYPE_CHECKING, Any, final
 
 # THIRD PARTY
 import astropy.coordinates as coords
@@ -27,169 +27,15 @@ from trackstream.track.width.oned.core import (
     Cartesian1DWidth,
 )
 from trackstream.track.width.plural import Widths
-from trackstream.utils.visualization import CommonPlotDescriptorBase, DKindT
 
 if TYPE_CHECKING:
     # THIRD PARTY
-    from matplotlib.pyplot import Axes
     from numpy.random import Generator
 
     # LOCAL
     from trackstream.track.fit.som.base import SOM1DBase, SOMInfo
 
 __all__: list[str] = []
-
-
-#####################################################################
-
-
-@dataclass
-class SOMPlotDescriptor(CommonPlotDescriptorBase["SelfOrganizingMap"]):
-    """Plot descriptor for SOM."""
-
-    def current(
-        self,
-        kind: DKindT = "positions",
-        *,
-        origin: bool = True,
-        connect: bool = True,
-        x_offset: u.Quantity | Literal[0] = 0,
-        y_offset: u.Quantity | Literal[0] = 0,
-        ax: Axes | None = None,
-        format_ax: bool = False,
-    ) -> Axes:
-        """Plot the current state of SOM.
-
-        Parameters
-        ----------
-        kind : DKindT, optional
-            The kind of data to plot. This can be ``"positions"``,
-            ``"velocities"``.
-        origin : bool, optional
-            Whether to plot the origin of the stream.
-        connect : bool, optional
-            Whether to connect the SOM.
-        x_offset : u.Quantity, optional
-            The offset to apply to the x-axis.
-        y_offset : u.Quantity, optional
-            The offset to apply to the y-axis.
-        ax : Axes, optional
-            The axes to plot on. If not provided, the current axes will be used.
-        format_ax : bool, optional
-            Whether to format the axes.
-
-        Returns
-        -------
-        Axes
-            The axes that was plotted on.
-        """
-        som, _ax, _ = self._setup(ax=ax)
-        (x, xn), (y, yn) = self._get_xy(som.prototypes, kind=kind)
-
-        if connect:
-            _ax.plot(x + x_offset, y + y_offset, c="k")
-        _ax.scatter(x + x_offset, y + y_offset, marker="P", edgecolors="black", facecolor="none")
-        if origin:
-            self._origin(frame=som.frame, kind=kind, ax=_ax)
-
-        if format_ax:  # Axes settings
-            self._format_ax(_ax, frame=som.frame.name, x=xn, y=yn)
-        return _ax
-
-    def initial(
-        self,
-        kind: DKindT = "positions",
-        *,
-        origin: bool = True,
-        connect: bool = True,
-        x_offset: u.Quantity | Literal[0] = 0,
-        y_offset: u.Quantity | Literal[0] = 0,
-        ax: Axes | None = None,
-        format_ax: bool = False,
-    ) -> Axes:
-        """Plot the initial state of SOM.
-
-        Parameters
-        ----------
-        kind : DKindT, optional
-            The kind of data to plot. This can be ``"positions"`` or ``"velocities"``.
-        origin : bool, optional keyword-only
-            Whether to plot the origin of the stream.
-        connect : bool, optional keyword-only
-            Whether to connect the SOM.
-        x_offset : u.Quantity, optional keyword-only
-            The offset to apply to the x-axis.
-        y_offset : u.Quantity, optional keyword-only
-            The offset to apply to the y-axis.
-        ax : Axes, optional keyword-only
-            The axes to plot on. If not provided, the current axes will be used.
-        format_ax : bool, optional keyword-only
-            Whether to format the axes.
-
-        Returns
-        -------
-        Axes
-            The axes that was plotted on.
-        """
-        som, _ax, _ = self._setup(ax=ax)
-        (x, xn), (y, yn) = self._get_xy(som.init_prototypes, kind=kind)
-
-        if connect:
-            _ax.plot(x + x_offset, y + y_offset, c="k")
-        _ax.scatter(x + x_offset, y + y_offset, marker="P", edgecolors="black", facecolor="none")
-        if origin:
-            self._origin(frame=som.frame, kind=kind, ax=_ax)
-
-        if format_ax:  # Axes settings
-            self._format_ax(_ax, frame=som.frame.name, x=xn, y=yn)
-        return _ax
-
-    def __call__(
-        self,
-        kind: DKindT = "positions",
-        *,
-        origin: bool = True,
-        connect: bool = True,
-        initial_prototypes: bool = False,
-        x_offset: u.Quantity | Literal[0] = 0,
-        y_offset: u.Quantity | Literal[0] = 0,
-        ax: Axes | None = None,
-        format_ax: bool = False,
-    ) -> Axes:
-        """Plot the SOM.
-
-        Parameters
-        ----------
-        kind : DKindT, optional
-            Kind of data to plot, by default "positions".
-        origin : bool, optional
-            Whether to plot the origin, by default `True`.
-        connect : bool, optional
-            Whether to connect the prototypes, by default `True`.
-        initial_prototypes : bool, optional
-            Whether to plot the initial prototypes, by default `False`.
-        x_offset : u.Quantity | Literal[0], optional
-            Offset in the x-axis, by default 0.
-        y_offset : u.Quantity | Literal[0], optional
-            Offset in the y-axis, by default 0.
-        ax : Axes, optional
-            Axes to plot on, by default `None`.
-        format_ax : bool, optional
-            Whether to format the axes, by default `False`.
-
-        Returns
-        -------
-        Axes
-            Axes with the plot.
-        """
-        _ax = (
-            self.initial(kind=kind, origin=False, connect=False, x_offset=0, y_offset=0, ax=ax, format_ax=False)
-            if initial_prototypes
-            else ax
-        )
-        return self.current(
-            kind=kind, origin=origin, connect=connect, x_offset=x_offset, y_offset=y_offset, ax=_ax, format_ax=format_ax
-        )
 
 
 #####################################################################
@@ -210,10 +56,6 @@ class SelfOrganizingMap:
     origin : `~astropy.coordinates.SkyCoord` or None
         The origin.
     """
-
-    plot = SOMPlotDescriptor()
-
-    # ===============================================================
 
     som: SOM1DBase
     frame: coords.BaseCoordinateFrame

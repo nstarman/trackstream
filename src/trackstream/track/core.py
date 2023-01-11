@@ -19,7 +19,6 @@ from astropy.utils.misc import indent
 
 # LOCAL
 from trackstream.stream.base import StreamLikeT
-from trackstream.track.visualization import StreamArmTrackPlotDescriptor
 
 if TYPE_CHECKING:
     # STDLIB
@@ -68,7 +67,6 @@ class StreamArmTrack(StreamArmTrackBase[StreamLikeT]):
     """
 
     meta = MetaData()
-    plot = StreamArmTrackPlotDescriptor()
 
     # MetaAttributes (not type annotated b/c attrs treats as field)
     som = MetaAttribute()

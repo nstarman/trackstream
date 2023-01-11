@@ -22,28 +22,12 @@ from trackstream.stream.base import StreamBase
 ##############################################################################
 
 
-# class Test_StreamBasePlotDescriptor(Test_StreamPlotDescriptorBase):
-#     """Test `trackstream.base.StreamBasePlotDescriptor`."""
-
-#     @pytest.fixture(scope="class")
-#     def descriptor_cls(self):
-
-#     # Method Tests
-
-#     @pytest.mark.skip("TODO!")
-#     def test_in_frame(self, descriptor, axs):
-#         """Test ``in_frame``."""
-
-
-##############################################################################
-
-
 class StreamBaseTest(metaclass=ABCMeta):
     """Test :class:`trackstream.stream.Stream`.
 
     .. todo::
 
-        Tests for ``plot`` and ``_data_max_lines``.
+        Tests for ``_data_max_lines``.
 
     """
 

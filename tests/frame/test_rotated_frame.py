@@ -137,12 +137,6 @@
 
 #     # ---------------------------------------------------------------
 
-#     #     """Test ``RotatedFrameFitter.plot_data``."""
-#     #     assert False
-
-#     #     """Test ``RotatedFrameFitter.plot_residual``."""
-#     #     assert False
-
 
 # # -------------------------------------------------------------------
 
