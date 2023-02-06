@@ -74,13 +74,20 @@ class USphereSOM(SOM1DBase):
         representation_type=coords.UnitSphericalRepresentation,
         differential_type=coords.UnitSphericalCosLatDifferential,
         units=u.StructuredUnit(
-            ((u.rad, u.rad), (u.mas / u.yr, u.mas / u.yr)), names=(("lon", "lat"), ("d_lon_coslat", "d_lat"))
+            ((u.rad, u.rad), (u.mas / u.yr, u.mas / u.yr)),
+            names=(("lon", "lat"), ("d_lon_coslat", "d_lat")),
         ),
     )
 
     @staticmethod
     def _make_prototypes_from_binned_data(
-        data: ndarray, /, nlattice: int, *, byphi: bool = False, maxsep: ndarray | None = None, **_: Any
+        data: ndarray,
+        /,
+        nlattice: int,
+        *,
+        byphi: bool = False,
+        maxsep: ndarray | None = None,
+        **_: Any,
     ) -> ndarray:
         r"""Initialize prototype vectors from binned data.
 
@@ -125,7 +132,9 @@ class USphereSOM(SOM1DBase):
         # https://www.statology.org/equal-frequency-binning-python/
         # endpoint=False is used to prevent a x>xp endpoint repetition
         bins: ndarray = np.interp(
-            x=np.linspace(0, len(x), nlattice + 1, endpoint=False), xp=np.arange(len(x)), fp=np.sort(x)
+            x=np.linspace(0, len(x), nlattice + 1, endpoint=False),
+            xp=np.arange(len(x)),
+            fp=np.sort(x),
         )
 
         # Optionally respace the bins to have a maximum separation

@@ -286,7 +286,6 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
 
     @pytest.mark.skip("TODO!")
     def test_fit_frame(self, tempstream: S) -> None:
-
         frame = tempstream.fit_frame()
 
         assert isinstance(frame, BaseCoordinateFrame)

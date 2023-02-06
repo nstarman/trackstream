@@ -86,7 +86,7 @@ class StreamArmsDescriptor(StreamArms, BoundDescriptor["Stream"]):
         """The name of the attribute."""
         return self.enclosing.name
 
-    def __set__(self, obj: object, value: Any) -> NoReturn:  # noqa: ARG002
+    def __set__(self, obj: object, value: Any) -> NoReturn:
         raise AttributeError
 
 
@@ -148,9 +148,13 @@ class Stream(StreamArmsBase, StreamBase):
     flags = StreamFlags()
 
     def __init__(
-        self, data: dict[str, StreamArm] | None = None, /, *, name: str | None = None, **kwargs: StreamArm
+        self,
+        data: dict[str, StreamArm] | None = None,
+        /,
+        *,
+        name: str | None = None,
+        **kwargs: StreamArm,
     ) -> None:
-
         self.name: str | None
         super().__init__(data, name=name, **kwargs)
 

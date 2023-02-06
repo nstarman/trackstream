@@ -5,7 +5,8 @@ from __future__ import annotations
 # STDLIB
 from dataclasses import replace
 from functools import singledispatch
-from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Protocol, TypeVar
+from collections.abc import Callable
 
 # LOCAL
 from trackstream.track.width.core import BaseWidth
@@ -36,7 +37,9 @@ BW = TypeVar("BW", bound="BaseWidth")
 
 @singledispatch
 def represent_as(
-    w1: object, w2type: type[W2], point: BaseRepresentation  # noqa: ARG001
+    w1: object,
+    w2type: type[W2],
+    point: BaseRepresentation,  # noqa: ARG001
 ) -> Any:  # https://github.com/python/mypy/issues/11727
     """Represent as a new width type."""
     msg = "not dispatched"
@@ -51,7 +54,9 @@ def _represent_as_plainwidth(w1: BaseWidth, w2type: type[W2], point: BaseReprese
 
 @represent_as.register(InterpolatedWidth)
 def _represent_as_interpolatedwidth(
-    w1: InterpolatedWidth, w2type: type[BW], point: BaseRepresentation
+    w1: InterpolatedWidth,
+    w2type: type[BW],
+    point: BaseRepresentation,
 ) -> InterpolatedWidth[BW]:
     width = represent_as(w1.width, w2type, point)
     return replace(w1, width=width)
@@ -66,7 +71,7 @@ WIDTH_TRANSFORMATIONS: dict[tuple[type, type], Callable[[Any, BaseRepresentation
 class Transformer(Protocol[W1, W2]):
     """Width transformation callable."""
 
-    def __call__(self, cw: W1, point: BaseRepresentation) -> W2:  # noqa: ARG002
+    def __call__(self, cw: W1, point: BaseRepresentation) -> W2:
         """Transform a width."""
         ...
 

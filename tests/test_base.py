@@ -132,7 +132,6 @@ class Test_StreamBase(StreamBaseTest):
 
         @define
         class StreamEx(StreamBase):
-
             data: QTable
             _data_max_lines = 10
 

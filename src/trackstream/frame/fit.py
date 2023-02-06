@@ -8,7 +8,8 @@ from __future__ import annotations
 # STDLIB
 import functools
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, Callable, TypedDict, cast
+from typing import TYPE_CHECKING, Any, TypedDict, cast
+from collections.abc import Callable
 
 # THIRD PARTY
 import astropy.coordinates as coords
@@ -40,7 +41,9 @@ __all__: list[str] = []
 
 
 def reference_to_skyoffset_matrix(
-    lon: float | Quantity, lat: float | Quantity, rotation: float | Quantity
+    lon: float | Quantity,
+    lat: float | Quantity,
+    rotation: float | Quantity,
 ) -> NDArray[np.float64]:
     """Convert a reference coordinate to an sky offset frame ([astropy]_).
 
@@ -87,7 +90,9 @@ def reference_to_skyoffset_matrix(
 
 
 def residual(
-    v: tuple[float, float, float], data: NDArray[np.float64], scalar: bool = False  # noqa: FBT001, FBT002
+    v: tuple[float, float, float],
+    data: NDArray[np.float64],
+    scalar: bool = False,  # noqa: FBT001, FBT002
 ) -> float | NDArray[np.float64]:
     r"""How close phi2, the rotated |Latitude| (e.g. dec), is to flat.
 
@@ -309,7 +314,9 @@ def minimizer_dispatcher(key: str | Callable[..., Any]) -> Callable[[_Dispatched
 @minimizer_dispatcher("scipy.optimize.minimize")
 @minimizer_dispatcher(opt.minimize)
 def scipy_optimize_minimize(
-    data: NDArray[np.float64], x0: _X0T, minimizer_kwargs: Mapping[str, Any]
+    data: NDArray[np.float64],
+    x0: _X0T,
+    minimizer_kwargs: Mapping[str, Any],
 ) -> opt.OptimizeResult:
     """Minimize using `scipy.optimize.minimize`.
 
@@ -332,7 +339,9 @@ def scipy_optimize_minimize(
 @minimizer_dispatcher("scipy.optimize.least_squares")
 @minimizer_dispatcher(opt.least_squares)
 def scipy_optimize_leastsquares(
-    data: NDArray[np.float64], x0: _X0T, minimizer_kwargs: Mapping[str, Any]
+    data: NDArray[np.float64],
+    x0: _X0T,
+    minimizer_kwargs: Mapping[str, Any],
 ) -> opt.OptimizeResult:
     """Minimize the residual using `scipy.optimize.least_squares`.
 
@@ -353,7 +362,10 @@ def scipy_optimize_leastsquares(
 
 
 def run_minimizer(
-    minimizer: str | Callable[..., Any], data: NDArray[np.float64], x0: _X0T, minimizer_kwargs: Mapping[str, Any]
+    minimizer: str | Callable[..., Any],
+    data: NDArray[np.float64],
+    x0: _X0T,
+    minimizer_kwargs: Mapping[str, Any],
 ) -> object:
     """Run the specifid minimizer on the data to find the optimal rotated frame.
 

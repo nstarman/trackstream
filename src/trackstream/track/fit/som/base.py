@@ -124,7 +124,13 @@ class SOM1DBase:
     @staticmethod
     @abstractmethod
     def _make_prototypes_from_binned_data(
-        data: ndarray, /, nlattice: int, *, byphi: bool = False, maxsep: ndarray | None = None, **_: Any
+        data: ndarray,
+        /,
+        nlattice: int,
+        *,
+        byphi: bool = False,
+        maxsep: ndarray | None = None,
+        **_: Any,
     ) -> ndarray:
         raise NotImplementedError
 
@@ -134,15 +140,15 @@ class SOM1DBase:
     @classmethod
     def from_format(
         cls,
-        arm: object,  # noqa: ARG003
+        arm: object,
         /,
-        kinematics: bool | None = None,  # noqa: ARG003
+        kinematics: bool | None = None,
         *,
-        nlattice: int | None = None,  # noqa: ARG003
-        sigma: float = 0.1,  # noqa: ARG003
-        learning_rate: float = 0.3,  # noqa: ARG003
-        rng: Generator | int | None = None,  # noqa: ARG003
-        prototype_kw: dict[str, Any] | None = None,  # noqa: ARG003
+        nlattice: int | None = None,
+        sigma: float = 0.1,
+        learning_rate: float = 0.3,
+        rng: Generator | int | None = None,
+        prototype_kw: dict[str, Any] | None = None,
     ) -> Any:  # https://github.com/python/mypy/issues/11727
         """Initialize a SOM from an object.
 

@@ -127,7 +127,7 @@ numpydoc_xref_aliases.update(
         "Representation": ":class:`~astropy.coordinates.BaseRepresentation`",
         "Differential": ":class:`~astropy.coordinates.BaseDifferential`",
         "CoordinateFrame": ":class:`~astropy.coordinates.BaseCoordinateFrame`",
-    }
+    },
 )
 # Add from sphinx-astropy 1) glossary aliases 2) physical types.
 numpydoc_xref_aliases.update(numpydoc_xref_astropy_aliases)

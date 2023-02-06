@@ -7,7 +7,8 @@ from __future__ import annotations
 
 # STDLIB
 from collections.abc import Iterator, KeysView, Mapping, MutableMapping, ValuesView
-from typing import TYPE_CHECKING, Any, Callable, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
+from collections.abc import Callable
 
 # THIRD PARTY
 import astropy.units as u

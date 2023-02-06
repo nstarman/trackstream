@@ -76,20 +76,20 @@ class Widths(PhysicalTypeKeyMutableMapping[W1], NPArrayOverloadMixin, ToFormatOv
         self._mapping: dict[u.PhysicalType, W1] = widths
 
     @singledispatchmethod
-    def __getitem__(self, key: object) -> Any:  # noqa: ARG002
+    def __getitem__(self, key: object) -> Any:
         # see https://github.com/python/mypy/issues/11727 for why return Any
         msg = "not dispatched"
         raise NotImplementedError(msg)
 
     @singledispatchmethod
-    def __setitem__(self, key: object, value: Any) -> Any:  # noqa: ARG002
+    def __setitem__(self, key: object, value: Any) -> Any:
         # see https://github.com/python/mypy/issues/11727 for why return Any
         msg = "not dispatched"
         raise NotImplementedError(msg)
 
     # ===============================================================
 
-    def represent_as(self, width_type: type[W1], point: BaseRepresentation) -> W1:  # noqa: ARG002
+    def represent_as(self, width_type: type[W1], point: BaseRepresentation) -> W1:
         """Represent as a new width type.
 
         Parameters
@@ -223,13 +223,15 @@ class Widths(PhysicalTypeKeyMutableMapping[W1], NPArrayOverloadMixin, ToFormatOv
         return self.__class__({k: v[key] for k, v in self.items()})
 
     @singledispatchmethod
-    def __lt__(self, other: object) -> Any:  # noqa: ARG002
+    def __lt__(self, other: object) -> Any:
         # see https://github.com/python/mypy/issues/11727 for why returns Any
         return NotImplemented
 
     @__setitem__.register(Mapping)
     def _setitem_mapping(
-        self, key: Mapping[u.PhysicalType, Mapping[str, Any]], value: Mapping[u.PhysicalType, W1]
+        self,
+        key: Mapping[u.PhysicalType, Mapping[str, Any]],
+        value: Mapping[u.PhysicalType, W1],
     ) -> None | NotImplementedType:
         if key.keys() != self.keys():
             raise ValueError

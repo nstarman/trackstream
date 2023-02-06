@@ -377,7 +377,13 @@ class FONKFBase:
     # Math (2 phase + smoothing)
 
     def _math_predict_and_update(
-        self, x: np.ndarray, P: np.ndarray, F: np.ndarray, Q: np.ndarray, z: np.ndarray, R: np.ndarray
+        self,
+        x: np.ndarray,
+        P: np.ndarray,
+        F: np.ndarray,
+        Q: np.ndarray,
+        z: np.ndarray,
+        R: np.ndarray,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Predict and update step.
 
@@ -437,7 +443,11 @@ class FONKFBase:
         return x, P
 
     def _rts_smoother(
-        self, Xs: np.ndarray, Ps: np.ndarray, Fs: np.ndarray, Qs: np.ndarray
+        self,
+        Xs: np.ndarray,
+        Ps: np.ndarray,
+        Fs: np.ndarray,
+        Qs: np.ndarray,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Run Rauch-Tung-Striebel Kalman smoother on Kalman filter series.
 
@@ -497,7 +507,12 @@ class FONKFBase:
     # Fit
 
     def fit(
-        self, data: np.ndarray, /, errors: np.ndarray, widths: np.ndarray, timesteps: np.ndarray
+        self,
+        data: np.ndarray,
+        /,
+        errors: np.ndarray,
+        widths: np.ndarray,
+        timesteps: np.ndarray,
     ) -> tuple[kalman_output, kalman_output]:
         """Run Kalman Filter with updates on each step.
 

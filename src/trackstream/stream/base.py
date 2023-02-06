@@ -192,7 +192,7 @@ class StreamBase:
 
     # ===============================================================
 
-    def __base_repr__(self, max_lines: int | None = None) -> list[str]:  # noqa: ARG002
+    def __base_repr__(self, max_lines: int | None = None) -> list[str]:
         rs = []
 
         # 0) header (standard repr)

@@ -156,7 +156,7 @@ class BaseWidth(WidthBase, metaclass=ABCMeta):
     # Magic Methods
 
     @singledispatchmethod
-    def __lt__(self, other: object) -> Any:  # noqa: ARG002
+    def __lt__(self, other: object) -> Any:
         # see https://github.com/python/mypy/issues/11727 for returning Any
         return NotImplemented
 
@@ -165,7 +165,7 @@ class BaseWidth(WidthBase, metaclass=ABCMeta):
         return replace(self, **{f.name: getattr(self, f.name)[key] for f in fields(self)})
 
     @singledispatchmethod
-    def __setitem__(self, key: object, value: Any) -> Any:  # noqa: ARG002
+    def __setitem__(self, key: object, value: Any) -> Any:
         # see https://github.com/python/mypy/issues/11727 for returning Any
         msg = "not dispatched"
         raise NotImplementedError(msg)

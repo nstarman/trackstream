@@ -47,7 +47,8 @@ class USphereFONKF(FONKFBase):
         representation_type=coords.UnitSphericalRepresentation,
         differential_type=coords.UnitSphericalDifferential,
         units=u.StructuredUnit(
-            ((u.rad, u.rad), (u.mas / u.yr, u.mas / u.yr)), names=(("lon", "lat"), ("d_lon", "d_lat"))
+            ((u.rad, u.rad), (u.mas / u.yr, u.mas / u.yr)),
+            names=(("lon", "lat"), ("d_lon", "d_lat")),
         ),
     )
 

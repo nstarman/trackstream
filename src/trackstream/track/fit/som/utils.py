@@ -56,7 +56,6 @@ def _respace_bins_from_left(bins: NDT, maxsep: ndarray, eps: float | np.floating
 
     i = 0  # cap at 10k iterations
     while any(seps) and i < 10_000:
-
         # Move the bins by the separation
         bins[seps + 1] = bins[seps] + maxsep * (1 - eps)
 
@@ -95,7 +94,6 @@ def _respace_bins(bins: NDT, maxsep: ndarray, eps: float | np.floating, *, onsky
 
     i = 0  # cap at 10k iterations
     while any(seps) and i < 50:
-
         # Adjust from the left, then adjust from the right
         bins = _respace_bins_from_left(bins, maxsep=maxsep, onsky=onsky, eps=eps)
         bins[::-1] = -_respace_bins_from_left(-bins[::-1], maxsep=maxsep, onsky=onsky, eps=eps)
@@ -190,7 +188,12 @@ def _get_info_for_projection(
 
 
 def _order_data_along_som_projection(
-    data: ndarray, /, *, lattice_p2p_distance: ndarray, segment_projection: ndarray, distances: ndarray
+    data: ndarray,
+    /,
+    *,
+    lattice_p2p_distance: ndarray,
+    segment_projection: ndarray,
+    distances: ndarray,
 ) -> ndarray:
     r"""Order data along its projection onto 1D lattice.
 
@@ -286,7 +289,10 @@ def project_data_on_som(prototypes: ndarray, data: ndarray) -> tuple[ndarray, nd
     projpnts = all_points[np.arange(len(distances)), ind_best_distance, :]
 
     ordering = _order_data_along_som_projection(
-        data, lattice_p2p_distance=lattice_p2p_distance, segment_projection=segment_projection, distances=distances
+        data,
+        lattice_p2p_distance=lattice_p2p_distance,
+        segment_projection=segment_projection,
+        distances=distances,
     )
     return projpnts, ordering
 

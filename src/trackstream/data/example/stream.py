@@ -35,7 +35,10 @@ FullPathLike = str | bytes | os.PathLike
 
 
 def make_stream_from_vasiliev18(
-    name: str, tdisrupt: Quantity = Quantity(5, u.Gyr), *, write: FullPathLike | None = None
+    name: str,
+    tdisrupt: Quantity = Quantity(5, u.Gyr),
+    *,
+    write: FullPathLike | None = None,
 ) -> QTable:
     """Make and write data table.
 

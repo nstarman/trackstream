@@ -9,7 +9,8 @@ from __future__ import annotations
 import weakref
 from abc import abstractmethod
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Callable, Generic
+from typing import TYPE_CHECKING, Any, Generic
+from collections.abc import Callable
 
 # THIRD PARTY
 import astropy.coordinates as coords
@@ -171,11 +172,11 @@ class StreamArmTrack(StreamArmTrackBase[StreamLikeT]):
 
     def probability(
         self,
-        point: coords.SkyCoord,  # noqa: ARG002
-        background_model: Callable[[coords.SkyCoord], Quantity[u.percent]] | None = None,  # noqa: ARG002
+        point: coords.SkyCoord,
+        background_model: Callable[[coords.SkyCoord], Quantity[u.percent]] | None = None,
         *,
-        angular: bool = False,  # noqa: ARG002
-        affine: Quantity | None = None,  # noqa: ARG002
+        angular: bool = False,
+        affine: Quantity | None = None,
     ) -> Quantity[u.percent]:
         """Probability point is part of the stream."""
         raise NotImplementedError

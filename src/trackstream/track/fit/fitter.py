@@ -153,7 +153,10 @@ class FitterStreamArmTrack:
 
         # Kalman filter
         kalman = FirstOrderNewtonianKalmanFilter.from_format(
-            arm, onsky=onsky, kinematics=kinematics, **(kalman_kw or {})
+            arm,
+            onsky=onsky,
+            kinematics=kinematics,
+            **(kalman_kw or {}),
         )
 
         return cls(som=som, kalman=kalman, onsky=onsky, kinematics=kinematics)
@@ -183,7 +186,7 @@ class FitterStreamArmTrack:
             {
                 LENGTH: u.Quantity(0.5, u.deg) if self.kalman.onsky else u.Quantity(10.0, u.pc),
                 SPEED: u.Quantity(0.01, u.Unit("mas / yr")) if self.kalman.onsky else u.Quantity(1.0, u.km / u.s),
-            }
+            },
         )
 
     @property
@@ -192,7 +195,7 @@ class FitterStreamArmTrack:
             {
                 LENGTH: u.Quantity(0.01, u.deg) if self.kalman.onsky else u.Quantity(0.01, u.pc),
                 SPEED: u.Quantity(0.01, u.Unit("mas / yr")) if self.kalman.onsky else u.Quantity(0.01, u.km / u.s),
-            }
+            },
         )
 
     @property
@@ -201,7 +204,7 @@ class FitterStreamArmTrack:
             {
                 LENGTH: u.Quantity(np.inf, u.deg) if self.kalman.onsky else u.Quantity(np.inf, u.pc),
                 SPEED: u.Quantity(np.inf, u.Unit("mas / yr")) if self.kalman.onsky else u.Quantity(np.inf, u.km / u.s),
-            }
+            },
         )
 
     def fit(
@@ -282,7 +285,12 @@ class FitterStreamArmTrack:
         dtmax = Times.from_format(kfkw.pop("dtmax", self._default_dtmax))
 
         timesteps = make_timesteps(
-            projdata, kf=self.kalman, dt0=dt0, dtmin=dtmin, dtmax=dtmax, width=kfkw.pop("width", 6)
+            projdata,
+            kf=self.kalman,
+            dt0=dt0,
+            dtmin=dtmin,
+            dtmax=dtmax,
+            width=kfkw.pop("width", 6),
         )
         # Always has ['length']. Also ['speed'] if there's kinematics
 

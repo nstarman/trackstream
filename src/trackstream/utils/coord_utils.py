@@ -23,7 +23,7 @@ from astropy.coordinates import (
 
 if TYPE_CHECKING:
     # THIRD PARTY
-    from typing_extensions import TypeAlias
+    from typing import TypeAlias
 
 __all__ = ["parse_framelike", "get_frame", "deep_transform_to", "f2q"]
 
@@ -184,7 +184,8 @@ def _parse_framelike_str(name: str) -> BaseCoordinateFrame:
 @parse_framelike.register(BaseCoordinateFrame)
 def _parse_framelike_frame(frame: BaseCoordinateFrame) -> BaseCoordinateFrame:
     return frame.replicate_without_data(
-        representation_type=frame.representation_type, differential_type=frame.differential_type
+        representation_type=frame.representation_type,
+        differential_type=frame.differential_type,
     )
 
 
@@ -266,7 +267,10 @@ def _deep_transform_skycoord(
     # SkyCoord from transformation
     return SkyCoord(
         deep_transform_to(
-            crd.frame, frame=frame, representation_type=representation_type, differential_type=differential_type
+            crd.frame,
+            frame=frame,
+            representation_type=representation_type,
+            differential_type=differential_type,
         ),
         copy=False,
     )

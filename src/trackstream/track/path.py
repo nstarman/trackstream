@@ -12,13 +12,13 @@ from functools import singledispatchmethod
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     ClassVar,
     Literal,
     NamedTuple,
     cast,
     overload,
 )
+from collections.abc import Callable
 
 # THIRD PARTY
 import astropy.coordinates as coords
@@ -349,13 +349,21 @@ class Path(NPArrayOverloadMixin):
 
     @overload
     def separation(
-        self, point: CoordinateType, *, interpolate: Literal[True] = True, affine: u.Quantity | None = None
+        self,
+        point: CoordinateType,
+        *,
+        interpolate: Literal[True] = True,
+        affine: u.Quantity | None = None,
     ) -> IUSU:
         ...
 
     @overload
     def separation(
-        self, point: CoordinateType, *, interpolate: Literal[False] = False, affine: u.Quantity | None = None
+        self,
+        point: CoordinateType,
+        *,
+        interpolate: Literal[False] = False,
+        affine: u.Quantity | None = None,
     ) -> coords.Angle:
         ...
 
@@ -416,7 +424,11 @@ class Path(NPArrayOverloadMixin):
     # -----------------------------------------------------
 
     def _closest_res_to_point(
-        self, point: CoordinateType, *, angular: bool = False, affine: u.Quantity | None = None
+        self,
+        point: CoordinateType,
+        *,
+        angular: bool = False,
+        affine: u.Quantity | None = None,
     ) -> OptimizeResult:
         """Closest to stream, ignoring width."""
         sep_fn = (
@@ -433,7 +445,11 @@ class Path(NPArrayOverloadMixin):
         return res
 
     def closest_affine_to_point(
-        self, point: CoordinateType, *, angular: bool = False, affine: u.Quantity | None = None
+        self,
+        point: CoordinateType,
+        *,
+        angular: bool = False,
+        affine: u.Quantity | None = None,
     ) -> u.Quantity:
         """Closest affine, ignoring width."""
         afn = self.affine if affine is None else affine
@@ -441,7 +457,11 @@ class Path(NPArrayOverloadMixin):
         return res.x << afn.unit
 
     def closest_position_to_point(
-        self, point: CoordinateType, *, angular: bool = False, affine: u.Quantity | None = None
+        self,
+        point: CoordinateType,
+        *,
+        angular: bool = False,
+        affine: u.Quantity | None = None,
     ) -> coords.SkyCoord:
         """Closest point, ignoring width."""
         return self.position(self.closest_affine_to_point(point, angular=angular, affine=affine))

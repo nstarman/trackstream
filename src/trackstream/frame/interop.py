@@ -8,7 +8,8 @@ from __future__ import annotations
 # STDLIB
 from dataclasses import asdict, replace
 from functools import singledispatch
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
+from collections.abc import Callable
 
 # THIRD PARTY
 import astropy.units as u

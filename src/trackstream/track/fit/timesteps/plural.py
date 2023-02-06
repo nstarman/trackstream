@@ -58,7 +58,7 @@ class Times(PhysicalTypeKeyMutableMapping[u.Quantity], ToFormatOverloadMixin):
         self._mapping: dict[u.PhysicalType, u.Quantity] = ts
 
     @singledispatchmethod
-    def __getitem__(self, key: object) -> Any:  # noqa: ARG002
+    def __getitem__(self, key: object) -> Any:
         # see https://github.com/python/mypy/issues/11727 for returning Any
         msg = "not dispatched"
         raise NotImplementedError(msg)

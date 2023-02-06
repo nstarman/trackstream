@@ -125,7 +125,11 @@ class OutlierDetectorBase(metaclass=ABCMeta):
             raise NotFittedError()
 
     def fit_predict(
-        self, fit_data: NDFloat[N1], predict_data: NDFloat[N2] | None = None, /, **kwargs: Any
+        self,
+        fit_data: NDFloat[N1],
+        predict_data: NDFloat[N2] | None = None,
+        /,
+        **kwargs: Any,
     ) -> NDArray[bool_]:
         """Predict if is point in data is an outlier.
 

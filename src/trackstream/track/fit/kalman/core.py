@@ -189,7 +189,7 @@ class FirstOrderNewtonianKalmanFilter:
                     wcls.dimensions._physical_type_list[0]: wcls.from_format(w0q)
                     for wcls in wclss
                     if wcls.dimensions is not None
-                }
+                },
             )
         else:
             raise ValueError

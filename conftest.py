@@ -157,7 +157,9 @@ def rep_type() -> type[coords.CartesianRepresentation]:
 
 @pytest.fixture(scope="session")
 def rep(
-    rep_type: type[coords.CartesianRepresentation], dif: coords.BaseDifferential, num: int
+    rep_type: type[coords.CartesianRepresentation],
+    dif: coords.BaseDifferential,
+    num: int,
 ) -> coords.CartesianRepresentation:
     """Fixture returning the representation, with attached differentials."""
     return rep_type(
@@ -176,7 +178,8 @@ def irep(rep: coords.BaseRepresentation, affine: coords.Angle) -> InterpolatedRe
 
 @pytest.fixture(scope="session")
 def frame(
-    rep_type: type[coords.BaseRepresentation], dif_type: type[coords.BaseDifferential]
+    rep_type: type[coords.BaseRepresentation],
+    dif_type: type[coords.BaseDifferential],
 ) -> coords.BaseCoordinateFrame:
     """Fixture returning the frame, |ICRS|."""
     return coords.ICRS(representation_type=rep_type, differential_type=dif_type)
