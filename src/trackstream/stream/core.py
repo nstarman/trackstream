@@ -4,25 +4,20 @@ Stream arms are descriptors on a `trackstrea.Stream` class.
 
 """
 
-##############################################################################
-# IMPORTS
 
 from __future__ import annotations
 
-# STDLIB
 import copy
-import logging
 from dataclasses import InitVar, dataclass
+import logging
 from typing import TYPE_CHECKING, Any, ClassVar, TypeVar, cast
 
-# THIRD PARTY
-import numpy as np
-from astropy.coordinates import BaseCoordinateFrame, SkyCoord
+from astropy.coordinates import BaseCoordinateFrame, SkyCoord  # noqa: TCH002
 from astropy.io.registry import UnifiedReadWriteMethod
+import numpy as np
 from numpy.lib.recfunctions import structured_to_unstructured
 from typing_extensions import TypedDict
 
-# LOCAL
 from trackstream._typing import SupportsFrame
 from trackstream.clean import OUTLIER_DETECTOR_CLASSES, OutlierDetectorBase
 from trackstream.io import (
@@ -35,12 +30,10 @@ from trackstream.stream.base import StreamBase
 from trackstream.utils.coord_utils import f2q, get_frame, parse_framelike
 
 if TYPE_CHECKING:
-    # THIRD PARTY
     from astropy.table import QTable
     from astropy.units import Quantity
     from numpy.typing import NDArray
 
-    # LOCAL
     from trackstream.frame import FrameOptimizeResult
     from trackstream.track.core import StreamArmTrack
     from trackstream.track.fit.core import FitterStreamArmTrack
@@ -192,7 +185,8 @@ class StreamArm(StreamBase):
         if verbose:
             idx = np.arange(len(self.data))
             logger = logging.getLogger("trackstream")
-            logger.info(f"{self.full_name} outliers: {idx[~mask][isoutlier]}")
+            msg = f"{self.full_name} outliers: {idx[~mask][isoutlier]}"
+            logger.info(msg)
 
         # step 2: set order of outliers to -1
         mask[~mask] = isoutlier
@@ -235,8 +229,7 @@ class StreamArm(StreamBase):
 
         Parameters
         ----------
-        fitter : bool or `~trackstream.fit.FitterStreamArmTrack`, optional
-        keyword-only
+        fitter : bool or `~trackstream.fit.FitterStreamArmTrack`, optional keyword-only
             The fitter to use, by default `True`.
         tune : bool, optional
             Whether to train the SOM without writing to its current state
@@ -245,6 +238,8 @@ class StreamArm(StreamBase):
         force : bool, optional keyword-only
             Whether to force a track to be fit, even if one already has been for
             this stream. By default `False`.
+        **kwargs : Any
+            Passed to :meth:`FitterStreamArmTrack.fit`.
 
         Returns
         -------
@@ -301,11 +296,11 @@ class StreamArm(StreamBase):
     # ===============================================================
     # Misc
 
-    def __base_repr__(self, max_lines: int | None = None) -> list[str]:
-        rs = super().__base_repr__(max_lines=max_lines)
+    def _base_repr_(self, max_lines: int | None = None) -> list[str]:
+        rs = super()._base_repr_(max_lines=max_lines)
 
         # 5) data table
-        datarep: str = self.data._base_repr_(html=False, max_width=None, max_lines=max_lines)
+        datarep: str = self.data._base_repr_(html=False, max_width=None, max_lines=max_lines)  # noqa: SLF001
         table: str = "\n\t".join(datarep.split("\n")[1:])
         rs.append("  Data:\n\t" + table)
 

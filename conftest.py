@@ -9,15 +9,11 @@ packagename.test
 
 from __future__ import annotations
 
-# STDLIB
-import os
+import pathlib
 from typing import Any, cast
 
-# THIRD PARTY
 import astropy.coordinates as coords
 import astropy.units as u
-import numpy as np
-import pytest
 from astropy.units import Quantity
 from interpolated_coordinates import (
     InterpolatedCoordinateFrame,
@@ -25,8 +21,9 @@ from interpolated_coordinates import (
     InterpolatedRepresentation,
     InterpolatedSkyCoord,
 )
+import numpy as np
+import pytest
 
-# LOCAL
 from trackstream.track.path import Path
 from trackstream.track.width import Cartesian1DWidth
 from trackstream.track.width.interpolated import InterpolatedWidths
@@ -35,7 +32,6 @@ __all__: list[str] = []
 
 
 try:
-    # THIRD PARTY
     from pytest_astropy_header.display import PYTEST_HEADER_MODULES, TESTED_VERSIONS
 
     ASTROPY_HEADER = True
@@ -48,7 +44,8 @@ def pytest_configure(config: pytest.Config) -> None:
 
     Parameters
     ----------
-    config : pytest configuration
+    config : `pytest.Config`
+        Pytest configuration object.
     """
     if not ASTROPY_HEADER:
         return
@@ -60,10 +57,9 @@ def pytest_configure(config: pytest.Config) -> None:
     # tests.
     PYTEST_HEADER_MODULES.pop("Pandas", None)
 
-    # STDLIB
     from importlib.metadata import version
 
-    packagename = os.path.basename(os.path.dirname(__file__))
+    packagename = pathlib.Path(__file__).parent.name
     TESTED_VERSIONS[packagename] = version(packagename)
 
 
@@ -72,15 +68,14 @@ def pytest_configure(config: pytest.Config) -> None:
 
 
 @pytest.fixture(autouse=True)
-def add_numpy(doctest_namespace: dict[str, Any]) -> None:
+def _add_numpy(doctest_namespace: dict[str, Any]) -> None:
     """Add NumPy to Pytest.
 
     Parameters
     ----------
     doctest_namespace : namespace
-
+        dictionary to add to.
     """
-    # THIRD PARTY
     import numpy as np
 
     # add to namespace
@@ -88,15 +83,14 @@ def add_numpy(doctest_namespace: dict[str, Any]) -> None:
 
 
 @pytest.fixture(autouse=True)
-def add_astropy(doctest_namespace: dict[str, Any]) -> None:
+def _add_astropy(doctest_namespace: dict[str, Any]) -> None:
     """Add Astropy stuff to Pytest.
 
     Parameters
     ----------
     doctest_namespace : namespace
-
+        dictionary to add to.
     """
-    # THIRD PARTY
     import astropy.coordinates as coords
     import astropy.units
 
@@ -105,7 +99,6 @@ def add_astropy(doctest_namespace: dict[str, Any]) -> None:
     doctest_namespace["u"] = astropy.units
 
     # extras
-    # THIRD PARTY
     from astropy.visualization import quantity_support, time_support
 
     quantity_support()

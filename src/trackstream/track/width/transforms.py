@@ -2,27 +2,21 @@
 
 from __future__ import annotations
 
-# STDLIB
 from dataclasses import replace
 from functools import singledispatch
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar
-from collections.abc import Callable
 
-# LOCAL
 from trackstream.track.width.core import BaseWidth
 from trackstream.track.width.interpolated import InterpolatedWidth
 
 if TYPE_CHECKING:
-    # THIRD PARTY
+    from collections.abc import Callable
+
     from astropy.coordinates import BaseRepresentation
 
-    # LOCAL
     from trackstream.track.width.base import WidthBase
 
 __all__: list[str] = []
-
-##############################################################################
-# TYPING
 
 
 W1 = TypeVar("W1", bound="WidthBase")
@@ -37,8 +31,8 @@ BW = TypeVar("BW", bound="BaseWidth")
 
 @singledispatch
 def represent_as(
-    w1: object,
-    w2type: type[W2],
+    w1: object,  # noqa: ARG001
+    w2type: type[W2],  # noqa: ARG001
     point: BaseRepresentation,  # noqa: ARG001
 ) -> Any:  # https://github.com/python/mypy/issues/11727
     """Represent as a new width type."""
@@ -80,7 +74,18 @@ def register_transformation(w1type: type[W1], w2type: type[W2]) -> Callable[[Tra
     """Register a width transformation."""
 
     def decorator(func: Transformer[W1, W2]) -> Transformer[W1, W2]:
-        """Decorator."""
+        """Register a width transformation.
+
+        Parameters
+        ----------
+        func : `Transformer`
+            The transformation function.
+
+        Returns
+        -------
+        `Transformer`
+            The transformation function.
+        """
         WIDTH_TRANSFORMATIONS[(w1type, w2type)] = func
         return func
 

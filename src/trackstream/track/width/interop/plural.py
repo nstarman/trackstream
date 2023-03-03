@@ -2,22 +2,18 @@
 
 from __future__ import annotations
 
-# STDLIB
+from typing import TYPE_CHECKING, Literal, TypeVar
 import warnings
-from collections.abc import Sequence
-from typing import Literal, TypeVar
 
-# THIRD PARTY
 import numpy as np
 
-# LOCAL
 from trackstream.track.width.plural import WS_FUNCS, Widths
 
 __all__: list[str] = []
 
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
-##############################################################################
-# TYPING
 
 WS = TypeVar("WS", bound=Widths)
 
@@ -29,7 +25,7 @@ WS = TypeVar("WS", bound=Widths)
 
 @WS_FUNCS.implements(np.convolve, dispatch_on=Widths, types=(Widths, np.ndarray))
 def convolve(a: WS, v: np.ndarray, mode: Literal["valid", "full", "same"] = "full") -> WS:
-    """Returns the discrete, linear convolution of widths."""
+    """Return the discrete, linear convolution of widths."""
     # Apply convolution to each contained field.
     ws = {}
     for k, w in a.items():

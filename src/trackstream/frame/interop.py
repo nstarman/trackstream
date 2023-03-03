@@ -1,20 +1,15 @@
 """Interface frame fitting with main stream library."""
 
-##############################################################################
-# IMPORTS
 
 from __future__ import annotations
 
-# STDLIB
 from dataclasses import asdict, replace
 from functools import singledispatch
-from typing import Any, TypeVar
-from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, TypeVar
 
-# THIRD PARTY
 import astropy.units as u
+from astropy.units import Quantity
 
-# LOCAL
 from trackstream._typing import SupportsFrame
 from trackstream.stream.core import StreamArm
 from trackstream.stream.plural import StreamArms, StreamArmsBase
@@ -22,11 +17,12 @@ from trackstream.stream.stream import Stream, StreamArmsDescriptor
 
 __all__: list[str] = []
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
-##############################################################################
-# TYPING
 
 Self = TypeVar("Self", bound=SupportsFrame)
+ROT0 = Quantity(0, u.deg)
 
 
 ##############################################################################
@@ -82,25 +78,26 @@ def _add_method_to_cls(cls: type, attr: str | None) -> Callable[[Callable[..., A
 @singledispatch
 def fit_stream(
     self: object,  # noqa: ARG001
-    rot0: u.Quantity[u.deg] | None = u.Quantity(0, u.deg),  # noqa: ARG001
+    rot0: Quantity[u.deg] | None = ROT0,  # noqa: ARG001
     *,
     force: bool = False,  # noqa: ARG001
     **kwargs: Any,  # noqa: ARG001
 ) -> Any:
-    """Convenience method to fit a frame to a stream.
+    """Fit a frame to a stream -- convenience method.
 
     The frame is an on-sky rotated frame. To prevent a frame from being fit, the
     desired frame should be passed to the Stream constructor at initialization.
 
     Parameters
     ----------
+    self : object
+        The object to fit the frame to.
     rot0 : Quantity or None.
         Initial guess for rotation.
 
     force : bool, optional keyword-only
         Whether to force a frame fit. Default `False`. Will only fit if a frame
         was not specified at initialization.
-
     **kwargs : Any
         Passed to fitter.
 
@@ -123,7 +120,7 @@ def fit_stream(
 @fit_stream.register(StreamArm)
 def _fit_stream_StreamArm(
     arm: StreamArm,
-    rot0: u.Quantity[u.deg] | None = u.Quantity(0, u.deg),
+    rot0: Quantity[u.deg] | None = ROT0,
     *,
     force: bool = False,
     **kwargs: Any,
@@ -132,7 +129,6 @@ def _fit_stream_StreamArm(
         msg = "a system frame was given at initialization. Use ``force`` to re-fit."
         raise TypeError(msg)
 
-    # LOCAL
     from trackstream.frame.fit import fit_frame
 
     # fit_frame uses single-dispatch to get the correct output type
@@ -140,7 +136,7 @@ def _fit_stream_StreamArm(
 
     # Make new stream(arm)
     newstream = replace(arm, frame=result.frame, origin=arm.origin.transform_to(result.frame))
-    newstream._cache["frame_fit_result"] = result
+    newstream._cache["frame_fit_result"] = result  # noqa: SLF001
     newstream.flags.set(**asdict(arm.flags))
 
     return newstream
@@ -154,7 +150,7 @@ _fit_stream_StreamArm.__doc__ = fit_stream.__doc__
 @fit_stream.register(StreamArmsBase)
 def _fit_stream_StreamArmsBase(
     arms: StreamArmsBase,
-    rot0: u.Quantity[u.deg] | None = u.Quantity(0, u.deg),
+    rot0: Quantity[u.deg] | None = ROT0,
     *,
     force: bool = False,
     **kwargs: Any,
@@ -165,7 +161,6 @@ def _fit_stream_StreamArmsBase(
                 msg = f"a system frame was given for {n} at initialization. Use ``force`` to re-fit."
                 raise TypeError(msg)
 
-    # LOCAL
     from trackstream.frame.fit import fit_frame
 
     # fit_frame uses single-dispatch to get the correct output type
@@ -175,7 +170,7 @@ def _fit_stream_StreamArmsBase(
     data = {}
     for k, arm in arms.items():
         newarm = replace(arm, frame=results[k].frame, origin=arm.origin.transform_to(results[k].frame))
-        newarm._cache["frame_fit_result"] = results[k]
+        newarm._cache["frame_fit_result"] = results[k]  # noqa: SLF001
         newarm.flags.set(**asdict(arm.flags))
         data[k] = newarm
 
@@ -190,7 +185,7 @@ _fit_stream_StreamArmsBase.__doc__ = fit_stream.__doc__
 @fit_stream.register(StreamArmsDescriptor)
 def _fit_stream_StreamArmsDescriptor(
     arms_descr: StreamArmsDescriptor,
-    rot0: u.Quantity[u.deg] | None = u.Quantity(0, u.deg),
+    rot0: Quantity[u.deg] | None = ROT0,
     *,
     force: bool = False,
     **kwargs: Any,
@@ -203,7 +198,7 @@ def _fit_stream_StreamArmsDescriptor(
 @fit_stream.register(Stream)
 def _fit_stream_Stream(
     stream: Stream,
-    rot0: u.Quantity[u.deg] | None = u.Quantity(0, u.deg),
+    rot0: Quantity[u.deg] | None = ROT0,
     *,
     force: bool = False,
     **kwargs: Any,
@@ -212,7 +207,6 @@ def _fit_stream_Stream(
         msg = "a system frame was given at initialization. Use ``force`` to re-fit."
         raise TypeError(msg)
 
-    # LOCAL
     from trackstream.frame.fit import fit_frame
 
     # fit_frame uses single-dispatch to get the correct output type
@@ -222,12 +216,12 @@ def _fit_stream_Stream(
     data = {}
     for k, arm in stream.items():
         newarm = replace(arm, frame=result.frame, origin=stream.origin.transform_to(result.frame))
-        newarm._cache["frame_fit_result"] = result
+        newarm._cache["frame_fit_result"] = result  # noqa: SLF001
         newarm.flags.set(**asdict(arm.flags))
         data[k] = newarm
 
     newstream = type(stream)(data, name=stream.name)
-    newstream._cache["frame_fit_result"] = result
+    newstream._cache["frame_fit_result"] = result  # noqa: SLF001
     newstream.flags.set(**stream.flags.asdict())
 
     return newstream

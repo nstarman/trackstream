@@ -1,26 +1,21 @@
 """Kalman Filter code."""
 
-##############################################################################
-# IMPORTS
 
 from __future__ import annotations
 
-# STDLIB
-import warnings
 from copy import deepcopy
 from dataclasses import dataclass
 from functools import singledispatchmethod
 from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple, cast, final
+import warnings
 
-# THIRD PARTY
 import astropy.units as u
 import numpy as np
-import numpy.lib.recfunctions as rfn
 from numpy import dot
+import numpy.lib.recfunctions as rfn
 from numpy.linalg import inv
 from scipy.linalg import block_diag
 
-# LOCAL
 from trackstream.stream.core import StreamArm
 from trackstream.track.fit.exceptions import EXCEPT_NO_KINEMATICS
 from trackstream.track.fit.kalman.utils import intermix_arrays
@@ -30,11 +25,9 @@ from trackstream.utils.coord_utils import f2q
 from trackstream.utils.unit_utils import merge_units
 
 if TYPE_CHECKING:
-    # THIRD PARTY
     from astropy.units import Quantity
     from typing_extensions import Self
 
-    # LOCAL
     from trackstream.track.width.plural import Widths
 
 __all__: list[str] = []
@@ -115,11 +108,11 @@ class FONKFBase:
         self._I: np.ndarray
         object.__setattr__(self, "_I", np.eye(2 * self.nfeature))
 
-    def _x0_validate(self, _, value: np.ndarray) -> None:
+    def _x0_validate(self, _: Any, value: np.ndarray) -> None:
         if len(value.shape) != 1:
             msg = "x0 must be 1D"
             raise ValueError(msg)
-        elif len(value) % 2 != 0:
+        if len(value) % 2 != 0:
             msg = "x0 must have an even number of dimensions."
             raise ValueError(msg)
 
@@ -128,7 +121,7 @@ class FONKFBase:
             msg = f"x0 must have 2 <= x0 <= 6 components, not {nd}"
             raise ValueError(msg)
 
-    def _P0_validate(self, _, value: np.ndarray) -> None:
+    def _P0_validate(self, _: Any, value: np.ndarray) -> None:
         if len(value.shape) != 2:
             msg = "P0 must be 2D"
             raise ValueError(msg)
@@ -168,7 +161,7 @@ class FONKFBase:
 
     @from_format.register(StreamArm)
     @classmethod
-    def _from_format_streamarm(  # noqa: C901
+    def _from_format_streamarm(  # noqa: C901, PLR0915
         cls: type[Self],
         arm: StreamArm,
         *,
@@ -181,6 +174,11 @@ class FONKFBase:
         ----------
         arm : `trackstream.stream.StreamArm`
             The stream (arm) from which to build the Kalman filter
+
+        kinematics : bool | None, optional keyword-only
+            Whether to use kinematics.
+        width0 : None | `astropy.units.Quantity`, optional keyword-only
+            The initial widths to use.
 
         Returns
         -------
@@ -230,11 +228,9 @@ class FONKFBase:
         # This is less important to get exactly correct.
         flat_units = merge_units(info.units)
 
-        if isinstance(width0, u.Quantity) and is_structured(width0):
-            pass
-        elif width0 is None:
+        if width0 is None:
             width0 = u.Quantity(np.zeros((), dtype=[(n, float) for n in flat_units.field_names]), flat_units)
-        else:
+        elif not isinstance(width0, u.Quantity) or not is_structured(width0):
             raise ValueError
 
         ws: list[np.ndarray] = []
@@ -248,7 +244,8 @@ class FONKFBase:
             elif fn in width0.dtype.names:
                 wn0 = cast("Quantity", width0[fn]).to_value(unit).item()
             else:
-                msg = f"{rn}/{fn} is not in the stream data, setting the width to 0."
+                msg = f"{rn} & {fn} are not in the stream data, setting the width to 0."
+                warnings.warn(msg)
                 wn0 = 0
 
             ws.append(np.array([[wn0**2, 0], [0, 0]]))
@@ -260,7 +257,7 @@ class FONKFBase:
             elif (rne := f"{rn}_err") in arm.data.columns:
                 rn0 = arm.data[rne][:3].mean().to_value(unit)
             else:
-                msg = f"{fne}/{rne} are not in the stream data, setting the error to the width."
+                msg = f"{fne} & {rne} are not in the stream data, setting the error to the width."
                 warnings.warn(msg)
                 rn0 = 0
 
@@ -332,6 +329,7 @@ class FONKFBase:
         dt : (N, K) ndarray
             N data points of K types (1 if positions, 2 if also kinematics)
         var : float
+            Variance of the process noise.
 
         Returns
         -------
@@ -376,7 +374,7 @@ class FONKFBase:
     #######################################################
     # Math (2 phase + smoothing)
 
-    def _math_predict_and_update(
+    def _math_predict_and_update(  # noqa: PLR0913
         self,
         x: np.ndarray,
         P: np.ndarray,
@@ -518,10 +516,15 @@ class FONKFBase:
 
         Parameters
         ----------
-        data : (N,) SkyCoord, position-only
+        self : ``FONKFBase``
+            The Kalman filter to run.
+        data : (N,) SkyCoord, positional-only
             The data to fit with the Kalman filter.
+
         errors : (N,) Quantity
-        width : (N,) Quantity
+            The error on the data.
+        widths : (N,) Quantity
+            The width of the data.
         timesteps: (N,) or (N, 2) ndarray
             Must be start and end-point inclusive.
 
@@ -535,17 +538,17 @@ class FONKFBase:
 
         # Get the time deltas from the time steps.
         # Checking the time steps are compatible with the data.
+        error, msg = False, ""
         if len(timesteps) != N:
             msg = f"len(timesteps)={len(timesteps)} is not {N}"
-            raise ValueError(msg)
         elif len(widths) != N:
             msg = f"len(widths)={len(widths)} is not {N}"
-            raise ValueError(msg)
         elif len(errors) != N:
             msg = f"len(errors)={len(errors)} is not {N}"
-            raise ValueError(msg)
         elif np.any(timesteps < 0):
             msg = "timesteps must be >= 0"
+
+        if error:
             raise ValueError(msg)
 
         # Widths

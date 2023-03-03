@@ -2,19 +2,15 @@
 
 from __future__ import annotations
 
-# STDLIB
 import copy
-from collections.abc import Iterator
 from copyreg import pickle
 from typing import TYPE_CHECKING, Any, TypeVar
 
-# THIRD PARTY
-import pytest
 from astropy.coordinates import BaseCoordinateFrame, RadialDifferential, SkyCoord
 from astropy.table import QTable
 from attr import evolve
+import pytest
 
-# LOCAL
 from .test_arm import StreamArmTestMixin
 from .test_base import StreamBaseTest
 from trackstream.stream.base import StreamBase
@@ -23,7 +19,8 @@ from trackstream.track.fit import FitterStreamArmTrack
 from trackstream.utils.coord_utils import parse_framelike
 
 if TYPE_CHECKING:
-    # LOCAL
+    from collections.abc import Iterator
+
     from trackstream.stream.arm import StreamArm
 
 S = TypeVar("S", bound=StreamBase)
@@ -61,20 +58,20 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
     def name(self, request) -> str | None:
         return self.__class__.__name__ if request.param else None
 
-    @pytest.fixture(scope="function", params=[None, (None, None)])
+    @pytest.fixture(params=[None, (None, None)])
     def fitter(self, request) -> FitterStreamArmTrack | None:
         if request.param is None:
             return None
-        else:
-            onsky, kinematics = request.param
-            return FitterStreamArmTrack(onsky=onsky, kinematics=kinematics)
+
+        onsky, kinematics = request.param
+        return FitterStreamArmTrack(onsky=onsky, kinematics=kinematics)
 
     @pytest.fixture(scope="class")
     def stream(self, stream_cls, data_table, data_error_table, origin, frame, name) -> S:
         """Stream instance."""
         return stream_cls(data_table, origin, data_err=data_error_table, frame=frame, name=name)
 
-    @pytest.fixture(scope="function")
+    @pytest.fixture()
     def tempstream(self, stream: S) -> S:
         """function-scoped stream"""
         return evolve(stream)
@@ -88,7 +85,7 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
         strm.fit_frame(fitter=None)
         return strm
 
-    @pytest.fixture(scope="function")
+    @pytest.fixture()
     def tempstream_f(self, stream_f: S) -> S:
         """function-scoped stream"""
         return evolve(stream_f)
@@ -103,10 +100,10 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
     def stream_t(self, stream_f):
         """Fixture returning a fit stream."""
         strm = copy.deepcopy(stream_f)  # decouple from stream
-        strm.fit_track(force=False, **{})  # TODO! test kwargs
+        strm.fit_track(force=False)  # TODO! test kwargs
         return strm
 
-    @pytest.fixture(scope="function")
+    @pytest.fixture()
     def tempstream_t(self, stream_t: S):
         return evolve(stream_t)
 
@@ -282,7 +279,7 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
         fitframe = tempstream_f.fit_frame(force=True)
 
         assert isinstance(fitframe, BaseCoordinateFrame)
-        assert False  # TODO! tests
+        raise AssertionError  # TODO! tests
 
     @pytest.mark.skip("TODO!")
     def test_fit_frame(self, tempstream: S) -> None:
@@ -290,7 +287,7 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
 
         assert isinstance(frame, BaseCoordinateFrame)
 
-        assert False
+        raise AssertionError
 
     # -----------------------------------------------------
 

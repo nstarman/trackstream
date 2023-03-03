@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-# STDLIB
 from typing import TYPE_CHECKING, cast
 
-# THIRD PARTY
+from astropy.coordinates import BaseRepresentation, SphericalRepresentation
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import BaseRepresentation, SphericalRepresentation
 
-# LOCAL
 from trackstream.track.width.threed.core import (
     Cartesian3DWidth,
     SphericalWidth,
@@ -19,7 +16,6 @@ from trackstream.track.width.threed.core import (
 from trackstream.track.width.transforms import register_transformation
 
 if TYPE_CHECKING:
-    # THIRD PARTY
     from astropy.units import Quantity
 
 __all__: list[str] = []

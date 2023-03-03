@@ -1,20 +1,14 @@
 """Testing :mod:`~trackstream.stream.base`."""
 
-##############################################################################
-# IMPORTS
-
-# STDLIB
 from abc import ABCMeta, abstractmethod
 from types import NoneType
 
-# THIRD PARTY
-import numpy as np
-import pytest
 from astropy.coordinates import BaseCoordinateFrame, SkyCoord
 from astropy.table import QTable
 from attr import define
+import numpy as np
+import pytest
 
-# LOCAL
 from trackstream.stream.base import StreamBase
 
 ##############################################################################
@@ -181,47 +175,47 @@ class Test_StreamBase(StreamBaseTest):
     @pytest.mark.skip("TODO!")
     def test_data(self, stream):
         """Test property ``data``."""
-        assert False
+        raise AssertionError
 
     @pytest.mark.skip("TODO!")
     def test_data_frame(self, stream):
         """Test property ``data_frame``."""
-        assert False
+        raise AssertionError
 
     @pytest.mark.skip("TODO!")
     def test_coords(self, stream):
         """Test property ``coords``."""
-        assert False
+        raise AssertionError
 
     @pytest.mark.skip("TODO!")
     def test_coords_ord(self, stream):
         """Test property ``coords_ord``."""
-        assert False
+        raise AssertionError
 
     @pytest.mark.skip("TODO!")
     def test_frame(self, stream):
         """Test property ``frame``."""
-        assert False
+        raise AssertionError
 
     @pytest.mark.skip("TODO!")
     def test_name(self, stream):
         """Test property ``name``."""
-        assert False
+        raise AssertionError
 
     @pytest.mark.skip("TODO!")
     def test_origin(self, stream):
         """Test property ``origin``."""
-        assert False
+        raise AssertionError
 
     @pytest.mark.skip("TODO!")
     def test_has_distances(self, stream):
         """Test property ``has_distances``."""
-        assert False
+        raise AssertionError
 
     @pytest.mark.skip("TODO!")
     def test_full_name(self, stream):
         """Test property ``full_name``."""
-        assert False
+        raise AssertionError
 
     def test_len(self, stream, data_table):
         """Test ``len(stream)``"""

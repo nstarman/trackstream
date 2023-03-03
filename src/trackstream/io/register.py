@@ -2,20 +2,18 @@
 
 from __future__ import annotations
 
-# STDLIB
-import inspect
-import warnings
 from dataclasses import dataclass
+import inspect
 from typing import TYPE_CHECKING, Any, ClassVar, Protocol, TypedDict
+import warnings
 
-# THIRD PARTY
 from astropy.io.registry import IORegistryError, UnifiedIORegistry
 from importlib_metadata import EntryPoint, entry_points
 
 if TYPE_CHECKING:
-    # THIRD PARTY
-    from typing_extensions import NotRequired
     from typing import TypeGuard
+
+    from typing_extensions import NotRequired
 
 
 __all__ = ["UnifiedIOEntryPointRegistrar"]
@@ -134,10 +132,7 @@ class UnifiedIOEntryPointRegistrar:
             valid = False
 
         # Check actual funcs
-        elif not callable(value.get("func")):
-            msg = "field 'identify' must be a callable"
-            valid = False
-        elif "identify" in value and not callable(value["identify"]):
+        elif not callable(value.get("func")) or ("identify" in value and not callable(value["identify"])):
             msg = "field 'identify' must be a callable"
             valid = False
 

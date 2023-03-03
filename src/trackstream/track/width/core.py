@@ -2,37 +2,33 @@
 
 from __future__ import annotations
 
-# STDLIB
-import copy as pycopy
-import inspect
 from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping
+import copy as pycopy
 from dataclasses import dataclass, fields, replace
 from functools import singledispatchmethod
-from types import NotImplementedType
+import inspect
 from typing import TYPE_CHECKING, Any, TypeVar
 
-# THIRD PARTY
-import astropy.coordinates as coords
 import astropy.units as u
 import numpy as np
 import numpy.lib.recfunctions as rfn
-from numpy.typing import NDArray
 
-# LOCAL
 from trackstream.track.utils import is_structured
 from trackstream.track.width.base import FMT_OVERLOADS, WidthBase
 from trackstream.utils.descriptors.classproperty import classproperty
 
 if TYPE_CHECKING:
-    # LOCAL
+    from types import NotImplementedType
+
+    from astropy.coordinates import BaseDifferential, BaseRepresentation, BaseRepresentationOrDifferential
+    from numpy.typing import NDArray
+
     from trackstream.track.width.interpolated import InterpolatedWidth
 
 
 __all__ = ["BaseWidth"]
 
-##############################################################################
-# TYPING
 
 Self = TypeVar("Self", bound="BaseWidth")
 W1 = TypeVar("W1", bound="BaseWidth")
@@ -44,7 +40,7 @@ W2 = TypeVar("W2", bound="BaseWidth")
 
 BASEWIDTH_KIND: dict[type[BaseWidth], u.PhysicalType] = {}
 
-BASEWIDTH_REP: dict[type[coords.BaseRepresentationOrDifferential], type[BaseWidth]] = {}
+BASEWIDTH_REP: dict[type[BaseRepresentationOrDifferential], type[BaseWidth]] = {}
 # map Representation -> BaseWidth
 
 LENGTH = u.get_physical_type("length")
@@ -86,7 +82,7 @@ class BaseWidth(WidthBase, metaclass=ABCMeta):
 
     @classproperty  # TODO! this obscures inspect.isabstract
     @abstractmethod
-    def corresponding_representation_type(cls) -> None | type[coords.BaseRepresentationOrDifferential]:
+    def corresponding_representation_type(cls) -> None | type[BaseRepresentationOrDifferential]:
         """Representation type corresponding to the width type."""
         return
 
@@ -132,7 +128,7 @@ class BaseWidth(WidthBase, metaclass=ABCMeta):
 
         return InterpolatedWidth.from_format(self, affine=affine)
 
-    def represent_as(self, width_type: type[W1], point: coords.BaseRepresentation) -> W1:
+    def represent_as(self, width_type: type[W1], point: BaseRepresentation) -> W1:
         """Transform the width to another representation type.
 
         Parameters
@@ -211,9 +207,7 @@ class BaseWidth(WidthBase, metaclass=ABCMeta):
     @__setitem__.register(Mapping)
     def _setitem_mapping(self, key: Mapping[str, Any], value: BaseWidth) -> None | NotImplementedType:
         # Setitem mut be implemented for each field.
-        if key.keys() != {f.name for f in fields(self)}:
-            raise ValueError
-        elif key.keys() != {f.name for f in fields(value)}:
+        if key.keys() != {f.name for f in fields(self)} or key.keys() != {f.name for f in fields(value)}:
             raise ValueError
 
         # Delegate to contained fields
@@ -227,7 +221,7 @@ class BaseWidth(WidthBase, metaclass=ABCMeta):
 
 
 @BaseWidth.__lt__.register(BaseWidth)
-def _lt_basewidth(self, other: BaseWidth) -> dict[str, np.ndarray]:
+def _lt_basewidth(self: BaseWidth, other: BaseWidth) -> dict[str, np.ndarray]:
     if not isinstance(other, self.__class__):
         return NotImplemented
 
@@ -253,7 +247,7 @@ class ConfigSpaceWidth(BaseWidth, metaclass=ABCMeta):
 
     @classproperty
     @abstractmethod
-    def corresponding_representation_type(cls) -> None | type[coords.BaseRepresentation]:
+    def corresponding_representation_type(cls) -> None | type[BaseRepresentation]:
         """Representation type corresponding to the width type."""
         return
 
@@ -278,7 +272,7 @@ class KinematicSpaceWidth(BaseWidth):
         return SPEED
 
     @classproperty
-    def corresponding_representation_type(cls) -> None | type[coords.BaseDifferential]:
+    def corresponding_representation_type(cls) -> None | type[BaseDifferential]:
         """Representation type corresponding to the width type."""
         return
 

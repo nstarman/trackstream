@@ -1,27 +1,21 @@
 """Fit a Rotated reference frame."""
 
-##############################################################################
-# IMPORTS
 
 from __future__ import annotations
 
-# STDLIB
+from collections.abc import Callable, Mapping
 import functools
-from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypedDict, cast
-from collections.abc import Callable
 
-# THIRD PARTY
 import astropy.coordinates as coords
-import astropy.units as u
-import numpy as np
-import scipy.optimize as opt
 from astropy.coordinates.matrix_utilities import rotation_matrix
+import astropy.units as u
 from astropy.units import Quantity
 from erfa import ufunc as erfa_ufunc
+import numpy as np
 from numpy import ndarray
+import scipy.optimize as opt
 
-# LOCAL
 from trackstream.frame.result import FrameOptimizeResult
 from trackstream.stream.core import StreamArm
 from trackstream.stream.plural import StreamArmsBase
@@ -29,7 +23,6 @@ from trackstream.stream.stream import Stream
 from trackstream.utils.coord_utils import get_frame
 
 if TYPE_CHECKING:
-    # THIRD PARTY
     from numpy.typing import NDArray
 
 __all__: list[str] = []
@@ -111,8 +104,11 @@ def residual(
             In degrees.
         - lon, lat : float
             In degrees. If |ICRS|, equivalent to ra & dec.
+
     data : (3, N) Quantity['length']
         E.g. :attr:`astropy.coordinates.ICRS.cartesian`.
+    scalar : bool, optional, keyword-only
+        Whether to sum `res` into a float.
 
     Returns
     -------

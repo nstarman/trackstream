@@ -2,24 +2,21 @@
 
 from __future__ import annotations
 
-# STDLIB
 from abc import abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass, fields, replace
 from functools import singledispatchmethod
-from typing import Any, ClassVar, TypeVar
+from typing import TYPE_CHECKING, Any, ClassVar, TypeVar
 
-# THIRD PARTY
-import astropy.units as u
 import numpy as np
 from overload_numpy import NPArrayOverloadMixin, NumPyOverloader
 from override_toformat import ToFormatOverloader, ToFormatOverloadMixin
 
 __all__ = ["WidthBase"]
 
+if TYPE_CHECKING:
+    from astropy.units import StructuredUnit
 
-##############################################################################
-# TYPING
 
 Self = TypeVar("Self", bound="WidthBase")
 T = TypeVar("T")
@@ -61,7 +58,7 @@ class WidthBase(NPArrayOverloadMixin, ToFormatOverloadMixin):
 
     @property
     @abstractmethod
-    def units(self) -> u.StructuredUnit:
+    def units(self) -> StructuredUnit:
         """Structured unit of the fields' units."""
         raise NotImplementedError
 

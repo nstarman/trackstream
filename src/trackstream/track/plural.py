@@ -1,27 +1,22 @@
 """Stream track fit result."""
 
-##############################################################################
-# IMPORTS
 
 from __future__ import annotations
 
-# STDLIB
-import weakref
-from collections.abc import Mapping
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
+import weakref
 
-# THIRD PARTY
-import numpy as np
 from astropy.utils.metadata import MetaAttribute
+import numpy as np
 
-# LOCAL
 from trackstream.common import CollectionBase
 from trackstream.stream.stream import Stream
 from trackstream.track.core import StreamArmTrack, StreamArmTrackBase
 
 if TYPE_CHECKING:
-    # LOCAL
+    from collections.abc import Mapping
+
     from trackstream.stream.base import StreamLikeT
     from trackstream.track.fit.path import Path
 

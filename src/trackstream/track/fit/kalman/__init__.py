@@ -1,6 +1,6 @@
 """Kalman filter."""
 
-# LOCAL
+
 from trackstream.track.fit.kalman.builtin import CartesianFONKF, USphereFONKF
 from trackstream.track.fit.kalman.core import FirstOrderNewtonianKalmanFilter
 

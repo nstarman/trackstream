@@ -25,14 +25,11 @@ the documentation will *not* be accessible, and the documentation will not build
 correctly.
 """
 
-# STDLIB
 import datetime
+from importlib import import_module
 import pathlib
 import sys
-from importlib import import_module
 
-# THIRD PARTY
-import tomlkit
 from sphinx_astropy.conf.v1 import (
     exclude_patterns,
     extensions,
@@ -41,6 +38,7 @@ from sphinx_astropy.conf.v1 import (
     numpydoc_xref_ignore,
     rst_epilog,
 )
+import tomlkit
 
 # Get configuration information from pyproject.toml
 path = pathlib.Path(__file__).parent.parent / "pyproject.toml"

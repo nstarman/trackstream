@@ -1,22 +1,23 @@
 """Coordinates Utilities."""
 
-##############################################################################
-# IMPORTS
 
 from __future__ import annotations
 
-# STDLIB
-from collections.abc import Iterator, KeysView, Mapping, MutableMapping, ValuesView
+from collections.abc import (
+    Callable,
+    Iterator,
+    KeysView,
+    Mapping,
+    MutableMapping,
+    ValuesView,
+)
 from typing import TYPE_CHECKING, Any, TypeVar, cast
-from collections.abc import Callable
 
-# THIRD PARTY
 import astropy.units as u
 from numpy import any, arctan2, ndarray, pi, sqrt, vectorize
 from scipy.linalg import svd
 
 if TYPE_CHECKING:
-    # THIRD PARTY
     from astropy.units import Quantity
 
 __all__: list[str] = []

@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-# STDLIB
-from collections.abc import Mapping
 from types import MappingProxyType
-from typing import Any, Generic, Protocol, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Generic, Protocol, TypeVar, overload
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 class _HasInitCache(Protocol):
-    def _init_cache(self, instance: Any) -> dict[str, Any]:
+    def _init_cache(self: Any, instance: Any) -> dict[str, Any]:
         ...
 
 
@@ -27,7 +28,7 @@ class CacheProperty(Generic[EnclT]):
     """Add an attribute ``cache`` to a class."""
 
     @overload
-    def __get__(self, instance: EnclT, _: None | type) -> MappingProxyType[str, Any]:
+    def __get__(self: Any, instance: EnclT, _: None | type) -> MappingProxyType[str, Any]:
         ...
 
     @overload
@@ -42,9 +43,9 @@ class CacheProperty(Generic[EnclT]):
             cache = self._init_cache(instance)
             object.__setattr__(instance, "_cache", cache)
 
-        return MappingProxyType(instance._cache)
+        return MappingProxyType(instance._cache)  # noqa: SLF001
 
-    def __set__(self, instance: EnclT, value: Mapping[str, Any] | None) -> None:
+    def __set__(self: Any, instance: EnclT, value: Mapping[str, Any] | None) -> None:
         if not hasattr(instance, "_cache"):
             cache = self._init_cache(instance)
             cache.update(value or {})
@@ -53,9 +54,9 @@ class CacheProperty(Generic[EnclT]):
             msg = "can't set attribute"
             raise AttributeError(msg)
 
-    def __delete__(self, instance: EnclT) -> None:
-        instance._cache.clear()
-        instance._cache.update(self._init_cache(instance))
+    def __delete__(self: Any, instance: EnclT) -> None:
+        instance._cache.clear()  # noqa: SLF001
+        instance._cache.update(self._init_cache(instance))  # noqa: SLF001
 
     @staticmethod
     def _init_cache(instance: EnclT) -> dict[str, Any]:

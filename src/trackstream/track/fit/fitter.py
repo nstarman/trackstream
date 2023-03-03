@@ -1,23 +1,18 @@
 """Stream track fitter and fit result."""
 
-##############################################################################
-# IMPORTS
 
 from __future__ import annotations
 
-# STDLIB
 import copy
 from dataclasses import InitVar, dataclass
 from functools import singledispatchmethod
 from typing import TYPE_CHECKING, Any, TypeVar, cast, final
 
-# THIRD PARTY
 import astropy.coordinates as coords
 import astropy.units as u
 import numpy as np
 from typing_extensions import ParamSpec, Self
 
-# LOCAL
 from trackstream.stream.core import StreamArm
 from trackstream.stream.plural import StreamArmsBase
 from trackstream.track.fit.exceptions import (
@@ -29,14 +24,11 @@ from trackstream.track.fit.kalman.utils import make_error
 from trackstream.track.fit.som import SelfOrganizingMap
 from trackstream.track.fit.timesteps import make_timesteps
 from trackstream.track.fit.timesteps.plural import LENGTH, SPEED, Times
-from trackstream.track.width.plural import Widths
 from trackstream.utils.coord_utils import deep_transform_to
 
 if TYPE_CHECKING:
-    # THIRD PARTY
-
-    # LOCAL
     from trackstream.track.core import StreamArmTrack
+    from trackstream.track.width.plural import Widths
 
 __all__: list[str] = []
 
@@ -97,8 +89,7 @@ class FitterStreamArmTrack:
     def _som_validator(self, _: Any, som: SelfOrganizingMap) -> None:
         if not isinstance(som, SelfOrganizingMap):
             raise TypeError
-
-        elif som.onsky != self.onsky:
+        if som.onsky != self.onsky:
             raise ValueError
 
     def _kalman_validator(self, _: Any, value: FirstOrderNewtonianKalmanFilter) -> None:
@@ -238,7 +229,7 @@ class FitterStreamArmTrack:
 
         if not self.onsky and not stream.has_distances:
             raise EXCEPT_3D_NO_DISTANCES
-        elif self.kinematics and not stream.has_kinematics:
+        if self.kinematics and not stream.has_kinematics:
             raise EXCEPT_NO_KINEMATICS
 
         # Frame
@@ -307,11 +298,9 @@ class FitterStreamArmTrack:
         # LOCAL
         from trackstream.track.core import StreamArmTrack
 
-        track = StreamArmTrack(
+        return StreamArmTrack(
             stream,
             path,
             name=stream.full_name,
             meta={"som": self.som, "visit_order": order, "kalman": self.kalman},
         )
-
-        return track

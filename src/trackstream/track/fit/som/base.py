@@ -2,23 +2,20 @@
 
 from __future__ import annotations
 
-# STDLIB
-import copy
-import warnings
 from abc import abstractmethod
+import copy
 from dataclasses import dataclass
 from functools import singledispatchmethod
 from math import pi
 from typing import Any, ClassVar, final
+import warnings
 
-# THIRD PARTY
 import astropy.units as u
 import numpy as np
 from numpy import exp, ndarray, power
 from numpy.lib.recfunctions import structured_to_unstructured
 from numpy.random import Generator, default_rng
 
-# LOCAL
 from trackstream.stream.core import StreamArm
 from trackstream.stream.plural import StreamArmsBase
 from trackstream.track.fit.exceptions import EXCEPT_NO_KINEMATICS
@@ -140,40 +137,44 @@ class SOM1DBase:
     @classmethod
     def from_format(
         cls,
-        arm: object,
+        arm: object,  # noqa: ARG003
         /,
-        kinematics: bool | None = None,
+        kinematics: bool | None = None,  # noqa: ARG003
         *,
-        nlattice: int | None = None,
-        sigma: float = 0.1,
-        learning_rate: float = 0.3,
-        rng: Generator | int | None = None,
-        prototype_kw: dict[str, Any] | None = None,
+        nlattice: int | None = None,  # noqa: ARG003
+        sigma: float = 0.1,  # noqa: ARG003
+        learning_rate: float = 0.3,  # noqa: ARG003
+        rng: Generator | int | None = None,  # noqa: ARG003
+        prototype_kw: dict[str, Any] | None = None,  # noqa: ARG003
     ) -> Any:  # https://github.com/python/mypy/issues/11727
         """Initialize a SOM from an object.
 
         Parameters
         ----------
+        cls : type
+            The class to initialize.
         arm : object, positional-only
             The object to initialize from.
         kinematics : bool, optional
             Whether to use kinematics. If `None`, will use kinematics if available.
-        nlattice : int | None, optional
+
+        nlattice : int | None, optional keyword-only
             Number of lattice points.
-        sigma : float | None, optional
+        sigma : float | None, optional keyword-only
             Spread of the neighborhood function, needs to be adequate to the dimensions of the map.
-        learning_rate : float | None, optional
+        learning_rate : float | None, optional keyword-only
             Initial learning rate.
-        rng : int, optional
+        rng : int, optional keyword-only
             Random seed to use.
-        prototype_kw : dict | None, optional
+        prototype_kw : dict | None, optional keyword-only
             Keyword arguments to pass to the prototype initialization function.
 
         Returns
         -------
         SOM1DBase
         """
-        raise NotImplementedError("not dispatched")  # noqa: EM101
+        msg = "not dispatched"
+        raise NotImplementedError(msg)
 
     @from_format.register(StreamArm)
     @classmethod
@@ -270,7 +271,7 @@ class SOM1DBase:
     def fit(
         self,
         data: ndarray,
-        num_iteration: int = int(1e5),
+        num_iteration: int = 100_000,
         *,
         random_order: bool = False,
         progress: bool = False,
@@ -310,7 +311,7 @@ class SOM1DBase:
                 self._update(data[i], t, num_iteration)
 
     def _neighborhood(self, c: int, sigma: float) -> ndarray:
-        """Returns a Gaussian centered in c.
+        """Return a Gaussian centered in c.
 
         This is in the lattice space, so Cartesian vs UnitSpherical does not
         matter.
@@ -320,11 +321,12 @@ class SOM1DBase:
         return ay  # the external product gives a matrix
 
     def _best_matching_unit_index(self, x: ndarray, /) -> int:
-        """Computes the coordinates of the best prototype for the sample.
+        """Compute the coordinates of the best prototype for the sample.
 
         Parameters
         ----------
         x : (D,) ndarray, positional-only
+            The sample to be classified.
 
         Returns
         -------
@@ -377,7 +379,7 @@ class SOM1DBase:
         self,
         data: ndarray,
         /,
-        num_iteration: int = int(1e5),
+        num_iteration: int = 100_000,
         *,
         random_order: bool = False,
         progress: bool = False,

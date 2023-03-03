@@ -1,48 +1,31 @@
 """Path are an affine-parameterized path."""
 
-##############################################################################
-# IMPORTS
 
 from __future__ import annotations
 
-# STDLIB
-from collections.abc import Sequence
 from dataclasses import InitVar, dataclass
 from functools import singledispatchmethod
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    ClassVar,
-    Literal,
-    NamedTuple,
-    cast,
-    overload,
-)
-from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, NamedTuple, cast, overload
 
-# THIRD PARTY
 import astropy.coordinates as coords
 import astropy.units as u
-import interpolated_coordinates as icoords
-import numpy as np
 from astropy.utils.decorators import format_doc
 from astropy.utils.metadata import MetaData
+import interpolated_coordinates as icoords
+import numpy as np
 from overload_numpy import NPArrayOverloadMixin, NumPyOverloader
 from scipy.optimize import OptimizeResult, minimize_scalar
 
-# LOCAL
-from trackstream.track.width.core import BaseWidth
 from trackstream.track.width.interpolated import InterpolatedWidths
 from trackstream.utils.coord_utils import get_frame, parse_framelike
 
 if TYPE_CHECKING:
-    # THIRD PARTY
-    from interpolated_coordinates.utils import (  # noqa: N817
-        InterpolatedUnivariateSplinewithUnits as IUSU,
-    )
+    from collections.abc import Callable, Sequence
 
-    # LOCAL
+    from interpolated_coordinates.utils import InterpolatedUnivariateSplinewithUnits as IUSU  # noqa: N817
+
     from trackstream._typing import CoordinateType, FrameLikeType
+    from trackstream.track.width.core import BaseWidth
     from trackstream.track.width.plural import Widths
 
 __all__ = ["Path", "path_moments"]
@@ -127,7 +110,7 @@ class Path(NPArrayOverloadMixin):
         if not isinstance(self.data, icoords.InterpolatedSkyCoord):
             msg = "use `Path.from_format` instead"
             raise TypeError(msg)
-        elif self.width is not None and not np.array_equal(self.data.affine, self.width.affine):
+        if self.width is not None and not np.array_equal(self.data.affine, self.width.affine):
             msg = "data.affine != width.affine"
             raise ValueError(msg)
 
@@ -471,8 +454,26 @@ class Path(NPArrayOverloadMixin):
 # NumPy Overloading
 
 
+def _validate_concatenate_args(seqpaths: Sequence[Path], out: Path | None, dtype: np.dtype | None) -> None:
+    N = len(seqpaths)
+    if N == 0:
+        msg = "need at least one array to concatenate"
+        raise ValueError(msg)
+    if N > 2:
+        msg = "cannot concatenate more than 2 paths"
+        raise ValueError(msg)
+
+    if out is not None:
+        msg = "out must be None"
+        raise ValueError(msg)
+
+    if dtype is not None:
+        msg = "dtype must be None"
+        raise ValueError(msg)
+
+
 @Path.NP_OVERLOADS.implements(np.concatenate, dispatch_on=Path)
-def concatenate(  # noqa: C901
+def concatenate(
     seqpaths: Sequence[Path],
     axis: int = 0,
     out: Path | None = None,
@@ -480,30 +481,12 @@ def concatenate(  # noqa: C901
     _: str = "same_kind",
 ) -> Path:
     """Concatenate a sequence of Paths."""
-    # ----------------------------------------
-    # Validation
-
-    N = len(seqpaths)
-    if N == 0:
-        msg = "need at least one array to concatenate"
-        raise ValueError(msg)
-    elif N > 2:
-        msg = "cannot concatenate more than 2 paths"
-        raise ValueError(msg)
-
-    if out is not None:
-        msg = "out must be None"
-        raise ValueError(msg)
-    elif dtype is not None:
-        msg = "dtype must be None"
-        raise ValueError(msg)
-
-    if N == 1:
+    _validate_concatenate_args(seqpaths, out, dtype)
+    if len(seqpaths) == 1:
         if axis != 0:
             msg = "axis must be 0 for 1 path"
             raise ValueError(msg)
         return seqpaths[0]
-    # else:  N == 2
 
     # ----------------------------------------
 
@@ -511,7 +494,7 @@ def concatenate(  # noqa: C901
     if npth.frame != ppth.frame:
         msg = "the paths must have the same frame"
         raise ValueError(msg)
-    elif npth.frame.representation_type != ppth.frame.representation_type:
+    if npth.frame.representation_type != ppth.frame.representation_type:
         msg = "the paths must have the same representation_type"
         raise ValueError(msg)
 

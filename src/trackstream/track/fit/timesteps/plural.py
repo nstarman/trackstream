@@ -2,25 +2,19 @@
 
 from __future__ import annotations
 
-# STDLIB
 from collections.abc import Mapping
 from functools import singledispatchmethod
 from typing import Any, ClassVar, TypeVar, cast, final
 
-# THIRD PARTY
 import astropy.units as u
 import numpy as np
 from numpy.lib.recfunctions import merge_arrays
 from override_toformat import ToFormatOverloader, ToFormatOverloadMixin
 
-# LOCAL
 from trackstream.track.utils import PhysicalTypeKeyMutableMapping, is_structured
 
 __all__: list[str] = []
 
-
-##############################################################################
-# TYPING
 
 T = TypeVar("T")
 
@@ -123,7 +117,7 @@ class Times(PhysicalTypeKeyMutableMapping[u.Quantity], ToFormatOverloadMixin):
         return cls(times)
 
     def __array__(self, dtype: np.dtype | None = None) -> np.ndarray:
-        arrs_g = ((k._physical_type_list[0], np.array(v, dtype)) for k, v in self.items())
+        arrs_g = ((k._physical_type_list[0], np.array(v, dtype)) for k, v in self.items())  # noqa: SLF001
         return merge_arrays(tuple(v.view(np.dtype([(k, v.dtype)])) for k, v in arrs_g))
 
     # ===============================================================
@@ -147,7 +141,7 @@ def _to_format_ndarray(data: Times) -> np.ndarray:
 
 
 @FMT_OVERLOADS.implements(to_format=u.Quantity, from_format=Times)
-def _to_format_quantity(cls, data: Times) -> u.Quantity:
+def _to_format_quantity(cls: type, data: Times) -> u.Quantity:
     arrs = np.array(data)
     units = u.StructuredUnit(tuple(v.unit for v in data.values()))
     return cls(arrs, unit=units)

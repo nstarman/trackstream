@@ -2,18 +2,15 @@
 
 from __future__ import annotations
 
-# STDLIB
-import copy
 from collections.abc import Mapping
+import copy
 from dataclasses import dataclass
 
-# THIRD PARTY
-import astropy.units as u
 from astropy.coordinates import BaseCoordinateFrame, SkyCoord
 from astropy.table import MaskedColumn, QTable, Table
+import astropy.units as u
 from numpy import arange, ones
 
-# LOCAL
 from trackstream.utils.coord_utils import deep_transform_to
 
 __all__: list[str] = []
@@ -91,7 +88,7 @@ class StreamArmDataNormalizer:
         return data
 
     def _data_arm_index(self, original: Table, *, out: QTable) -> None:
-        """Data stream arm index. A string.
+        """Set stream arm index.
 
         Parameters
         ----------
@@ -109,7 +106,9 @@ class StreamArmDataNormalizer:
         out: QTable,
         default_weight: float | u.Quantity = 1.0,
     ) -> None:
-        """Data probability. Units of percent. Default is 100%.
+        """Normalize data probability.
+
+        Units of percent. Default is 100%.
 
         Parameters
         ----------
@@ -212,7 +211,7 @@ class StreamArmDataNormalizer:
                 out[dn] = 0 * getattr(sc, n)  # (get correct units)
 
     def _data_order(self, original: Table, *, out: QTable) -> None:
-        """Data ordering.
+        """Normalize data ordering.
 
         Parameters
         ----------

@@ -1,22 +1,17 @@
 """Kalman Filter code."""
 
-##############################################################################
-# IMPORTS
 
 from __future__ import annotations
 
-# STDLIB
 from dataclasses import dataclass
 from functools import singledispatchmethod
 from typing import TYPE_CHECKING, Any, cast
 
-# THIRD PARTY
-import astropy.coordinates as coords
+from astropy.coordinates import BaseCoordinateFrame  # noqa: TCH002
 import astropy.units as u
 import numpy as np
 import numpy.lib.recfunctions as rfn
 
-# LOCAL
 from trackstream.stream.base import FRAME_NONE_ERR
 from trackstream.stream.core import StreamArm
 from trackstream.track.fit.exceptions import EXCEPT_3D_NO_DISTANCES
@@ -29,11 +24,9 @@ from trackstream.track.width.plural import Widths
 from trackstream.utils.unit_utils import merge_units
 
 if TYPE_CHECKING:
-    # THIRD PARTY
-    from astropy.coordinates import BaseCoordinateFrame
+    from astropy.coordinates import SkyCoord
     from typing_extensions import Self
 
-    # LOCAL
     from trackstream.track.fit.kalman.base import FONKFBase, KFInfo
     from trackstream.track.fit.timesteps.plural import Times
 
@@ -65,14 +58,14 @@ class FirstOrderNewtonianKalmanFilter:
     kf: FONKFBase
     """Low-level kalman filter implementation."""
 
-    frame: coords.BaseCoordinateFrame
+    frame: BaseCoordinateFrame
     """Frame of the Kalman filter."""
 
     # ===============================================================
     # Convenience hooks on the low-level object.
 
     @property
-    def x0(self) -> coords.BaseCoordinateFrame:
+    def x0(self) -> BaseCoordinateFrame:
         """Return the initial position."""
         return _v2c(self, self.kf.x0)
 
@@ -160,6 +153,14 @@ class FirstOrderNewtonianKalmanFilter:
         arm : `trackstream.stream.StreamArm`
             The stream (arm) from which to build the Kalman filter
 
+        onsky : bool | None, optional
+            If the Kalman filter should be on the sky or in 3D.
+        kinematics : bool | None, optional
+            If the Kalman filter should include the kinematics.
+
+        width0 : None | Widths, optional keyword-only
+            Initial widths for the Kalman filter.
+
         Returns
         -------
         `trackstream.fit.kalman.FONKFBase`
@@ -172,9 +173,8 @@ class FirstOrderNewtonianKalmanFilter:
 
         if arm.frame is None:
             raise FRAME_NONE_ERR
-        else:
-            frame = arm.frame
 
+        frame = arm.frame
         kf_cls = USphereFONKF if onsky else CartesianFONKF
 
         # Width
@@ -186,7 +186,7 @@ class FirstOrderNewtonianKalmanFilter:
             wclss = (_PW_REP[kf_cls.info.representation_type], _PW_REP[kf_cls.info.differential_type])
             width0 = Widths(
                 {
-                    wcls.dimensions._physical_type_list[0]: wcls.from_format(w0q)
+                    wcls.dimensions._physical_type_list[0]: wcls.from_format(w0q)  # noqa: SLF001
                     for wcls in wclss
                     if wcls.dimensions is not None
                 },
@@ -205,7 +205,7 @@ class FirstOrderNewtonianKalmanFilter:
 
     def fit(
         self,
-        data: coords.SkyCoord,
+        data: SkyCoord,
         /,
         errors: u.Quantity,
         widths: Widths,
@@ -217,6 +217,8 @@ class FirstOrderNewtonianKalmanFilter:
 
         Parameters
         ----------
+        self : FirstOrderNewtonianKalmanFilter
+            The Kalman filter to run.
         data : (N,) SkyCoord, positional-only
             The data to fit with the Kalman filter.
         errors : (N,) Quantity
@@ -227,6 +229,9 @@ class FirstOrderNewtonianKalmanFilter:
             Field names should be the representation names.
         timesteps: Times
             Must be start and end-point inclusive.
+
+        name : str | None, optional keyword-only
+            The name of the path.
 
         Returns
         -------

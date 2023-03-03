@@ -1,16 +1,13 @@
 # see LICENSE.rst
 
 """Test helpers for :mod:`~trackstream`."""
-
-# STDLIB
 from typing import Any
 
-# THIRD PARTY
-import astropy.units as u
-import pytest
 from astropy.coordinates import Angle, SkyCoord
 from astropy.table import QTable
+import astropy.units as u
 from astropy.utils.data import get_pkg_data_path
+import pytest
 
 
 @pytest.fixture(scope="session")

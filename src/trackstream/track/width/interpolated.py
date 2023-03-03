@@ -2,36 +2,29 @@
 
 from __future__ import annotations
 
-# STDLIB
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, fields, replace
 from functools import singledispatchmethod
 from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast
 
-# THIRD PARTY
 import astropy.units as u
-import numpy as np
-import numpy.lib.recfunctions as rfn
 from astropy.units import Quantity
 from interpolated_coordinates.utils import (  # noqa: N817
     InterpolatedUnivariateSplinewithUnits as IUSU,
 )
+import numpy as np
+import numpy.lib.recfunctions as rfn
 
-# LOCAL
 from trackstream.track.utils import is_structured
 from trackstream.track.width.base import WidthBase
 from trackstream.track.width.core import BaseWidth
 from trackstream.track.width.plural import Widths
 
 if TYPE_CHECKING:
-    # THIRD PARTY
     from astropy.coordinates import BaseRepresentation
 
 __all__ = ["InterpolatedWidth"]
 
-
-##############################################################################
-# TYPING
 
 Self = TypeVar("Self", bound="InterpolatedWidth")
 W1 = TypeVar("W1", bound="BaseWidth")
@@ -147,7 +140,7 @@ class InterpolatedWidth(WidthBase, Generic[W1]):
         if not isinstance(data, cls):
             msg = "not dispatched"
             raise NotImplementedError(msg)
-        elif affine is not None and not np.array_equal(data.affine, affine):
+        if affine is not None and not np.array_equal(data.affine, affine):
             raise ValueError
 
         return data
@@ -201,13 +194,12 @@ class InterpolatedWidth(WidthBase, Generic[W1]):
 
             return replace(self, width=self(afn), affine=afn)
 
-        elif all(isq[:2]) and s is None:
+        if all(isq[:2]) and s is None:
             msg = "TODO!"
             raise NotImplementedError(msg)
 
-        else:
-            msg = "invalid slice"
-            raise ValueError(msg)
+        msg = "invalid slice"
+        raise ValueError(msg)
 
     # ===============================================================
     # Interoperability

@@ -1,32 +1,24 @@
 """Core Functions."""
 
-##############################################################################
-# IMPORTS
 
 from __future__ import annotations
 
-# STDLIB
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar, runtime_checkable
 
-# THIRD PARTY
-import astropy.units as u
 from astropy.coordinates import BaseCoordinateFrame, RadialDifferential, SkyCoord
+import astropy.units as u
 from astropy.utils.misc import indent
 
-# LOCAL
 from trackstream.utils.descriptors.attribute import Attribute
 from trackstream.utils.descriptors.cache import CacheProperty
 
 if TYPE_CHECKING:
-    # THIRD PARTY
     from astropy.table import QTable
 
 
 __all__: list[str] = []
 
-##############################################################################
-# TYPING
 
 StreamLikeT = TypeVar("StreamLikeT", bound="StreamLike")
 StreamBaseT = TypeVar("StreamBaseT", bound="StreamBase")
@@ -192,7 +184,7 @@ class StreamBase:
 
     # ===============================================================
 
-    def __base_repr__(self, max_lines: int | None = None) -> list[str]:
+    def _base_repr_(self, max_lines: int | None = None) -> list[str]:  # noqa: ARG002
         rs = []
 
         # 0) header (standard repr)
@@ -224,7 +216,7 @@ class StreamBase:
         return rs
 
     def __repr__(self) -> str:
-        s: str = "\n".join(self.__base_repr__(max_lines=self.flags.table_repr_max_lines))
+        s: str = "\n".join(self._base_repr_(max_lines=self.flags.table_repr_max_lines))
         return s
 
     def __len__(self) -> int:

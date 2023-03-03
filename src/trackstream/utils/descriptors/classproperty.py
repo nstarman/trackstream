@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-# STDLIB
-from typing import Generic, TypeVar
-from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
-##############################################################################
-# TYPING
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 T = TypeVar("T")
 
@@ -28,23 +26,23 @@ class classproperty(Generic[T]):
         Docstring of class property. If None, tries to get from ``fget``.
     """
 
-    def __init__(self, fget: Callable[..., T] | None = None, doc: str | None = None) -> None:
+    def __init__(self: Any, fget: Callable[..., T] | None = None, doc: str | None = None) -> None:
         thedoc = fget.__doc__ if (doc is None and fget is not None) else doc
 
         self.fget = fget
         self.__doc__ = thedoc
         self._name = ""  # in case ``__set_name__`` is not called.
 
-    def __set_name__(self, _: type, name: str) -> None:
+    def __set_name__(self: Any, _: type, name: str) -> None:
         self._name = name
 
-    def __get__(self, obj: object | None, objtype: None | type = None) -> T:
+    def __get__(self: Any, obj: object | None, objtype: None | type = None) -> T:
         if self.fget is None:
             msg = f"unreadable attribute {self._name}"
             raise AttributeError(msg)
         return self.fget(type(obj) if objtype is None else objtype)
 
-    def getter(self, fget: Callable[..., T]) -> classproperty[T]:
+    def getter(self: Any, fget: Callable[..., T]) -> classproperty[T]:
         """Descriptor to obtain a copy of the property with a different getter.
 
         Parameters
@@ -58,5 +56,5 @@ class classproperty(Generic[T]):
             With new getter set.
         """
         prop = type(self)(fget, self.__doc__)
-        prop._name = self._name
+        prop._name = self._name  # noqa: SLF001
         return prop

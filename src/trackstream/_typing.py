@@ -4,15 +4,11 @@ This project extensively uses :mod:`~typing` hints.
 Note that this is not (necessarily) static typing.
 """
 
-##############################################################################
-# IMPORTS
 
 from __future__ import annotations
 
-# STDLIB
 from typing import Protocol, TypeVar
 
-# THIRD PARTY
 from astropy.coordinates import BaseCoordinateFrame, SkyCoord
 from numpy import floating
 from numpy.typing import NBitBase, NDArray

@@ -1,23 +1,18 @@
 """Fit a rotated reference frame to stream data."""
 
-##############################################################################
-# IMPORTS
 
 from __future__ import annotations
 
-# STDLIB
 from dataclasses import dataclass
 from functools import singledispatchmethod
 from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast, final
 
-# THIRD PARTY
 import astropy.coordinates as coords
 import astropy.units as u
 import numpy as np
 from scipy.optimize import OptimizeResult
 
 if TYPE_CHECKING:
-    # THIRD PARTY
     from astropy.units import Quantity
 
 __all__: list[str] = []

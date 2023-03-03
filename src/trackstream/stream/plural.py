@@ -3,12 +3,9 @@
 Stream arms are descriptors on a `trackstrea.Stream` class.
 """
 
-##############################################################################
-# IMPORTS
 
 from __future__ import annotations
 
-# LOCAL
 from trackstream.common import CollectionBase
 from trackstream.stream.core import StreamArm
 

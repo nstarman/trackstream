@@ -1,17 +1,8 @@
 """Testing :mod:`~trackstream.utils.coord_utils`."""
 
-
-##############################################################################
-# IMPORTS
-
-# STDLIB
 from math import pi
 
-# THIRD PARTY
 import astropy.coordinates as coord
-import astropy.units as u
-import numpy as np
-import pytest
 from astropy.coordinates import (
     FK5,
     LSR,
@@ -21,10 +12,12 @@ from astropy.coordinates import (
     SphericalDifferential,
     SphericalRepresentation,
 )
+import astropy.units as u
 from astropy.units import Quantity
+import numpy as np
 from numpy import allclose, array, array_equal
+import pytest
 
-# LOCAL
 from trackstream.track.fit.utils import offset_by, position_angle
 from trackstream.track.utils import covariance_ellipse, is_structured
 from trackstream.utils.coord_utils import deep_transform_to, parse_framelike
