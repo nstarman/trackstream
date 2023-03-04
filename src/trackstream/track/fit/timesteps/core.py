@@ -1,24 +1,18 @@
 """Kalman Filter code."""
 
-##############################################################################
-# IMPORTS
 
 from __future__ import annotations
 
-# STDLIB
 from typing import TYPE_CHECKING, cast
 
-# THIRD PARTY
 import astropy.coordinates as coords
 import astropy.units as u
-import numpy as np
 from astropy.units import Quantity
+import numpy as np
 
-# LOCAL
 from trackstream.track.fit.timesteps.plural import LENGTH, SPEED, Times
 
 if TYPE_CHECKING:
-    # LOCAL
     from trackstream.track.fit.kalman.core import FirstOrderNewtonianKalmanFilter
 
 __all__: list[str] = []
@@ -87,13 +81,15 @@ def make_timesteps(
 
     Parameters
     ----------
-    data : (N,) SkyCoord, position-only
+    data : (N,) SkyCoord, positional-only
         Must be ordered.
+    kf : FirstOrderNewtonianKalmanFilter
+        The Kalman filter.
 
     dt0 : Quantity['length'] or Quantity['angle'], keyword-only
         Starting timestep.
-    dtmin : Quantity['length'] or Quantity['angle'], keyword-only
-        Minimum distance, post-convolution.
+    dtmin, dtmax : Quantity['length'] or Quantity['angle'], keyword-only
+        Minimum / maximum distance, post-convolution.
 
     width : int,  optional keyword-only
         Number of indices for convolution window. Default is 6.

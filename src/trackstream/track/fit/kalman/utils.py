@@ -1,28 +1,21 @@
 """Coordinates Utilities."""
 
-##############################################################################
-# IMPORTS
 
 from __future__ import annotations
 
-# STDLIB
-import warnings
 from typing import TYPE_CHECKING, Any
+import warnings
 
-# THIRD PARTY
 import numpy as np
 from numpy import asanyarray
 
-# LOCAL
 from trackstream.utils.coord_utils import f2q
 from trackstream.utils.unit_utils import merge_units
 
 if TYPE_CHECKING:
-    # THIRD PARTY
     from astropy.units import Quantity
     from numpy.typing import ArrayLike, NDArray
 
-    # LOCAL
     from trackstream.stream.core import StreamArm
     from trackstream.track.fit.kalman.core import FirstOrderNewtonianKalmanFilter
 
@@ -42,6 +35,7 @@ def intermix_arrays(*arrs: ArrayLike, axis: int = -1) -> NDArray[Any]:
     *arrs : (N,) array-like
         All arrays should be the same length.
     axis : int, optional
+        Axis along which to intermix, by default -1.
 
     Return
     ------
@@ -87,8 +81,8 @@ def make_error(stream: StreamArm, kf: FirstOrderNewtonianKalmanFilter, default: 
 
     Parameters
     ----------
-    data : `~astropy.table.QTable`
-        The data table from which to extract the error information.
+    stream : `~trackstream.stream.core.StreamArm`
+        The stream arm to get the error from.
     kf : FirstOrderNewtonianKalmanFilter
         The Kalman filter to use to understand what information should be gotten
         from ``data``.
@@ -116,7 +110,7 @@ def make_error(stream: StreamArm, kf: FirstOrderNewtonianKalmanFilter, default: 
         if (fne := f"{fn}_err") in stream.data.columns:
             r = stream.data[fne].to_value(unit)
         elif (rne := f"{rn}_err") in stream.data.columns:
-            r = stream.data[fne].to_value(unit)
+            r = stream.data[rne].to_value(unit)
         else:
             msg = f"{fne} and {rne} are not in the data; setting to the default."
             warnings.warn(msg)

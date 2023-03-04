@@ -2,25 +2,22 @@
 
 from __future__ import annotations
 
-# STDLIB
 from copy import deepcopy
 from dataclasses import dataclass
 from math import pi
 from typing import Any, final
 
-# THIRD PARTY
 import astropy.coordinates as coords
-import astropy.units as u
-import numpy as np
 from astropy.coordinates.angle_utilities import angular_separation
+import astropy.units as u
 from erfa import s2pv
+import numpy as np
 from numpy import ndarray, subtract
 from numpy.linalg import norm
 from scipy.cluster.hierarchy import fclusterdata
 from scipy.spatial import distance_matrix
 from scipy.stats import binned_statistic
 
-# LOCAL
 from trackstream.track.fit.som.base import SOM1DBase, SOMInfo
 from trackstream.track.fit.som.utils import _decay_function, _respace_bins, wrap_at
 from trackstream.track.fit.utils import offset_by, position_angle
@@ -74,20 +71,31 @@ class USphereSOM(SOM1DBase):
         representation_type=coords.UnitSphericalRepresentation,
         differential_type=coords.UnitSphericalCosLatDifferential,
         units=u.StructuredUnit(
-            ((u.rad, u.rad), (u.mas / u.yr, u.mas / u.yr)), names=(("lon", "lat"), ("d_lon_coslat", "d_lat"))
+            ((u.rad, u.rad), (u.mas / u.yr, u.mas / u.yr)),
+            names=(("lon", "lat"), ("d_lon_coslat", "d_lat")),
         ),
     )
 
     @staticmethod
     def _make_prototypes_from_binned_data(
-        data: ndarray, /, nlattice: int, *, byphi: bool = False, maxsep: ndarray | None = None, **_: Any
+        data: ndarray,
+        /,
+        nlattice: int,
+        *,
+        byphi: bool = False,
+        maxsep: ndarray | None = None,
+        **_: Any,
     ) -> ndarray:
         r"""Initialize prototype vectors from binned data.
 
         Parameters
         ----------
         data : (N, D) ndarray
-        byphi : bool, optional
+            Data to bin.
+        nlattice : int
+            Number of prototypes to generate.
+
+        byphi : bool, optional keyword-only
             Whether to bin by the |Longitude|, or by :math:`\phi=atan(lat/lon)`
         maxsep : ndarray or None, optional keyword-only
             Maximum separation (in data space) between prototypes.
@@ -125,7 +133,9 @@ class USphereSOM(SOM1DBase):
         # https://www.statology.org/equal-frequency-binning-python/
         # endpoint=False is used to prevent a x>xp endpoint repetition
         bins: ndarray = np.interp(
-            x=np.linspace(0, len(x), nlattice + 1, endpoint=False), xp=np.arange(len(x)), fp=np.sort(x)
+            x=np.linspace(0, len(x), nlattice + 1, endpoint=False),
+            xp=np.arange(len(x)),
+            fp=np.sort(x),
         )
 
         # Optionally respace the bins to have a maximum separation

@@ -1,18 +1,12 @@
 """Generate example Palomar 5 data."""
 
-##############################################################################
-# IMPORTS
-
-# STDLIB
 import os
 import pathlib
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
-# THIRD PARTY
 import astropy.coordinates as coords
-import astropy.units as u
-import numpy as np
 from astropy.table import QTable
+import astropy.units as u
 from astropy.units import Quantity
 from astropy.utils.data import get_pkg_data_filename
 from astropy.utils.misc import NumpyRNGContext
@@ -21,6 +15,9 @@ from galpy.orbit import Orbit
 from galpy.potential import LogarithmicHaloPotential
 
 __all__ = ["get_example_stream"]
+
+if TYPE_CHECKING:
+    import numpy as np
 
 
 ##############################################################################
@@ -35,7 +32,10 @@ FullPathLike = str | bytes | os.PathLike
 
 
 def make_stream_from_vasiliev18(
-    name: str, tdisrupt: Quantity = Quantity(5, u.Gyr), *, write: FullPathLike | None = None
+    name: str,
+    tdisrupt: Quantity = Quantity(5, u.Gyr),  # noqa: B008
+    *,
+    write: FullPathLike | None = None,
 ) -> QTable:
     """Make and write data table.
 

@@ -2,22 +2,18 @@
 
 from __future__ import annotations
 
-# STDLIB
-import copy as pycopy
 from collections.abc import Mapping
+import copy as pycopy
 from dataclasses import fields
 from functools import singledispatchmethod
-from types import NotImplementedType
 from typing import TYPE_CHECKING, Any, ClassVar, TypeVar, cast
 
-# THIRD PARTY
 import astropy.units as u
 import numpy as np
 import numpy.lib.recfunctions as rfn
 from overload_numpy import NPArrayOverloadMixin, NumPyOverloader
 from override_toformat import ToFormatOverloadMixin
 
-# LOCAL
 from trackstream.track.utils import (
     PhysicalTypeKeyMapping,
     PhysicalTypeKeyMutableMapping,
@@ -27,18 +23,15 @@ from trackstream.track.width.base import FMT_OVERLOADS, WidthBase
 from trackstream.track.width.core import BASEWIDTH_KIND, LENGTH
 
 if TYPE_CHECKING:
-    # THIRD PARTY
+    from types import NotImplementedType
+
     from astropy.coordinates import BaseRepresentation
     from override_toformat import ToFormatOverloader
 
-    # LOCAL
     from trackstream.track.width.interpolated import InterpolatedWidths
 
 __all__ = ["Widths"]
 
-
-##############################################################################
-# TYPING
 
 T = TypeVar("T")
 W1 = TypeVar("W1", bound="WidthBase")
@@ -76,20 +69,20 @@ class Widths(PhysicalTypeKeyMutableMapping[W1], NPArrayOverloadMixin, ToFormatOv
         self._mapping: dict[u.PhysicalType, W1] = widths
 
     @singledispatchmethod
-    def __getitem__(self, key: object) -> Any:  # noqa: ARG002
+    def __getitem__(self, key: object) -> Any:
         # see https://github.com/python/mypy/issues/11727 for why return Any
         msg = "not dispatched"
         raise NotImplementedError(msg)
 
     @singledispatchmethod
-    def __setitem__(self, key: object, value: Any) -> Any:  # noqa: ARG002
+    def __setitem__(self, key: object, value: Any) -> Any:
         # see https://github.com/python/mypy/issues/11727 for why return Any
         msg = "not dispatched"
         raise NotImplementedError(msg)
 
     # ===============================================================
 
-    def represent_as(self, width_type: type[W1], point: BaseRepresentation) -> W1:  # noqa: ARG002
+    def represent_as(self, width_type: type[W1], point: BaseRepresentation) -> W1:
         """Represent as a new width type.
 
         Parameters
@@ -182,7 +175,7 @@ class Widths(PhysicalTypeKeyMutableMapping[W1], NPArrayOverloadMixin, ToFormatOv
         ws: dict[u.PhysicalType, W1] = {}
         for wcls, k in BASEWIDTH_KIND.items():
             # Try to get a WidthBase from mapping
-            w = data.get(k, data.get(str(k._physical_type_list[0]), None))
+            w = data.get(k, data.get(str(k._physical_type_list[0]), None))  # noqa: SLF001
             # Maybe it's a bunch of fields
             if w is None:
                 try:
@@ -208,7 +201,7 @@ class Widths(PhysicalTypeKeyMutableMapping[W1], NPArrayOverloadMixin, ToFormatOv
     # Interoperability
 
     def __array__(self, dtype: np.dtype | None = None) -> np.ndarray:
-        arrs_g = ((str(k._physical_type_list[0]), np.array(v, dtype)) for k, v in self.items())
+        arrs_g = ((str(k._physical_type_list[0]), np.array(v, dtype)) for k, v in self.items())  # noqa: SLF001
         return rfn.merge_arrays(tuple(v.view(np.dtype([(k, v.dtype)])) for k, v in arrs_g))
 
     # ===============================================================
@@ -223,17 +216,17 @@ class Widths(PhysicalTypeKeyMutableMapping[W1], NPArrayOverloadMixin, ToFormatOv
         return self.__class__({k: v[key] for k, v in self.items()})
 
     @singledispatchmethod
-    def __lt__(self, other: object) -> Any:  # noqa: ARG002
+    def __lt__(self, other: object) -> Any:
         # see https://github.com/python/mypy/issues/11727 for why returns Any
         return NotImplemented
 
     @__setitem__.register(Mapping)
     def _setitem_mapping(
-        self, key: Mapping[u.PhysicalType, Mapping[str, Any]], value: Mapping[u.PhysicalType, W1]
+        self,
+        key: Mapping[u.PhysicalType, Mapping[str, Any]],
+        value: Mapping[u.PhysicalType, W1],
     ) -> None | NotImplementedType:
-        if key.keys() != self.keys():
-            raise ValueError
-        elif key.keys() != value.keys():
+        if key.keys() != self.keys() or key.keys() != value.keys():
             raise ValueError
 
         # Delegate to contained Width
@@ -259,7 +252,7 @@ def _to_format_quantity(cls: type[Widths], data: Widths, *args: Any) -> u.Quanti
 
 
 @Widths.__lt__.register(Widths)
-def _lt_widths(self, other: Widths) -> PhysicalTypeKeyMapping[np.ndarray]:
+def _lt_widths(self: Widths, other: Widths) -> PhysicalTypeKeyMapping[np.ndarray]:
     if not set(other.keys()).issubset(self.keys()):
         return NotImplemented
 

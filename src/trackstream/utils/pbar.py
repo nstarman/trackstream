@@ -1,23 +1,17 @@
 """Progress bar, modified from :mod:`~emcee`."""
 
-##############################################################################
-# IMPORTS
 
 from __future__ import annotations
 
-# STDLIB
 import logging
 from typing import TYPE_CHECKING, Any
 
-# LOCAL
 from trackstream.setup_package import HAS_TQDM
 
 if HAS_TQDM:
-    # THIRD PARTY
     import tqdm
 
 if TYPE_CHECKING:
-    # THIRD PARTY
     from typing_extensions import Self
 
 
@@ -35,10 +29,10 @@ class _NoOpPBar:
     def __enter__(self: Self, *_: Any, **__: Any) -> Self:
         return self
 
-    def __exit__(self, *_: Any, **__: Any) -> None:
+    def __exit__(self: Any, *_: Any, **__: Any) -> None:
         pass
 
-    def update(self, _: int) -> None:
+    def update(self: Any, _: int) -> None:
         pass
 
 
@@ -61,7 +55,8 @@ def get_progress_bar(*, display: bool, total: int) -> _NoOpPBar | tqdm.tqdm:
     """
     if display is False:
         return _NoOpPBar()
-    elif not HAS_TQDM:
+
+    if not HAS_TQDM:
         logging.warning("install the tqdm library to have progress bars.")
         return _NoOpPBar()
 

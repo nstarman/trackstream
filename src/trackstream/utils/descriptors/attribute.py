@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-# STDLIB
-from collections.abc import MutableMapping
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Any, Generic, Literal, NoReturn, TypeVar, final, overload
+from typing import TYPE_CHECKING, Any, Generic, Literal, NoReturn, TypeVar, final, overload
+
+if TYPE_CHECKING:
+    from collections.abc import MutableMapping
 
 T = TypeVar("T")
 
@@ -30,7 +31,7 @@ class Attribute(Generic[T]):
     def __post_init__(self) -> None:
         object.__setattr__(self, "__doc__", getattr(self.obj, "__doc__", None))
 
-    def __set_name__(self, _: type, name: str) -> None:
+    def __set_name__(self: object, _: type, name: str) -> None:
         self._enclosing_attr: str
         object.__setattr__(self, "_enclosing_attr", name)
 
@@ -65,6 +66,6 @@ class Attribute(Generic[T]):
 
         return obj  # noqa: RET504
 
-    def __set__(self, _: str, __: Any) -> NoReturn:
+    def __set__(self: Any, _: str, __: Any) -> NoReturn:
         msg = "can't set attribute"
         raise AttributeError(msg)

@@ -1,18 +1,12 @@
 """Testing :mod:`~trackstream.utils.pbar`."""
 
 
-##############################################################################
-# IMPORTS
-
-# THIRD PARTY
 import pytest
 
-# LOCAL
 from trackstream.setup_package import HAS_TQDM
 from trackstream.utils.pbar import _NoOpPBar, get_progress_bar
 
 if HAS_TQDM:
-    # THIRD PARTY
     import tqdm
 
 ##############################################################################

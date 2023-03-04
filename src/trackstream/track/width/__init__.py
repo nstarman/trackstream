@@ -1,6 +1,6 @@
 """Widths."""
 
-# LOCAL
+
 from trackstream.track.width.core import BaseWidth
 from trackstream.track.width.interpolated import InterpolatedWidth, InterpolatedWidths
 from trackstream.track.width.oned.core import (
@@ -28,7 +28,7 @@ from trackstream.track.width.twod.core import (
 
 # import to register interoperations
 # isort: split
-# LOCAL
+
 from trackstream.track.width import interop  # noqa: F401
 
 __all__ = [

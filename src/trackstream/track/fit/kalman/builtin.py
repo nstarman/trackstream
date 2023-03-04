@@ -1,20 +1,15 @@
 """Kalman Filter code."""
 
-##############################################################################
-# IMPORTS
 
 from __future__ import annotations
 
-# STDLIB
 from dataclasses import dataclass
 from math import pi
 
-# THIRD PARTY
 import astropy.coordinates as coords
 import astropy.units as u
 from numpy import arccos, arctan2, array, cos, ndarray, sign, sin
 
-# LOCAL
 from trackstream.track.fit.kalman.base import FONKFBase, KFInfo
 
 __all__: list[str] = []
@@ -47,7 +42,8 @@ class USphereFONKF(FONKFBase):
         representation_type=coords.UnitSphericalRepresentation,
         differential_type=coords.UnitSphericalDifferential,
         units=u.StructuredUnit(
-            ((u.rad, u.rad), (u.mas / u.yr, u.mas / u.yr)), names=(("lon", "lat"), ("d_lon", "d_lat"))
+            ((u.rad, u.rad), (u.mas / u.yr, u.mas / u.yr)),
+            names=(("lon", "lat"), ("d_lon", "d_lat")),
         ),
     )
 

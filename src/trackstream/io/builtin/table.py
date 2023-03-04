@@ -4,22 +4,18 @@
 
 from __future__ import annotations
 
-# STDLIB
 import inspect
 from typing import TYPE_CHECKING, Any, cast
 
-# THIRD PARTY
 from astropy.coordinates import SkyCoord
 from astropy.table import QTable, Table
 
-# LOCAL
 from trackstream.io.core import convert_registry
 from trackstream.io.normalize import StreamArmDataNormalizer
 from trackstream.stream.core import StreamArm
 from trackstream.utils.coord_utils import parse_framelike
 
 if TYPE_CHECKING:
-    # THIRD PARTY
     from astropy.coordinates import BaseCoordinateFrame
 
 __all__: list[str] = []
@@ -28,7 +24,7 @@ __all__: list[str] = []
 # ===================================================================
 
 
-def stream_arm_from_table(  # noqa: C901
+def stream_arm_from_table(
     table: Table,
     /,
     data_err: QTable | None = None,
@@ -66,11 +62,8 @@ def stream_arm_from_table(  # noqa: C901
     cache_frame = cache.get("frame")
     if frame is None:
         frame = cache_frame if meta_frame is None else meta_frame
-    elif meta_frame is not None and frame != meta_frame:
-        msg = "frame != one in table meta"
-        raise ValueError(msg)
-    elif cache_frame is not None and frame != cache_frame:
-        msg = "frame != one in table meta"
+    elif (meta_frame is not None and frame != meta_frame) or (cache_frame is not None and frame != cache_frame):
+        msg = "frame does not match the one in table meta"
         raise ValueError(msg)
     frame = parse_framelike(frame) if frame is not None else None
 
@@ -84,15 +77,14 @@ def stream_arm_from_table(  # noqa: C901
     if origin is None:
         msg = "need arg origin or origin in table meta"
         raise ValueError(msg)
-    elif not isinstance(origin, SkyCoord):
+    if not isinstance(origin, SkyCoord):
         raise TypeError
 
     # TODO! offer different normalizers
     data: QTable
     data = StreamArmDataNormalizer(frame)(table, data_err)
 
-    stream = Stream(data, origin=origin, frame=frame, name=name, prior_cache=cache)
-    return stream
+    return Stream(data, origin=origin, frame=frame, name=name, prior_cache=cache)
 
 
 def table_identify(origin: str, format: str | None, /, *args: Any, **kwargs: Any) -> bool:  # noqa: A002, ARG001

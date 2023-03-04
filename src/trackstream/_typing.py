@@ -4,15 +4,11 @@ This project extensively uses :mod:`~typing` hints.
 Note that this is not (necessarily) static typing.
 """
 
-##############################################################################
-# IMPORTS
 
 from __future__ import annotations
 
-# STDLIB
-from typing import Protocol, TypeVar
+from typing import Protocol, TypeAlias, TypeVar
 
-# THIRD PARTY
 from astropy.coordinates import BaseCoordinateFrame, SkyCoord
 from numpy import floating
 from numpy.typing import NBitBase, NDArray
@@ -41,9 +37,9 @@ NDFloat = NDArray[floating[N1]]
 # -------------------------------------
 # Astropy types
 
-CoordinateType = BaseCoordinateFrame | SkyCoord
+CoordinateType: TypeAlias = BaseCoordinateFrame | SkyCoord
 
-FrameLikeType = BaseCoordinateFrame | str
+FrameLikeType: TypeAlias = BaseCoordinateFrame | str
 
 
 class HasFrame(Protocol):

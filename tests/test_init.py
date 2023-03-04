@@ -7,7 +7,6 @@
 
 def test_has_version():
     """Test :mod:`~trackstream` has attribute __version__."""
-    # LOCAL
     import trackstream
 
     assert hasattr(trackstream, "__version__"), "No version!"

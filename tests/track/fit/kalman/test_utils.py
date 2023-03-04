@@ -1,15 +1,8 @@
 """Testing :mod:`~trackstream.utils.coord_utils`."""
 
 
-##############################################################################
-# IMPORTS
-
-# STDLIB
-
-# THIRD PARTY
 import numpy as np
 
-# LOCAL
 from trackstream.track.fit.kalman.utils import intermix_arrays
 
 ##############################################################################

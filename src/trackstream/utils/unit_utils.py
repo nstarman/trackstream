@@ -2,22 +2,22 @@
 
 from __future__ import annotations
 
-# STDLIB
-from collections.abc import Iterable, Iterator, Sequence
 from functools import reduce
 from operator import add
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-# THIRD PARTY
 import astropy.units as u
-import numpy.lib.recfunctions as rfn
 from astropy.units.quantity_helper.function_helpers import function_helper
+import numpy.lib.recfunctions as rfn
 
 __all__ = ["merge_units"]
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Iterator, Sequence
+
 
 def _izip_units_flat(iterable: Iterable[u.StructuredUnit | u.Unit] | u.StructuredUnit) -> Iterator[tuple[str, u.Unit]]:
-    """Returns an iterator of collapsing any nested unit structure."""
+    """Return an iterator collapsing any nested unit structure."""
     # Make Structured unit.
     units = iterable if isinstance(iterable, u.StructuredUnit) else u.StructuredUnit(iterable)
 
@@ -93,7 +93,7 @@ def merge_arrays(
     if asrecarray:
         msg = "asrecarray=True is not supported."
         raise ValueError(msg)
-    elif usemask:
+    if usemask:
         msg = "usemask=True is not supported."
         raise ValueError(msg)
 

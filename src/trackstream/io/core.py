@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-# STDLIB
 from typing import TYPE_CHECKING, Any
 
-# THIRD PARTY
 from astropy.io.registry import UnifiedIORegistry, UnifiedReadWrite
 
 if TYPE_CHECKING:
-    # LOCAL
     from trackstream.stream.core import StreamArm
 
 

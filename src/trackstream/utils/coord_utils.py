@@ -1,18 +1,11 @@
 """Coordinates Utilities."""
 
-##############################################################################
-# IMPORTS
 
 from __future__ import annotations
 
-# STDLIB
 import functools
 from typing import TYPE_CHECKING, Any, Literal, TypeVar
 
-# THIRD PARTY
-import astropy.units as u
-import numpy as np
-import numpy.lib.recfunctions as rfn
 from astropy.coordinates import (
     BaseCoordinateFrame,
     BaseDifferential,
@@ -20,10 +13,12 @@ from astropy.coordinates import (
     SkyCoord,
     frame_transform_graph,
 )
+import astropy.units as u
+import numpy as np
+import numpy.lib.recfunctions as rfn
 
 if TYPE_CHECKING:
-    # THIRD PARTY
-    from typing_extensions import TypeAlias
+    from typing import TypeAlias
 
 __all__ = ["parse_framelike", "get_frame", "deep_transform_to", "f2q"]
 
@@ -184,7 +179,8 @@ def _parse_framelike_str(name: str) -> BaseCoordinateFrame:
 @parse_framelike.register(BaseCoordinateFrame)
 def _parse_framelike_frame(frame: BaseCoordinateFrame) -> BaseCoordinateFrame:
     return frame.replicate_without_data(
-        representation_type=frame.representation_type, differential_type=frame.differential_type
+        representation_type=frame.representation_type,
+        differential_type=frame.differential_type,
     )
 
 
@@ -217,6 +213,7 @@ def deep_transform_to(
     Parameters
     ----------
     crd : SkyCoord or BaseCoordinateFrame
+        The coordinate to transform.
     frame : BaseCoordinateFrame
         The frame to which to tranform `crd`.
     representation_type : BaseRepresentationresentation class
@@ -266,7 +263,10 @@ def _deep_transform_skycoord(
     # SkyCoord from transformation
     return SkyCoord(
         deep_transform_to(
-            crd.frame, frame=frame, representation_type=representation_type, differential_type=differential_type
+            crd.frame,
+            frame=frame,
+            representation_type=representation_type,
+            differential_type=differential_type,
         ),
         copy=False,
     )
@@ -276,7 +276,7 @@ def _deep_transform_skycoord(
 
 
 def _f2q_helper(crds: BaseCoordinateFrame | SkyCoord, which: str) -> u.Quantity:
-    """Helper for ``f2q``.
+    """``f2q`` helper to turn a representation into a coordinate.
 
     Parameters
     ----------

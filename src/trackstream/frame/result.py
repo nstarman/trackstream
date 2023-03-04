@@ -1,23 +1,18 @@
 """Fit a rotated reference frame to stream data."""
 
-##############################################################################
-# IMPORTS
 
 from __future__ import annotations
 
-# STDLIB
 from dataclasses import dataclass
 from functools import singledispatchmethod
 from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast, final
 
-# THIRD PARTY
 import astropy.coordinates as coords
 import astropy.units as u
 import numpy as np
 from scipy.optimize import OptimizeResult
 
 if TYPE_CHECKING:
-    # THIRD PARTY
     from astropy.units import Quantity
 
 __all__: list[str] = []
@@ -68,7 +63,9 @@ class FrameOptimizeResult(Generic[R]):
     @singledispatchmethod
     @classmethod
     def from_result(
-        cls: type[FrameOptimizeResult[Any]], optimize_result: object, frame: coords.BaseCoordinateFrame | None
+        cls: type[FrameOptimizeResult[Any]],
+        optimize_result: object,
+        frame: coords.BaseCoordinateFrame | None,
     ) -> FrameOptimizeResult[R]:
         """Construct from object.
 
@@ -104,7 +101,9 @@ class FrameOptimizeResult(Generic[R]):
     @from_result.register(OptimizeResult)
     @classmethod
     def _from_result_scipyoptresult(
-        cls: type[FrameOptimizeResult[Any]], optimize_result: OptimizeResult, frame: coords.BaseCoordinateFrame
+        cls: type[FrameOptimizeResult[Any]],
+        optimize_result: OptimizeResult,
+        frame: coords.BaseCoordinateFrame,
     ) -> FrameOptimizeResult[OptimizeResult]:
         # Get coordinates
         optimize_result.x <<= u.deg

@@ -1,24 +1,18 @@
 """Detect outliers from stream data."""
 
-##############################################################################
-# IMPORTS
 
 from __future__ import annotations
 
-# STDLIB
-import inspect
 from abc import ABCMeta, abstractmethod
+import inspect
 from typing import TYPE_CHECKING, Any, ClassVar
 
-# LOCAL
 from trackstream.utils.exceptions import NotFittedError
 
 if TYPE_CHECKING:
-    # THIRD PARTY
     from numpy import bool_
     from numpy.typing import NDArray
 
-    # LOCAL
     from trackstream._typing import N1, N2, NDFloat
 
 __all__: list[str] = []
@@ -122,10 +116,14 @@ class OutlierDetectorBase(metaclass=ABCMeta):
         NotFittedError
         """
         if not self._isfit:
-            raise NotFittedError()
+            raise NotFittedError
 
     def fit_predict(
-        self, fit_data: NDFloat[N1], predict_data: NDFloat[N2] | None = None, /, **kwargs: Any
+        self,
+        fit_data: NDFloat[N1],
+        predict_data: NDFloat[N2] | None = None,
+        /,
+        **kwargs: Any,
     ) -> NDArray[bool_]:
         """Predict if is point in data is an outlier.
 
@@ -137,6 +135,8 @@ class OutlierDetectorBase(metaclass=ABCMeta):
             The data . Rows are distinct objects, e.g stars, columns are
             features, e.g. ``D``-dimensional coordinates of the stars.
             If `None` (default), ``fit_data`` is used.
+        **kwargs : Any
+            Keyword arguments.
 
         Returns
         -------

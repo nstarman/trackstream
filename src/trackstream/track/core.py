@@ -1,34 +1,26 @@
 """Stream arm track fit result."""
 
-##############################################################################
-# IMPORTS
 
 from __future__ import annotations
 
-# STDLIB
-import weakref
 from abc import abstractmethod
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Callable, Generic
+from typing import TYPE_CHECKING, Any, Generic
+import weakref
 
-# THIRD PARTY
 import astropy.coordinates as coords
-import astropy.units as u
 from astropy.utils.metadata import MetaAttribute, MetaData
 from astropy.utils.misc import indent
 
-# LOCAL
 from trackstream.stream.base import StreamLikeT
 
 if TYPE_CHECKING:
-    # STDLIB
+    from collections.abc import Callable
     from dataclasses import InitVar
 
-    # THIRD PARTY
-    from astropy.units import Quantity
+    from astropy.units import Quantity, percent
     from interpolated_coordinates import InterpolatedSkyCoord
 
-    # LOCAL
     from trackstream.track.path import Path, path_moments
 
 __all__: list[str] = []
@@ -171,12 +163,12 @@ class StreamArmTrack(StreamArmTrackBase[StreamLikeT]):
 
     def probability(
         self,
-        point: coords.SkyCoord,  # noqa: ARG002
-        background_model: Callable[[coords.SkyCoord], Quantity[u.percent]] | None = None,  # noqa: ARG002
+        point: coords.SkyCoord,
+        background_model: Callable[[coords.SkyCoord], Quantity[percent]] | None = None,
         *,
-        angular: bool = False,  # noqa: ARG002
-        affine: Quantity | None = None,  # noqa: ARG002
-    ) -> Quantity[u.percent]:
+        angular: bool = False,
+        affine: Quantity | None = None,
+    ) -> Quantity[percent]:
         """Probability point is part of the stream."""
         raise NotImplementedError
 
@@ -184,7 +176,7 @@ class StreamArmTrack(StreamArmTrackBase[StreamLikeT]):
     # misc
 
     def __repr__(self) -> str:
-        """String representation."""
+        """Return string representation."""
         rs = []
 
         # 0) header (standard repr)

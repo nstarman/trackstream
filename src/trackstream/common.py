@@ -2,16 +2,12 @@
 
 from __future__ import annotations
 
-# STDLIB
 from collections.abc import ItemsView, Iterator, KeysView, Mapping, ValuesView
 from types import MappingProxyType
 from typing import Any, TypeVar
 
 __all__ = ["CollectionBase"]
 
-
-##############################################################################
-# TYPING
 
 V = TypeVar("V")
 
@@ -123,8 +119,10 @@ class CollectionBase(Mapping[str, V]):
         # Have to special-case class-level property.
         if key in ("__isabstractmethod__",):
             return object.__getattribute__(self, key)
+
         # Check if the underlying data has the key, erroring if it doesn't.
-        elif hasattr(self._v0, key):
+        if hasattr(self._v0, key):
             return MappingProxyType({k: getattr(v, key) for k, v in self.items()})
+
         msg = f"{self.__class__.__name__!r} object has no attribute {key!r}"
         raise AttributeError(msg)

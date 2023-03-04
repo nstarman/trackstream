@@ -2,24 +2,19 @@
 
 from __future__ import annotations
 
-# STDLIB
-from collections.abc import Sequence
 from dataclasses import fields, replace
-from typing import Literal, TypeVar
+from typing import TYPE_CHECKING, Literal, TypeVar
 
-# THIRD PARTY
 import numpy as np
 
-# LOCAL
 from trackstream.track.width.base import WB_FUNCS, WidthBase
 
 __all__: list[str] = []
 
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
-##############################################################################
-# TYPING
-
-T = TypeVar("T")
+    T = TypeVar("T")
 
 
 ##############################################################################
@@ -29,7 +24,7 @@ T = TypeVar("T")
 
 @WB_FUNCS.implements(np.convolve, WidthBase, types=(WidthBase, np.ndarray))
 def convolve(a: T, v: np.ndarray, mode: Literal["valid", "full", "same"] = "full") -> T:
-    """Returns the discrete, linear convolution of two one-dimensional sequences."""
+    """Return the discrete, linear convolution of two one-dimensional sequences."""
     # apply to each field.
     return replace(a, **{f.name: np.convolve(getattr(a, f.name), v, mode=mode) for f in fields(a)})
 
@@ -56,8 +51,8 @@ def concatenate(
 
     if out is not None:
         msg = "out must be None"
-        raise ValueError()
-    elif dtype is not None:
+        raise ValueError
+    if dtype is not None:
         msg = "dtype must be None"
         raise ValueError(msg)
 

@@ -2,22 +2,18 @@
 
 from __future__ import annotations
 
-# STDLIB
-from collections.abc import Sequence
-from typing import Literal, TypeVar
+from typing import TYPE_CHECKING, Literal, TypeVar
 
-# THIRD PARTY
 import numpy as np
 
-# LOCAL
 from trackstream.track.width.base import WB_FUNCS
 from trackstream.track.width.interpolated import InterpolatedWidth
 
 __all__: list[str] = []
 
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
-##############################################################################
-# TYPING
 
 T = TypeVar("T")
 
@@ -29,7 +25,7 @@ T = TypeVar("T")
 
 @WB_FUNCS.implements(np.convolve, dispatch_on=InterpolatedWidth, types=(InterpolatedWidth, np.ndarray))
 def convolve(a: T, v: np.ndarray, mode: Literal["valid", "full", "same"] = "full") -> T:  # noqa: ARG001
-    """Returns the discrete, linear convolution of an interpolated width."""
+    """Return the discrete, linear convolution of an interpolated width."""
     raise ValueError
 
 

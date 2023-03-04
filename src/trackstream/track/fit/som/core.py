@@ -2,17 +2,13 @@
 
 from __future__ import annotations
 
-# STDLIB
 from dataclasses import dataclass
 from functools import singledispatchmethod
 from typing import TYPE_CHECKING, Any, final
 
-# THIRD PARTY
 import astropy.coordinates as coords
-import astropy.units as u
 import numpy as np
 
-# LOCAL
 from trackstream.stream.core import StreamArm
 from trackstream.stream.plural import StreamArmsBase
 from trackstream.track.fit.som.cartesian import CartesianSOM
@@ -29,13 +25,14 @@ from trackstream.track.width.oned.core import (
 from trackstream.track.width.plural import Widths
 
 if TYPE_CHECKING:
-    # THIRD PARTY
     from numpy.random import Generator
 
-    # LOCAL
     from trackstream.track.fit.som.base import SOM1DBase, SOMInfo
 
 __all__: list[str] = []
+
+if TYPE_CHECKING:
+    from astropy.units import PhysicalType
 
 
 #####################################################################
@@ -230,7 +227,7 @@ class SelfOrganizingMap:
     def fit(
         self,
         data: coords.SkyCoord,
-        num_iteration: int = int(1e5),
+        num_iteration: int = 100_000,
         *,
         random_order: bool = False,
         progress: bool = True,
@@ -292,7 +289,7 @@ class SelfOrganizingMap:
         self,
         data: coords.SkyCoord,
         /,
-        num_iteration: int = int(1e5),
+        num_iteration: int = 100_000,
         *,
         random_order: bool = False,
         progress: bool = True,
@@ -301,14 +298,17 @@ class SelfOrganizingMap:
 
         Parameters
         ----------
+        self : SOM1DBase
+            Self.
         data : SkyCoord
             Data.
         num_iteration : int, optional
             Number of iterations when fitting, by default 10^5.
-        random_order : bool, optional
+
+        random_order : bool, optional keyword-only
             Whether to introduce data in order (`False`, default), or randomly
             (`True`).
-        progress : bool, optional
+        progress : bool, optional keyword-only
             Whether to show a progress bar (`True`, default).
 
         Returns
@@ -328,6 +328,7 @@ class SelfOrganizingMap:
         Parameters
         ----------
         data : |SkyCoord|, positional-only
+            Data.
 
         Returns
         -------
@@ -338,7 +339,7 @@ class SelfOrganizingMap:
         qp = _c2v(self, data)
         D = qp.shape[1]
         units = tuple(self.info.units.values())  # from _c2v
-        ws: dict[u.PhysicalType, BaseWidth] = {}
+        ws: dict[PhysicalType, BaseWidth] = {}
 
         # Positions:
         iq = slice(0, D) if not self.kinematics else slice(0, D // 2)

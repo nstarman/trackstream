@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-# STDLIB
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, final
 
-# THIRD PARTY
 import astropy.coordinates as coords
 import astropy.units as u
 import numpy as np
@@ -15,7 +13,6 @@ from numpy import ndarray, subtract
 from numpy.linalg import norm
 from scipy.stats import binned_statistic
 
-# LOCAL
 from trackstream.track.fit.som.base import SOM1DBase, SOMInfo
 from trackstream.track.fit.som.utils import _decay_function, _respace_bins
 
@@ -68,14 +65,24 @@ class CartesianSOM(SOM1DBase):
 
     @staticmethod
     def _make_prototypes_from_binned_data(
-        data: ndarray, /, nlattice: int, *, byphi: bool = False, maxsep: ndarray | None = None, **_: Any
+        data: ndarray,
+        /,
+        nlattice: int,
+        *,
+        byphi: bool = False,
+        maxsep: ndarray | None = None,
+        **_: Any,
     ) -> ndarray:
         r"""Initialize prototype vectors from binned data.
 
         Parameters
         ----------
         data : SkyCoord
-        byphi : bool, optional
+            Data to bin.
+        nlattice : int
+            Number of lattice points (prototypes) in the 1D SOM.
+
+        byphi : bool, optional keyword-only
             Whether to bin by the |Longitude|, or by :math:`\phi=atan(lat/lon)`
         maxsep : Quantity or None, optional keyword-only
             Maximum separation (in data space) between prototypes.
@@ -102,7 +109,10 @@ class CartesianSOM(SOM1DBase):
                 raise ValueError(msg)
             # Respace bins
             bins = _respace_bins(  # TODO! speed up
-                deepcopy(bins), maxsep, onsky=False, eps=2 * np.finfo(maxsep.dtype).eps
+                deepcopy(bins),
+                maxsep,
+                onsky=False,
+                eps=2 * np.finfo(maxsep.dtype).eps,
             )
 
         res = binned_statistic(x, data.T, bins=bins, statistic="median")

@@ -1,28 +1,23 @@
 """Coordinates Utilities."""
 
-##############################################################################
-# IMPORTS
 
 from __future__ import annotations
 
-# STDLIB
-from collections.abc import MutableMapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, Protocol, TypeVar
 
-# THIRD PARTY
 import astropy.coordinates as coords
 import astropy.units as u
 import numpy as np
-import numpy.lib.recfunctions as rfn
 from numpy import arcsin, arctan2, broadcast_to, cos, ndarray, pi, sin
+import numpy.lib.recfunctions as rfn
 
-# LOCAL
 from trackstream._typing import SupportsFrame
 from trackstream.utils.coord_utils import deep_transform_to, f2q
 
 if TYPE_CHECKING:
-    # THIRD PARTY
+    from collections.abc import MutableMapping
+
     from astropy.coordinates import BaseCoordinateFrame, SkyCoord
 
 __all__: list[str] = []
@@ -107,7 +102,10 @@ def _c2v(obj: HasFrameAndInfo, c: SkyCoord, /) -> ndarray:
 
     Parameters
     ----------
+    obj : HasFrameAndInfo
+        Object with frame and info.
     c : SkyCoord
+        Coordinates.
 
     Returns
     -------
@@ -141,7 +139,9 @@ def _v2c(obj: HasFrameAndInfo, arr: ndarray, /) -> BaseCoordinateFrame:
         r = obj.info.representation_type(**q)
 
     return obj.frame.realize_frame(
-        r, representation_type=obj.info.representation_type, differential_type=obj.info.differential_type
+        r,
+        representation_type=obj.info.representation_type,
+        differential_type=obj.info.differential_type,
     )
 
 

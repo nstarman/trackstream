@@ -1,26 +1,19 @@
 """Local Outlier Factor (LOF) method of detecting stream outliears."""
 
-##############################################################################
-# IMPORTS
 
 from __future__ import annotations
 
-# STDLIB
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast
 
-# THIRD PARTY
 import numpy as np
 from scipy.spatial import KDTree
 
-# LOCAL
 from trackstream.clean.base import OutlierDetectorBase
 
 if TYPE_CHECKING:
-    # THIRD PARTY
     from numpy.typing import NDArray
 
-    # LOCAL
     from trackstream._typing import N1, NDFloat
 
 __all__: list[str] = []
@@ -68,11 +61,15 @@ class KDTreeLOFBase(OutlierDetectorBase, Generic[KDT], register=False):
 
         Parameters
         ----------
+        self : KDTreeLOFBase
+            The cleaning object.
         data : (N, D) ndarray, positional-only
             The data. Rows are distinct objects, e.g stars, columns are
             features, e.g. ``D``-dimensional coordinates of the stars.
         threshold : float, optional
             The threshold for the LOF to consider a point an outlier.
+        k : int, optional keyword-only
+            The number of nearest neighbors to use.
         **query_kw : Any
             Keyword arguments.
 
@@ -113,11 +110,15 @@ class ScipyKDTreeLOF(KDTreeLOFBase["KDTree"]):
 
         Parameters
         ----------
+        self : KDTreeLOFBase
+            The cleaning object.
         data : (N, D) ndarray, positional-only
             The data. Rows are distinct objects, e.g stars, columns are
             features, e.g. ``D``-dimensional coordinates of the stars.
         threshold : float, optional
             The threshold for the LOF to consider a point an outlier.
+        k : int, optional keyword-only
+            The number of nearest neighbors to use.
         **query_kw : Any
             Keyword arguments.
 

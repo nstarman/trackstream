@@ -3,14 +3,11 @@
 Stream arms are descriptors on a `trackstrea.Stream` class.
 """
 
-##############################################################################
-# IMPORTS
 
 from __future__ import annotations
 
-# STDLIB
-import copy
 from collections.abc import Mapping
+import copy
 from dataclasses import asdict, dataclass, field, fields
 from types import MappingProxyType
 from typing import (
@@ -25,13 +22,10 @@ from typing import (
     final,
 )
 
-# THIRD PARTY
 from astropy.coordinates import BaseCoordinateFrame, SkyCoord
 from astropy.coordinates import concatenate as concatenate_coords
-from astropy.table import Column, QTable
 from bound_class.core.descriptors import BoundDescriptor
 
-# LOCAL
 from trackstream.stream.base import Flags, StreamBase
 from trackstream.stream.core import StreamArm
 from trackstream.stream.plural import StreamArms, StreamArmsBase
@@ -39,7 +33,8 @@ from trackstream.utils.coord_utils import get_frame, parse_framelike
 from trackstream.utils.descriptors.cache import CacheProperty
 
 if TYPE_CHECKING:
-    # LOCAL
+    from astropy.table import Column, QTable
+
     from trackstream._typing import FrameLikeType
     from trackstream.clean.base import OutlierDetectorBase
     from trackstream.common import CollectionBase
@@ -79,14 +74,14 @@ class StreamArmsDescriptor(StreamArms, BoundDescriptor["Stream"]):
 
     @property
     def _data(self) -> dict[str, StreamArm]:
-        return self.enclosing._data
+        return self.enclosing._data  # noqa: SLF001
 
     @property
     def name(self) -> str | None:
         """The name of the attribute."""
         return self.enclosing.name
 
-    def __set__(self, obj: object, value: Any) -> NoReturn:  # noqa: ARG002
+    def __set__(self, obj: object, value: Any) -> NoReturn:
         raise AttributeError
 
 
@@ -148,13 +143,17 @@ class Stream(StreamArmsBase, StreamBase):
     flags = StreamFlags()
 
     def __init__(
-        self, data: dict[str, StreamArm] | None = None, /, *, name: str | None = None, **kwargs: StreamArm
+        self,
+        data: dict[str, StreamArm] | None = None,
+        /,
+        *,
+        name: str | None = None,
+        **kwargs: StreamArm,
     ) -> None:
-
         self.name: str | None
         super().__init__(data, name=name, **kwargs)
 
-        cache = CacheProperty._init_cache(self)
+        cache = CacheProperty._init_cache(self)  # noqa: SLF001
         self._cache: dict[str, Any]
         object.__setattr__(self, "_cache", cache)
 
@@ -317,19 +316,18 @@ class Stream(StreamArmsBase, StreamBase):
 
         Parameters
         ----------
+        fitters : bool or dict[str, bool or ``FitterStreamArmTrack``]
+            If `True`, make fitters.
+            if `dict` use the given fitters.
+
+        tune : bool, optional keyword-only
+            If `True` (default), tune the fitters, don't retrain them.
         force : bool, optional keyword-only
-            Whether to force a fit, even if already fit.
-
-        onsky : bool or None, optional keyword-only
-            Should the track be fit on-sky or including distances? If `None`
-            (default) the data is inspected to see if it has distances.
-        kinematics : bool or None, optional keyword-only
-            Should the track be fit with or without kinematics? If `None`
-            (default) the data is inspected to see if it has kinematic
-            information.
-
-        **kwargs
-            Passed to :meth:`trackstream.FitterStreamArmTrack.fit`.
+            If `True`, re-fit the track.
+        composite : bool, optional keyword-only
+            If `True` (default), make a composite track.
+        **kwargs : Any optional keyword-only
+            Passed to the fitters.
 
         Returns
         -------
@@ -386,13 +384,15 @@ class Stream(StreamArmsBase, StreamBase):
     def __len__(self) -> int:
         return sum(map(len, self.values()))
 
-    def __base_repr__(self, max_lines: int | None = None) -> list[str]:
-        rs = super().__base_repr__(max_lines=max_lines)
+    def _base_repr_(self, max_lines: int | None = None) -> list[str]:
+        rs = super()._base_repr_(max_lines=max_lines)
 
         # 5) contained streams
         datarepr = (
             f"{name}:\n\t\t"
-            + "\n\t\t".join(arm.data._base_repr_(html=False, max_width=None, max_lines=10).split("\n")[1:])
+            + "\n\t\t".join(
+                arm.data._base_repr_(html=False, max_width=None, max_lines=10).split("\n")[1:],  # noqa: SLF001
+            )
             for name, arm in self.items()
         )
         rs.append("  Streams:\n\t" + "\n\t".join(datarepr))

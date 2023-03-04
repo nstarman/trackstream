@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-# STDLIB
 import logging
 import sys
 
@@ -14,7 +13,6 @@ __all__: list[str] = []
 PY_GE_310 = sys.version_info >= (3, 10)
 
 try:
-    # THIRD PARTY
     import tqdm  # noqa: F401
 except ImportError:
     HAS_TQDM = False

@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-# STDLIB
 from math import pi
 from typing import TypeVar
 
-# THIRD PARTY
 import numpy as np
 from numpy import arccos, cos, diff, ndarray, nonzero
 from numpy.linalg import norm
@@ -56,7 +54,6 @@ def _respace_bins_from_left(bins: NDT, maxsep: ndarray, eps: float | np.floating
 
     i = 0  # cap at 10k iterations
     while any(seps) and i < 10_000:
-
         # Move the bins by the separation
         bins[seps + 1] = bins[seps] + maxsep * (1 - eps)
 
@@ -93,9 +90,8 @@ def _respace_bins(bins: NDT, maxsep: ndarray, eps: float | np.floating, *, onsky
     diffs = arccos(cos(diff(bins))) if onsky else diff(bins)
     (seps,) = nonzero(diffs > maxsep)
 
-    i = 0  # cap at 10k iterations
+    i = 0  # cap at 50 iterations
     while any(seps) and i < 50:
-
         # Adjust from the left, then adjust from the right
         bins = _respace_bins_from_left(bins, maxsep=maxsep, onsky=onsky, eps=eps)
         bins[::-1] = -_respace_bins_from_left(-bins[::-1], maxsep=maxsep, onsky=onsky, eps=eps)
@@ -139,7 +135,7 @@ def _get_info_for_projection(
     data : (N, D) ndarray
         The data. Rows are points, columns are features.
     prototypes : (P, D) ndarray
-
+        The prototypes. Rows are points, columns are features.
 
     Returns
     -------
@@ -190,7 +186,12 @@ def _get_info_for_projection(
 
 
 def _order_data_along_som_projection(
-    data: ndarray, /, *, lattice_p2p_distance: ndarray, segment_projection: ndarray, distances: ndarray
+    data: ndarray,
+    /,
+    *,
+    lattice_p2p_distance: ndarray,
+    segment_projection: ndarray,
+    distances: ndarray,
 ) -> ndarray:
     r"""Order data along its projection onto 1D lattice.
 
@@ -231,19 +232,21 @@ def _order_data_along_som_projection(
 
         # move edge points to corresponding segment
         if i == 0:
-            i = 1
+            segi = 1
         elif i == 2 * (nlattice - 1):
-            i = nlattice - 1
+            segi = nlattice - 1
+        else:
+            segi = i
 
         # odds (remainder 1) are segments
-        if bool(i % 2):
-            ts = segment_projection[rowi, i // 2]
+        if bool(segi % 2):
+            ts = segment_projection[rowi, segi // 2]
             rowsorter = np.argsort(ts)
 
         # evens are by nodes
         else:  # TODO! how many dimensions does this consider?
-            phi1 = np.arctan2(*lattice_p2p_distance[i // 2 - 1, :2])
-            phim2 = np.arctan2(*-lattice_p2p_distance[i // 2, :2])
+            phi1 = np.arctan2(*lattice_p2p_distance[segi // 2 - 1, :2])
+            phim2 = np.arctan2(*-lattice_p2p_distance[segi // 2, :2])
             phi = np.arctan2(*data[rowi, :2].T)
 
             # detect if in branch cut territory
@@ -286,7 +289,10 @@ def project_data_on_som(prototypes: ndarray, data: ndarray) -> tuple[ndarray, nd
     projpnts = all_points[np.arange(len(distances)), ind_best_distance, :]
 
     ordering = _order_data_along_som_projection(
-        data, lattice_p2p_distance=lattice_p2p_distance, segment_projection=segment_projection, distances=distances
+        data,
+        lattice_p2p_distance=lattice_p2p_distance,
+        segment_projection=segment_projection,
+        distances=distances,
     )
     return projpnts, ordering
 

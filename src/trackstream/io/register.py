@@ -2,19 +2,18 @@
 
 from __future__ import annotations
 
-# STDLIB
-import inspect
-import warnings
 from dataclasses import dataclass
+import inspect
 from typing import TYPE_CHECKING, Any, ClassVar, Protocol, TypedDict
+import warnings
 
-# THIRD PARTY
 from astropy.io.registry import IORegistryError, UnifiedIORegistry
 from importlib_metadata import EntryPoint, entry_points
 
 if TYPE_CHECKING:
-    # THIRD PARTY
-    from typing_extensions import NotRequired, TypeGuard
+    from typing import TypeGuard
+
+    from typing_extensions import NotRequired
 
 
 __all__ = ["UnifiedIOEntryPointRegistrar"]
@@ -27,7 +26,7 @@ __all__ = ["UnifiedIOEntryPointRegistrar"]
 class IdentifyCallable(Protocol):
     """Callable that identifies a format."""
 
-    def __call__(self, origin: str, format: str | None, /, *args: Any, **kwargs: Any) -> bool:  # noqa: A002, ARG002
+    def __call__(self, origin: str, format: str | None, /, *args: Any, **kwargs: Any) -> bool:  # noqa: A002
         """Identify a format."""
         ...
 
@@ -35,7 +34,7 @@ class IdentifyCallable(Protocol):
 class FuncCallable(Protocol):  # TODO!
     """Callable that reads or writes a format."""
 
-    def __call__(self, base: Any, /, *args: Any, **kwds: Any) -> Any:  # noqa: ARG002
+    def __call__(self, base: Any, /, *args: Any, **kwds: Any) -> Any:
         """Read or write a format."""
         ...
 
@@ -133,10 +132,7 @@ class UnifiedIOEntryPointRegistrar:
             valid = False
 
         # Check actual funcs
-        elif not callable(value.get("func")):
-            msg = "field 'identify' must be a callable"
-            valid = False
-        elif "identify" in value and not callable(value["identify"]):
+        elif not callable(value.get("func")) or ("identify" in value and not callable(value["identify"])):
             msg = "field 'identify' must be a callable"
             valid = False
 
