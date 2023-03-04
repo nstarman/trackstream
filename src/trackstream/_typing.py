@@ -7,7 +7,7 @@ Note that this is not (necessarily) static typing.
 
 from __future__ import annotations
 
-from typing import Protocol, TypeVar
+from typing import Protocol, TypeAlias, TypeVar
 
 from astropy.coordinates import BaseCoordinateFrame, SkyCoord
 from numpy import floating
@@ -37,9 +37,9 @@ NDFloat = NDArray[floating[N1]]
 # -------------------------------------
 # Astropy types
 
-CoordinateType = BaseCoordinateFrame | SkyCoord
+CoordinateType: TypeAlias = BaseCoordinateFrame | SkyCoord
 
-FrameLikeType = BaseCoordinateFrame | str
+FrameLikeType: TypeAlias = BaseCoordinateFrame | str
 
 
 class HasFrame(Protocol):
