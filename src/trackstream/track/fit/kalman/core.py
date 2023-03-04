@@ -23,14 +23,16 @@ from trackstream.track.width.core import LENGTH, SPEED
 from trackstream.track.width.plural import Widths
 from trackstream.utils.unit_utils import merge_units
 
+__all__: list[str] = []
+
+
 if TYPE_CHECKING:
     from astropy.coordinates import SkyCoord
     from typing_extensions import Self
 
+    from trackstream._typing import NDFloating
     from trackstream.track.fit.kalman.base import FONKFBase, KFInfo
     from trackstream.track.fit.timesteps.plural import Times
-
-__all__: list[str] = []
 
 
 ##############################################################################
@@ -70,12 +72,12 @@ class FirstOrderNewtonianKalmanFilter:
         return _v2c(self, self.kf.x0)
 
     @property
-    def P0(self) -> np.ndarray:
+    def P0(self) -> NDFloating:
         """Return the initial covariance."""
         return self.kf.P0
 
     @property
-    def Q0(self) -> np.ndarray | None:
+    def Q0(self) -> NDFloating | None:
         """Return the process noise."""
         return self.kf.Q0
 

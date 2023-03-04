@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, replace
 from functools import singledispatch
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 import astropy.units as u
 from astropy.units import Quantity
@@ -191,7 +191,7 @@ def _fit_stream_StreamArmsDescriptor(
     **kwargs: Any,
 ) -> StreamArms:
     """Fit StreamArmsDescriptor as a StreamArms (a collection of arms)."""
-    return fit_stream(StreamArms(dict(arms_descr.items())), rot0=rot0, force=force, **kwargs)
+    return cast("StreamArms", fit_stream(StreamArms(dict(arms_descr.items())), rot0=rot0, force=force, **kwargs))
 
 
 @_add_method_to_cls(Stream, "fit_frame")

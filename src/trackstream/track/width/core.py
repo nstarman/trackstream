@@ -84,13 +84,11 @@ class BaseWidth(WidthBase, metaclass=ABCMeta):
     @abstractmethod
     def corresponding_representation_type(cls) -> None | type[BaseRepresentationOrDifferential]:
         """Representation type corresponding to the width type."""
-        return
 
     @classproperty
     @abstractmethod
     def dimensions(cls) -> u.PhysicalType | None:
         """Physical type of the width (or `None`)."""
-        return
 
     # TODO! make a classproperty. But problematic with ABCMeta
     @property

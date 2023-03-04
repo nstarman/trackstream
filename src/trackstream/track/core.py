@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from dataclasses import InitVar
 
+    from astropy.coordinates import SkyCoord
     from astropy.units import Quantity, percent
     from interpolated_coordinates import InterpolatedSkyCoord
 
@@ -72,7 +73,14 @@ class StreamArmTrack(StreamArmTrackBase[StreamLikeT]):
     path: Path
     name: str | None
 
-    def __init__(self, stream: StreamLikeT, path: Path, *, name: str | None = None, meta: dict | None = None) -> None:
+    def __init__(
+        self,
+        stream: StreamLikeT,
+        path: Path,
+        *,
+        name: str | None = None,
+        meta: dict[str, Any] | None = None,
+    ) -> None:
         object.__setattr__(self, "path", path)
         object.__setattr__(self, "name", name)
 
@@ -103,7 +111,7 @@ class StreamArmTrack(StreamArmTrackBase[StreamLikeT]):
         return strm
 
     @property
-    def origin(self) -> coords.SkyCoord:
+    def origin(self) -> SkyCoord:
         """The origin of the track."""
         return self.stream.origin
 
@@ -163,8 +171,8 @@ class StreamArmTrack(StreamArmTrackBase[StreamLikeT]):
 
     def probability(
         self,
-        point: coords.SkyCoord,
-        background_model: Callable[[coords.SkyCoord], Quantity[percent]] | None = None,
+        point: SkyCoord,
+        background_model: Callable[[SkyCoord], Quantity[percent]] | None = None,
         *,
         angular: bool = False,
         affine: Quantity | None = None,

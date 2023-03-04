@@ -60,7 +60,7 @@ class StreamTrack(StreamArmTrack[Stream], StreamArmsTrackBase[Stream]):
         path: Path,
         *,
         name: str | None = None,
-        meta: dict | None = None,
+        meta: dict[str, Any] | None = None,
     ) -> None:
         object.__setattr__(self, "path", path)
         object.__setattr__(self, "name", name)
@@ -85,7 +85,7 @@ class StreamTrack(StreamArmTrack[Stream], StreamArmsTrackBase[Stream]):
     # ---------------------------------------------------------------
 
     @classmethod
-    def from_stream(cls, stream: Stream, *, name: str, meta: dict | None = None) -> StreamTrack:
+    def from_stream(cls, stream: Stream, *, name: str, meta: dict[str, Any] | None = None) -> StreamTrack:
         """Track from a `trackstream.stream.Stream`."""
         # Get StreamArmTrack from each stream arm.
         tracks = {k: arm.track for k, arm in stream.items()}

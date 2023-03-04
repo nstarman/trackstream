@@ -4,17 +4,24 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, final
+from typing import TYPE_CHECKING, Any, final
 
 import astropy.coordinates as coords
 import astropy.units as u
 import numpy as np
-from numpy import ndarray, subtract
+from numpy import subtract
 from numpy.linalg import norm
 from scipy.stats import binned_statistic
 
 from trackstream.track.fit.som.base import SOM1DBase, SOMInfo
 from trackstream.track.fit.som.utils import _decay_function, _respace_bins
+
+__all__: list[str] = []
+
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
+
+    from trackstream._typing import NDFloating
 
 
 @final
@@ -65,14 +72,14 @@ class CartesianSOM(SOM1DBase):
 
     @staticmethod
     def _make_prototypes_from_binned_data(
-        data: ndarray,
+        data: NDFloating,
         /,
         nlattice: int,
         *,
         byphi: bool = False,
-        maxsep: ndarray | None = None,
+        maxsep: NDArray[np.floating[Any]] | None = None,
         **_: Any,
-    ) -> ndarray:
+    ) -> NDFloating:
         r"""Initialize prototype vectors from binned data.
 
         Parameters
@@ -89,14 +96,18 @@ class CartesianSOM(SOM1DBase):
         """
         # TODO? generalize to also kinematics
         # Get coordinate to bin
-        x: ndarray = data[:, 0]
+        x: NDArray[np.floating[Any]] = data[:, 0]
 
         # Determine the binning coordinate
         if byphi:
             x = np.arctan2(data[:, 1], data[:, 0])
 
         # Create equi-frequency bins
-        bins: ndarray = np.interp(x=np.linspace(0, len(x), nlattice + 1), xp=np.arange(len(x)), fp=np.sort(x))
+        bins: NDArray[np.floating[Any]] = np.interp(
+            x=np.linspace(0, len(x), nlattice + 1),
+            xp=np.arange(len(x)),
+            fp=np.sort(x),
+        )
 
         # Optionally respace the bins to have a maximum separation
         if maxsep is not None:
@@ -116,7 +127,7 @@ class CartesianSOM(SOM1DBase):
             )
 
         res = binned_statistic(x, data.T, bins=bins, statistic="median")
-        prototypes: ndarray = res.statistic.T
+        prototypes: NDArray[np.floating[Any]] = res.statistic.T
 
         # When there is no data in a bin, it is set to NaN.
         # This is replaced with the interpolation from nearby points.
@@ -128,14 +139,14 @@ class CartesianSOM(SOM1DBase):
 
     # ===============================================================
 
-    def _activation_distance(self, x: ndarray, w: ndarray) -> ndarray:
-        distance: ndarray = norm(subtract(x, w), axis=-1)  # works for both q & p
+    def _activation_distance(self, x: NDFloating, w: NDFloating) -> NDFloating:
+        distance: NDArray[np.floating[Any]] = norm(subtract(x, w), axis=-1)  # works for both q & p
         return distance
 
     # ---------------------------------------------------------------
     # fitting
 
-    def _update(self, x: ndarray, t: int, max_iteration: int) -> None:
+    def _update(self, x: NDFloating, t: int, max_iteration: int) -> None:
         """Update the locations of the prototypes.
 
         Parameters

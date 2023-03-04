@@ -27,7 +27,9 @@ from trackstream.track.fit.timesteps.plural import LENGTH, SPEED, Times
 from trackstream.utils.coord_utils import deep_transform_to
 
 if TYPE_CHECKING:
+    from trackstream.stream.base import StreamLike
     from trackstream.track.core import StreamArmTrack
+    from trackstream.track.width.base import WidthBase
     from trackstream.track.width.plural import Widths
 
 __all__: list[str] = []
@@ -112,7 +114,7 @@ class FitterStreamArmTrack:
         kinematics: bool | None = None,  # noqa: ARG003
         *,
         som_kw: dict[str, Any] | None = None,  # noqa: ARG003
-        kalman_kw: dict | None = None,  # noqa: ARG003
+        kalman_kw: dict[str, Any] | None = None,  # noqa: ARG003
     ) -> Any:  # https://github.com/python/mypy/issues/11727
         """Create a FitterStreamArmTrack from an object."""
         msg = "not dispatched"
@@ -120,14 +122,14 @@ class FitterStreamArmTrack:
 
     @from_format.register(StreamArm)
     @classmethod
-    def _from_format_streamarm(
+    def _from_format_streamarm(  # type: ignore[misc]
         cls: type[Self],
         arm: StreamArm,
         onsky: bool | None = None,
         kinematics: bool | None = None,
         *,
         som_kw: dict[str, Any] | None = None,
-        kalman_kw: dict | None = None,
+        kalman_kw: dict[str, Any] | None = None,
     ) -> Self:
         if onsky is None:
             onsky = not arm.has_distances
@@ -154,14 +156,14 @@ class FitterStreamArmTrack:
 
     @from_format.register(StreamArmsBase)
     @classmethod
-    def _from_format_streamarmsbase(
+    def _from_format_streamarmsbase(  # type: ignore[misc]
         cls: type[Self],
         arms: StreamArmsBase,
         onsky: bool | None = None,
         kinematics: bool | None = None,
         *,
         som_kw: dict[str, Any] | None = None,
-        kalman_kw: dict | None = None,
+        kalman_kw: dict[str, Any] | None = None,
     ) -> dict[str, Self]:
         return {
             n: cls.from_format(arm, onsky=onsky, kinematics=kinematics, som_kw=som_kw, kalman_kw=kalman_kw)
@@ -202,9 +204,9 @@ class FitterStreamArmTrack:
         self,
         stream: StreamArm,
         *,
-        som_kw: dict | None = None,
-        kalman_kw: dict | None = None,
-    ) -> StreamArmTrack:
+        som_kw: dict[str, Any] | None = None,
+        kalman_kw: dict[str, Any] | None = None,
+    ) -> StreamArmTrack[StreamLike]:
         """Fit a track to the data.
 
         Parameters
@@ -264,7 +266,7 @@ class FitterStreamArmTrack:
         # segments.
         wb = self.som.separation(data)
         stream_width = np.convolve(wb, np.ones((10,)) / 10, mode="same")
-        stream_width = cast("Widths", stream_width)
+        stream_width = cast("Widths[WidthBase]", stream_width)
         # Set minimum width from the stream width
         if (minwidth := kfkw.pop("width_min", None)) is not None:
             stream_width[stream_width < minwidth] = minwidth

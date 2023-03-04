@@ -118,7 +118,7 @@ class CollectionBase(Mapping[str, V]):
         """Map any unkown methods to the contained data."""
         # Have to special-case class-level property.
         if key in ("__isabstractmethod__",):
-            return object.__getattribute__(self, key)
+            return object.__getattribute__(self, key)  # type: ignore[no-any-return]
 
         # Check if the underlying data has the key, erroring if it doesn't.
         if hasattr(self._v0, key):

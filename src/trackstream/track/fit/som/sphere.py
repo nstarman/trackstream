@@ -5,14 +5,14 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass
 from math import pi
-from typing import Any, final
+from typing import TYPE_CHECKING, Any, final
 
 import astropy.coordinates as coords
 from astropy.coordinates.angle_utilities import angular_separation
 import astropy.units as u
 from erfa import s2pv
 import numpy as np
-from numpy import ndarray, subtract
+from numpy import subtract
 from numpy.linalg import norm
 from scipy.cluster.hierarchy import fclusterdata
 from scipy.spatial import distance_matrix
@@ -21,6 +21,12 @@ from scipy.stats import binned_statistic
 from trackstream.track.fit.som.base import SOM1DBase, SOMInfo
 from trackstream.track.fit.som.utils import _decay_function, _respace_bins, wrap_at
 from trackstream.track.fit.utils import offset_by, position_angle
+
+__all__: list[str] = []
+
+if TYPE_CHECKING:
+    from trackstream._typing import NDFloating
+
 
 twopi = 2 * pi
 halfpi = pi / 2
@@ -78,14 +84,14 @@ class USphereSOM(SOM1DBase):
 
     @staticmethod
     def _make_prototypes_from_binned_data(
-        data: ndarray,
+        data: NDFloating,
         /,
         nlattice: int,
         *,
         byphi: bool = False,
-        maxsep: ndarray | None = None,
+        maxsep: NDFloating | None = None,
         **_: Any,
-    ) -> ndarray:
+    ) -> NDFloating:
         r"""Initialize prototype vectors from binned data.
 
         Parameters
@@ -102,7 +108,7 @@ class USphereSOM(SOM1DBase):
         """
         # Get coordinate to bin
         # This is most easily done as a NON-structured array
-        x: ndarray = data[:, 0]
+        x: NDFloating = data[:, 0]
 
         # Determine the binning coordinate
         if byphi:
@@ -132,7 +138,7 @@ class USphereSOM(SOM1DBase):
         # Create equi-frequency bins
         # https://www.statology.org/equal-frequency-binning-python/
         # endpoint=False is used to prevent a x>xp endpoint repetition
-        bins: ndarray = np.interp(
+        bins: NDFloating = np.interp(
             x=np.linspace(0, len(x), nlattice + 1, endpoint=False),
             xp=np.arange(len(x)),
             fp=np.sort(x),
@@ -152,7 +158,7 @@ class USphereSOM(SOM1DBase):
             bins = _respace_bins(deepcopy(bins), maxsep, onsky=True, eps=2 * np.finfo(maxsep.dtype).eps)
 
         res = binned_statistic(x, data.T, bins=bins, statistic="median")
-        prototypes: ndarray = res.statistic.T
+        prototypes: NDFloating = res.statistic.T
 
         # When there is no data in a bin, it is set to NaN.
         # This is replaced with the interpolation from nearby points.
@@ -167,7 +173,7 @@ class USphereSOM(SOM1DBase):
     # ---------------------------------------------------------------
     # fitting
 
-    def _activation_distance(self, x: ndarray, w: ndarray) -> ndarray:
+    def _activation_distance(self, x: NDFloating, w: NDFloating) -> NDFloating:
         """Activation distance.
 
         Parameters
@@ -182,7 +188,7 @@ class USphereSOM(SOM1DBase):
         ndarray
         """
         # for the positions (lon, lat)
-        pd: ndarray = angular_separation(*x[:2], *w.T[:2, :])
+        pd: NDFloating = angular_separation(*x[:2], *w.T[:2, :])
 
         # velocity distance
         if len(x) <= 2 * 2:
@@ -195,7 +201,7 @@ class USphereSOM(SOM1DBase):
 
         return pd + vd
 
-    def _update(self, x: ndarray, t: int, max_iteration: int) -> None:
+    def _update(self, x: NDFloating, t: int, max_iteration: int) -> None:
         """Update the locations of the prototypes.
 
         Parameters
@@ -232,7 +238,7 @@ class USphereSOM(SOM1DBase):
     # ---------------------------------------------------------------
     # predicting structure
 
-    def predict(self, crd: ndarray, /) -> tuple[ndarray, ndarray]:
+    def predict(self, crd: NDFloating, /) -> tuple[NDFloating, NDFloating]:
         """Order data from SOM in 2+N Dimensions.
 
         Parameters

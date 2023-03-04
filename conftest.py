@@ -10,9 +10,10 @@ packagename.test
 from __future__ import annotations
 
 import pathlib
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import astropy.coordinates as coords
+from astropy.coordinates import Angle, CartesianDifferential, CartesianRepresentation, SkyCoord
 import astropy.units as u
 from astropy.units import Quantity
 from interpolated_coordinates import (
@@ -29,6 +30,9 @@ from trackstream.track.width import Cartesian1DWidth
 from trackstream.track.width.interpolated import InterpolatedWidths
 
 __all__: list[str] = []
+
+if TYPE_CHECKING:
+    from astropy.coordinates import BaseCoordinateFrame, BaseDifferential, BaseRepresentation
 
 
 try:
@@ -92,11 +96,10 @@ def _add_astropy(doctest_namespace: dict[str, Any]) -> None:
         dictionary to add to.
     """
     import astropy.coordinates as coords
-    import astropy.units
 
     # add to namespace
     doctest_namespace["coords"] = coords
-    doctest_namespace["u"] = astropy.units
+    doctest_namespace["u"] = u
 
     # extras
     from astropy.visualization import quantity_support, time_support
@@ -115,19 +118,19 @@ def num() -> int:
 
 
 @pytest.fixture(scope="session")
-def affine(num: int) -> coords.Angle:
+def affine(num: int) -> Angle:
     """Fixture returning the affine |Angle|."""
-    return coords.Angle(np.linspace(0, 10, num=num), u.deg)
+    return Angle(np.linspace(0, 10, num=num), u.deg)
 
 
 @pytest.fixture(scope="session")
-def dif_type() -> type[coords.BaseDifferential]:
+def dif_type() -> type[BaseDifferential]:
     """Fixture returning the differential type."""
-    return coords.CartesianDifferential
+    return CartesianDifferential
 
 
 @pytest.fixture(scope="session")
-def dif(dif_type: type[coords.BaseDifferential], num: int) -> coords.BaseDifferential:
+def dif(dif_type: type[BaseDifferential], num: int) -> BaseDifferential:
     """Fixture returning the differential."""
     return dif_type(
         d_x=np.linspace(3, 4, num=num) * (u.km / u.s),
@@ -137,23 +140,23 @@ def dif(dif_type: type[coords.BaseDifferential], num: int) -> coords.BaseDiffere
 
 
 @pytest.fixture(scope="session")
-def idif(dif: coords.BaseDifferential, affine: coords.Angle) -> InterpolatedDifferential:
+def idif(dif: BaseDifferential, affine: Angle) -> InterpolatedDifferential:
     """Fixture returning the interpolated differential."""
     return InterpolatedDifferential(dif, affine=affine)
 
 
 @pytest.fixture(scope="session")
-def rep_type() -> type[coords.CartesianRepresentation]:
+def rep_type() -> type[CartesianRepresentation]:
     """Fixture returning the differential type."""
-    return coords.CartesianRepresentation
+    return CartesianRepresentation
 
 
 @pytest.fixture(scope="session")
 def rep(
-    rep_type: type[coords.CartesianRepresentation],
-    dif: coords.BaseDifferential,
+    rep_type: type[CartesianRepresentation],
+    dif: BaseDifferential,
     num: int,
-) -> coords.CartesianRepresentation:
+) -> CartesianRepresentation:
     """Fixture returning the representation, with attached differentials."""
     return rep_type(
         x=np.linspace(0, 1, num=num) * u.kpc,
@@ -164,40 +167,40 @@ def rep(
 
 
 @pytest.fixture(scope="session")
-def irep(rep: coords.BaseRepresentation, affine: coords.Angle) -> InterpolatedRepresentation:
+def irep(rep: BaseRepresentation, affine: Angle) -> InterpolatedRepresentation:
     """Fixture returning the interpolated representation."""
     return InterpolatedRepresentation(rep, affine=affine)
 
 
 @pytest.fixture(scope="session")
 def frame(
-    rep_type: type[coords.BaseRepresentation],
-    dif_type: type[coords.BaseDifferential],
-) -> coords.BaseCoordinateFrame:
+    rep_type: type[BaseRepresentation],
+    dif_type: type[BaseDifferential],
+) -> BaseCoordinateFrame:
     """Fixture returning the frame, |ICRS|."""
     return coords.ICRS(representation_type=rep_type, differential_type=dif_type)
 
 
 @pytest.fixture(scope="session")
-def crd(frame: coords.BaseCoordinateFrame, rep: coords.BaseRepresentation) -> coords.BaseCoordinateFrame:
+def crd(frame: BaseCoordinateFrame, rep: BaseRepresentation) -> BaseCoordinateFrame:
     """Fixture returning the coordinate frame."""
     return frame.realize_frame(rep, representation_type=type(rep))
 
 
 @pytest.fixture(scope="session")
-def icrd(crd: coords.BaseCoordinateFrame, affine: coords.Angle) -> InterpolatedCoordinateFrame:
+def icrd(crd: BaseCoordinateFrame, affine: Angle) -> InterpolatedCoordinateFrame:
     """Fixture returning the interpolated coordinate frame."""
     return InterpolatedCoordinateFrame(crd, affine=affine)
 
 
 @pytest.fixture(scope="session")
-def scrd(crd: coords.BaseCoordinateFrame) -> coords.SkyCoord:
+def scrd(crd: BaseCoordinateFrame) -> SkyCoord:
     """Fixture returning the |SkyCoord|."""
-    return coords.SkyCoord(crd)
+    return SkyCoord(crd)
 
 
 @pytest.fixture(scope="session")
-def iscrd(scrd: coords.SkyCoord, affine: coords.Angle) -> InterpolatedSkyCoord:
+def iscrd(scrd: SkyCoord, affine: Angle) -> InterpolatedSkyCoord:
     """Fixture returning the interpolated |SkyCoord|."""
     return InterpolatedSkyCoord(scrd, affine=affine)
 
@@ -228,12 +231,12 @@ def index_on() -> int:
 
 
 @pytest.fixture(scope="session")
-def affine_on(affine: coords.Angle, index_on: int) -> coords.Angle:
+def affine_on(affine: Angle, index_on: int) -> Angle:
     """Fixture returning the affine parameter at one point."""
-    return cast("coords.Angle", affine[index_on])
+    return cast("Angle", affine[index_on])
 
 
 @pytest.fixture(scope="session")
-def point_on(crd: coords.BaseCoordinateFrame, index_on: int) -> coords.BaseCoordinateFrame:
+def point_on(crd: BaseCoordinateFrame, index_on: int) -> BaseCoordinateFrame:
     """Fixture returning the coordinate at one point."""
-    return cast("coords.BaseCoordinateFrame", crd[index_on])
+    return cast("BaseCoordinateFrame", crd[index_on])

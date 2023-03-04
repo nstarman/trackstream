@@ -22,10 +22,12 @@ from trackstream.stream.plural import StreamArmsBase
 from trackstream.stream.stream import Stream
 from trackstream.utils.coord_utils import get_frame
 
-if TYPE_CHECKING:
-    from numpy.typing import NDArray
-
 __all__: list[str] = []
+
+if TYPE_CHECKING:
+    from numpy import float64
+    from numpy.typing import NDArray
+    from typing_extensions import TypeAlias
 
 
 ##############################################################################
@@ -37,7 +39,7 @@ def reference_to_skyoffset_matrix(
     lon: float | Quantity,
     lat: float | Quantity,
     rotation: float | Quantity,
-) -> NDArray[np.float64]:
+) -> NDArray[float64]:
     """Convert a reference coordinate to an sky offset frame ([astropy]_).
 
     Cartesian to Cartesian matrix transform.
@@ -75,18 +77,18 @@ def reference_to_skyoffset_matrix(
     # Define rotation matrices along the position angle vector, and
     # relative to the origin.
     # None -> deg, skipping units stuff
-    mat1: NDArray[np.float64] = rotation_matrix(-rotation, axis="x", unit=None)
-    mat2: NDArray[np.float64] = rotation_matrix(-lat, axis="y", unit=None)
-    mat3: NDArray[np.float64] = rotation_matrix(lon, axis="z", unit=None)
+    mat1: NDArray[float64] = rotation_matrix(-rotation, axis="x", unit=None)
+    mat2: NDArray[float64] = rotation_matrix(-lat, axis="y", unit=None)
+    mat3: NDArray[float64] = rotation_matrix(lon, axis="z", unit=None)
 
     return mat1 @ mat2 @ mat3
 
 
 def residual(
     v: tuple[float, float, float],
-    data: NDArray[np.float64],
+    data: NDArray[float64],
     scalar: bool = False,  # noqa: FBT001, FBT002
-) -> float | NDArray[np.float64]:
+) -> float64 | NDArray[float64]:
     r"""How close phi2, the rotated |Latitude| (e.g. dec), is to flat.
 
     This function is meant for use in a scipy minimizer.
@@ -127,7 +129,7 @@ def residual(
     rot_xyz: Quantity = np.dot(rot_matrix, data).T
     _, phi2 = erfa_ufunc.c2s(rot_xyz)
 
-    res: NDArray[np.float64] = np.abs(phi2 - 0.0) / len(phi2)
+    res: NDArray[float64] = np.abs(phi2 - 0.0) / len(phi2)
 
     return np.sum(res) if scalar else res
 
@@ -137,7 +139,7 @@ def residual(
 # then dispatches on the minimizer method. Arbitrary input types and
 # minimization methods can be supported by adding to the dispatch registries.
 
-_Rot0 = Quantity | float | np.floating
+_Rot0: TypeAlias = Quantity | float | np.floating
 _default_minimize = opt.minimize
 
 
@@ -310,7 +312,7 @@ def minimizer_dispatcher(key: str | Callable[..., Any]) -> Callable[[_Dispatched
 @minimizer_dispatcher("scipy.optimize.minimize")
 @minimizer_dispatcher(opt.minimize)
 def scipy_optimize_minimize(
-    data: NDArray[np.float64],
+    data: NDArray[float64],
     x0: _X0T,
     minimizer_kwargs: Mapping[str, Any],
 ) -> opt.OptimizeResult:
@@ -335,7 +337,7 @@ def scipy_optimize_minimize(
 @minimizer_dispatcher("scipy.optimize.least_squares")
 @minimizer_dispatcher(opt.least_squares)
 def scipy_optimize_leastsquares(
-    data: NDArray[np.float64],
+    data: NDArray[float64],
     x0: _X0T,
     minimizer_kwargs: Mapping[str, Any],
 ) -> opt.OptimizeResult:
@@ -359,7 +361,7 @@ def scipy_optimize_leastsquares(
 
 def run_minimizer(
     minimizer: str | Callable[..., Any],
-    data: NDArray[np.float64],
+    data: NDArray[float64],
     x0: _X0T,
     minimizer_kwargs: Mapping[str, Any],
 ) -> object:
@@ -372,7 +374,7 @@ def run_minimizer(
     ----------
     minimizer : str or callable[..., Any]
         The minimizer method. Must be a key in the dispatcher.
-    data : NDArray[np.float64]
+    data : NDArray[float64]
         The data to finnd
     x0 : tuple[float, float, float]
         Initial position.

@@ -60,7 +60,7 @@ class _StreamCache(TypedDict):
     frame_fit_result: FrameOptimizeResult | None
     # track
     track: StreamArmTrack | None
-    fitters: MappingProxyType | None  # arms' caches
+    fitters: MappingProxyType[str, bool | FitterStreamArmTrack] | None  # arms' caches
 
 
 ##############################################################################

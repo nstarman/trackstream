@@ -49,3 +49,16 @@ repos:
     hooks:
       - id: nbqa-black
       - id: nbqa-ruff
+
+  # - repo: https://github.com/pre-commit/mirrors-mypy
+  #   rev: "v1.0.0"
+  #   hooks:
+  #     - id: mypy
+  #       additional_dependencies: ["numpy>=1.21,<1.24", typing_extensions>=4.4.0]
+  #       args:
+  #         - --ignore-missing-imports
+  #       exclude: |
+  #         (?x)^(
+  #           docs/.*|
+  #           conftest.py
+  #         )$

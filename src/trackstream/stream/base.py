@@ -28,7 +28,8 @@ StreamBaseT = TypeVar("StreamBaseT", bound="StreamBase")
 class StreamLike(Protocol):
     """Stream-like Protocol."""
 
-    cache: CacheProperty
+    _cache: dict[str, Any]
+    cache: CacheProperty[Any]
     flags: Any
 
     @property
@@ -116,10 +117,10 @@ class StreamBase:
     # TODO! py3.10 fixes the problems of ordering in subclasses
     # """The stream data table."""
     # """The name of the stream."""
-    # def __post_init__(self, prior_cache: dict | None) -> None:
+    # def __post_init__(self, prior_cache: dict[str, Any] | None) -> None:
 
     # this is included only for type hinting
-    def __post_init__(self) -> None:
+    def __post_init__(self, *args: Any, **kwargs: Any) -> None:
         self._cache: dict[str, Any]
         self.data: QTable
         self.origin: SkyCoord

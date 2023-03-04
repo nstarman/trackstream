@@ -143,6 +143,7 @@
 
 
 [tool.ruff]
+target-version = "py39"
 line-length = 120
 select = ["ALL"]
 ignore = [
@@ -172,14 +173,18 @@ known-local-folder = ["trackstream"]
   warn_redundant_casts = true
   warn_unused_configs = true
   warn_unreachable = true
-  exclude = '''(^|/)tests/'''
+  exclude = [
+    'conftest\.py$',
+    "docs/",
+    "(^|/)tests/"
+  ]
 
   [[tool.mypy.overrides]]
-    module = "*/tests/*"
-    ignore_errors = true
-
-  [[tool.mypy.overrides]]
-    module = "docs/*"
+    module = [
+      "conftest.py",
+      "docs/*",
+      "tests/*",
+    ]
     ignore_errors = true
 
 

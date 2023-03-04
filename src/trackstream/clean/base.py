@@ -117,6 +117,7 @@ class OutlierDetectorBase(metaclass=ABCMeta):
         """
         if not self._isfit:
             raise NotFittedError
+        ...
 
     def fit_predict(
         self,

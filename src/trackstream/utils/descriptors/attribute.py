@@ -29,10 +29,12 @@ class Attribute(Generic[T]):
     attrs_loc: Literal["__dict__", "_attrs_"] | None = field(default="__dict__")
 
     def __post_init__(self) -> None:
+        self._enclosing_attr: str
+        self.__doc__: str | None
+
         object.__setattr__(self, "__doc__", getattr(self.obj, "__doc__", None))
 
     def __set_name__(self: object, _: type, name: str) -> None:
-        self._enclosing_attr: str
         object.__setattr__(self, "_enclosing_attr", name)
 
     @overload
