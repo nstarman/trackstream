@@ -146,7 +146,7 @@ def make_timesteps(
         ds: u.Quantity
         if kf.onsky:
             ds = d_diff.norm(ravg)
-        elif isinstance(d_diff, (coords.CartesianRepresentation, coords.CartesianDifferential)):
+        elif isinstance(d_diff, coords.CartesianRepresentation | coords.CartesianDifferential):
             ds = d_diff.norm()
         else:
             ds = d_diff.to_cartesian(ravg).norm()

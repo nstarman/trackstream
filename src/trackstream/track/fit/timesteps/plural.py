@@ -86,7 +86,7 @@ class Times(PhysicalTypeKeyMutableMapping[u.Quantity], ToFormatOverloadMixin):
     @from_format.register(Mapping)
     @classmethod
     def _from_format_mapping(cls, data: Mapping[str | u.PhysicalType, u.Quantity]) -> Times:
-        if not all(isinstance(k, (str, u.PhysicalType)) and isinstance(v, u.Quantity) for k, v in data.items()):
+        if not all(isinstance(k, str | u.PhysicalType) and isinstance(v, u.Quantity) for k, v in data.items()):
             msg = "data must be a Mapping[str | u.PhysicalType, u.Quantity]"
             raise ValueError(msg)
 
