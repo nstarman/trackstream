@@ -80,12 +80,12 @@ class StreamBaseTest(metaclass=ABCMeta):
     @abstractmethod
     def test_frame(self, stream):
         """Test property ``frame``."""
-        assert isinstance(stream.frame, (BaseCoordinateFrame, NoneType))
+        assert isinstance(stream.frame, BaseCoordinateFrame | NoneType)
 
     @abstractmethod
     def test_name(self, stream):
         """Test property ``name``."""
-        assert isinstance(stream.name, (str, NoneType))
+        assert isinstance(stream.name, str | NoneType)
 
     @abstractmethod
     def test_origin(self, stream):
@@ -101,7 +101,7 @@ class StreamBaseTest(metaclass=ABCMeta):
     @abstractmethod
     def test_full_name(self, stream):
         """Test property ``full_name``."""
-        assert isinstance(stream.full_name, (str, NoneType))
+        assert isinstance(stream.full_name, str | NoneType)
         assert stream.full_name is stream.name
 
     # -------------------------------------------

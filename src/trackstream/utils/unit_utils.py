@@ -44,7 +44,7 @@ def merge_units(*units: u.UnitBase | u.StructuredUnit | None) -> u.StructuredUni
         Structured unit of constituent unit.
     """
     # filter units, excluding None
-    actual_units = tuple(unit for unit in units if isinstance(unit, (u.UnitBase, u.StructuredUnit)))
+    actual_units = tuple(unit for unit in units if isinstance(unit, u.UnitBase | u.StructuredUnit))
     flat = tuple(_izip_units_flat(u.StructuredUnit(actual_units)))
     return u.StructuredUnit(tuple(uu for _, uu in flat), names=tuple(n for n, _ in flat))
 
