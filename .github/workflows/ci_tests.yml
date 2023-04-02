@@ -71,7 +71,6 @@ jobs:
             os: ubuntu-18.04
             python: "3.10"
             toxenv: py310-test-oldestdeps-alldeps-cov
-            toxposargs: --remote-data=github
 
           - name: Python 3.11 with all optional dependencies (Windows)
             os: windows-latest
