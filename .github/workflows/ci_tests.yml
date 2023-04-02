@@ -68,7 +68,7 @@ jobs:
               - tzdata
           toxargs: -v --develop
         - name: Python 3.10 with oldest supported version of all dependencies
-          linux: py310-test-oldestdeps-alldeps-cov-clocale
+          linux: py310-test-oldestdeps-alldeps-cov
           coverage: codecov
         - name: Python 3.10 with all optional dependencies (Windows)
           windows: py310-test-alldeps
