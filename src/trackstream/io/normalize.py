@@ -45,7 +45,7 @@ class StreamArmDataNormalizer:
         Parameters
         ----------
         original : |Table|
-            The table of data. It will be modified if not alrady grouped and
+            The table of data. It will be modified if not already grouped and
             labeled by the stream arm index.
         original_err : |Table| or None
             A table of the errors.

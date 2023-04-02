@@ -16,6 +16,7 @@ import numpy.lib.recfunctions as rfn
 from numpy.linalg import inv
 from scipy.linalg import block_diag
 
+from trackstream._typing import NDFloating  # noqa: TCH001, RUF100
 from trackstream.stream.core import StreamArm
 from trackstream.track.fit.exceptions import EXCEPT_NO_KINEMATICS
 from trackstream.track.fit.kalman.utils import intermix_arrays
@@ -28,7 +29,6 @@ if TYPE_CHECKING:
     from astropy.units import Quantity
     from typing_extensions import Self
 
-    from trackstream._typing import NDFloating
     from trackstream.track.width.plural import Widths
 
 __all__: list[str] = []
@@ -40,9 +40,9 @@ __all__: list[str] = []
 class kalman_output(NamedTuple):
     """Kalman Filter output."""
 
-    timesteps: np.ndarray[Any, np.dtype[np.floating[Any]]]
-    x: np.ndarray[Any, np.dtype[np.floating[Any]]]
-    P: np.ndarray[Any, np.dtype[np.floating[Any]]]
+    timesteps: NDFloating
+    x: NDFloating
+    P: NDFloating
 
 
 @final
@@ -79,13 +79,13 @@ class FONKFBase:
     R0 : ndarray callable or None, optional keyword-only
     """
 
-    x0: np.ndarray[Any, np.dtype[np.floating[Any]]]
+    x0: NDFloating
     """Positions."""
 
-    P0: np.ndarray[Any, np.dtype[np.floating[Any]]]
+    P0: NDFloating
     """Covariance."""
 
-    Q0: np.ndarray[Any, np.dtype[np.floating[Any]]] | None
+    Q0: NDFloating | None
     """Process noise."""
 
     info: ClassVar[KFInfo]  # for typing

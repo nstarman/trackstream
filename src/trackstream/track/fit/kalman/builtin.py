@@ -71,7 +71,7 @@ class USphereFONKF(FONKFBase):
     def _wrap_posterior(self, x: NDFloating) -> NDFloating:
         # first coordinate is always the longitude
         # keeps in (-180, 180) deg
-        wlon, wlat = self._wrap_at
+        wlon, _ = self._wrap_at
         x[0] += 2 * wlon if (x[0] < -wlon) else 0
         x[0] -= 2 * wlon if (x[0] >= wlon) else 0
 

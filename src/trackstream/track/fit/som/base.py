@@ -7,7 +7,7 @@ import copy
 from dataclasses import dataclass
 from functools import singledispatchmethod
 from math import pi
-from typing import TYPE_CHECKING, Any, ClassVar, final
+from typing import Any, ClassVar, final
 import warnings
 
 import astropy.units as u
@@ -16,6 +16,7 @@ from numpy import exp, power
 from numpy.lib.recfunctions import structured_to_unstructured
 from numpy.random import Generator, default_rng
 
+from trackstream._typing import NDFloating  # noqa: TCH001, RUF100
 from trackstream.stream.core import StreamArm
 from trackstream.stream.plural import StreamArmsBase
 from trackstream.track.fit.exceptions import EXCEPT_NO_KINEMATICS
@@ -26,9 +27,6 @@ from trackstream.utils.pbar import get_progress_bar
 
 __all__: list[str] = []
 __credits__ = "MiniSom"
-
-if TYPE_CHECKING:
-    from trackstream._typing import NDFloating
 
 
 ##############################################################################
