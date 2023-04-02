@@ -75,7 +75,6 @@
     "extension-helpers",
     "setuptools >= 45",
     "setuptools_scm >= 6.2, < 65.6.0",
-    "oldest-supported-numpy",
     "wheel"
   ]
 
