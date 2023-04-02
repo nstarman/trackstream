@@ -30,7 +30,7 @@
     "numpy>=1.22",
     "overload_numpy >= 0.1",
     "override_toformat @ git+https://github.com/nstarman/override_toformat.git",
-    "scipy>1.6",
+    "scipy>1.6.1",
     "typing_extensions>=4.2",
   ]
 
