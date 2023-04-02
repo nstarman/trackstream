@@ -13,11 +13,11 @@ from astropy.utils.misc import indent
 from trackstream.utils.descriptors.attribute import Attribute
 from trackstream.utils.descriptors.cache import CacheProperty
 
+__all__: list[str] = []
+
+
 if TYPE_CHECKING:
     from astropy.table import QTable
-
-
-__all__: list[str] = []
 
 
 StreamLikeT = TypeVar("StreamLikeT", bound="StreamLike")

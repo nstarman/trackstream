@@ -5,6 +5,8 @@ from __future__ import annotations
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Generic, Protocol, TypeVar, overload
 
+__all__: list[str] = []
+
 if TYPE_CHECKING:
     from collections.abc import Mapping
 

@@ -9,6 +9,8 @@ import pytest
 
 from trackstream.stream.base import StreamBase
 
+__all__: list[str] = []
+
 if TYPE_CHECKING:
     from trackstream.stream.arm import StreamArm
     from trackstream.stream.core import Stream
@@ -59,7 +61,7 @@ class StreamArmTestMixin:
     def test_arm_data(self, arm, arm_attr_name, stream: S) -> None:
         if not arm.has_data:
             with pytest.raises(Exception, match=f"no {arm.name}"):
-                arm.data
+                arm.data  # noqa: B018, RUF100
         else:
             assert all(arm.data == stream.data.loc[arm_attr_name])
 

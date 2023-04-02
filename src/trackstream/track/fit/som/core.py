@@ -16,27 +16,19 @@ from trackstream.track.fit.som.sphere import USphereSOM
 from trackstream.track.fit.som.utils import _get_info_for_projection
 from trackstream.track.fit.utils import _c2v, _v2c
 from trackstream.track.width.core import LENGTH, SPEED, BaseWidth
-from trackstream.track.width.oned.core import (
-    AngularDiffWidth,
-    AngularWidth,
-    Cartesian1DiffWidth,
-    Cartesian1DWidth,
-)
+from trackstream.track.width.oned.core import AngularDiffWidth, AngularWidth, Cartesian1DiffWidth, Cartesian1DWidth
 from trackstream.track.width.plural import Widths
-
-if TYPE_CHECKING:
-    from numpy.random import Generator
-
-    from trackstream.track.fit.som.base import SOM1DBase, SOMInfo
-    from trackstream.track.width.base import WidthBase
 
 __all__: list[str] = []
 
 if TYPE_CHECKING:
     from astropy.coordinates import SkyCoord
     from astropy.units import PhysicalType
+    from numpy.random import Generator
 
     from trackstream._typing import NDFloating
+    from trackstream.track.fit.som.base import SOM1DBase, SOMInfo
+    from trackstream.track.width.base import WidthBase
 
 
 #####################################################################

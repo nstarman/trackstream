@@ -260,7 +260,7 @@ class Stream(StreamArmsBase, StreamBase):
         else:
             arm0, arm1 = tuple(self.values())
             sc = concatenate_coords((arm0.coords[::-1], arm1.coords))
-        return sc  # noqa: RET504
+        return sc
 
     @property
     def frame(self) -> BaseCoordinateFrame | None:

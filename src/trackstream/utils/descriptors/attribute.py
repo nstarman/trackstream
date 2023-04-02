@@ -6,6 +6,8 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Generic, Literal, NoReturn, TypeVar, final, overload
 
+__all__: list[str] = []
+
 if TYPE_CHECKING:
     from collections.abc import MutableMapping
 
@@ -66,7 +68,7 @@ class Attribute(Generic[T]):
             else:
                 obj = maybeobj
 
-        return obj  # noqa: RET504
+        return obj
 
     def __set__(self: Any, _: str, __: Any) -> NoReturn:
         msg = "can't set attribute"

@@ -246,7 +246,7 @@ class FONKFBase:
                 wn0 = cast("Quantity", width0[fn]).to_value(unit).item()
             else:
                 msg = f"{rn} & {fn} are not in the stream data, setting the width to 0."
-                warnings.warn(msg)
+                warnings.warn(msg, stacklevel=2)
                 wn0 = 0
 
             ws.append(np.array([[wn0**2, 0], [0, 0]]))
@@ -259,7 +259,7 @@ class FONKFBase:
                 rn0 = arm.data[rne][:3].mean().to_value(unit)
             else:
                 msg = f"{fne} & {rne} are not in the stream data, setting the error to the width."
-                warnings.warn(msg)
+                warnings.warn(msg, stacklevel=2)
                 rn0 = 0
 
             # combine data error with stream width

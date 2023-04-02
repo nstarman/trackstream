@@ -18,6 +18,9 @@ from trackstream.track.utils import is_structured
 from trackstream.track.width.base import FMT_OVERLOADS, WidthBase
 from trackstream.utils.descriptors.classproperty import classproperty
 
+__all__ = ["BaseWidth"]
+
+
 if TYPE_CHECKING:
     from types import NotImplementedType
 
@@ -25,9 +28,6 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 
     from trackstream.track.width.interpolated import InterpolatedWidth
-
-
-__all__ = ["BaseWidth"]
 
 
 Self = TypeVar("Self", bound="BaseWidth")

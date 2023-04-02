@@ -12,10 +12,11 @@ import numpy as np
 
 from trackstream.track.fit.timesteps.plural import LENGTH, SPEED, Times
 
+__all__: list[str] = []
+
+
 if TYPE_CHECKING:
     from trackstream.track.fit.kalman.core import FirstOrderNewtonianKalmanFilter
-
-__all__: list[str] = []
 
 
 ##############################################################################

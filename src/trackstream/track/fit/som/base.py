@@ -109,7 +109,8 @@ class SOM1DBase:
         object.__setattr__(self, "_lattice", np.arange(self.nlattice, dtype=float))
 
         if self.sigma >= 1 or self.sigma >= self.nlattice:
-            warnings.warn("sigma is too high for the dimension of the map")
+            msg = "sigma is too high for the dimension of the map"
+            warnings.warn(msg, stacklevel=2)
 
     @property
     def nlattice(self) -> int:

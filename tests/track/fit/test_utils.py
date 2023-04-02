@@ -65,7 +65,7 @@ class Test_parse_framelike:
         (CartesianRepresentation, None),
     ],
 )
-@pytest.mark.parametrize("output_frame", [FK5, LSR])
+@pytest.mark.parametrize("output_frame", [FK5(), LSR()])
 def test_deep_transform_to(crd, frame, output_frame, reptype, diftype):
     """Test :func:`trackstream.utils.coord_utils.deep_transform_to`."""
     c = deep_transform_to(crd, frame=output_frame, representation_type=reptype, differential_type=diftype)
