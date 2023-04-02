@@ -27,7 +27,7 @@
     "importlib_metadata",
     "interpolated_coordinates  @ git+https://github.com/GalOrrery/interpolated-coordinates.git",
     "matplotlib",
-    "numpy>=1.22,<1.24",
+    "numpy>=1.22",
     "overload_numpy >= 0.1",
     "override_toformat @ git+https://github.com/nstarman/override_toformat.git",
     "scipy>1.3",
