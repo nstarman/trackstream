@@ -26,7 +26,7 @@
     "bound_class.core @ git+https://github.com/nstarman/bound-class.git",
     "importlib_metadata",
     "interpolated_coordinates  @ git+https://github.com/GalOrrery/interpolated-coordinates.git",
-    "matplotlib>=3.3",
+    "matplotlib>=3.4",
     "numpy>=1.22",
     "overload_numpy >= 0.1",
     "override_toformat @ git+https://github.com/nstarman/override_toformat.git",
