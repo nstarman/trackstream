@@ -25,9 +25,10 @@ from trackstream.utils.coord_utils import get_frame
 __all__: list[str] = []
 
 if TYPE_CHECKING:
+    from typing import TypeAlias
+
     from numpy import float64
     from numpy.typing import NDArray
-    from typing_extensions import TypeAlias
 
 
 ##############################################################################
