@@ -8,7 +8,7 @@ from functools import cached_property
 from typing import TYPE_CHECKING, Any, Generic
 import weakref
 
-import astropy.coordinates as coords
+import astropy.units as u
 from astropy.utils.metadata import MetaAttribute, MetaData
 from astropy.utils.misc import indent
 
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from dataclasses import InitVar
 
-    from astropy.coordinates import SkyCoord
+    from astropy.coordinates import BaseCoordinateFrame, SkyCoord
     from astropy.units import Quantity, percent
     from interpolated_coordinates import InterpolatedSkyCoord
 
@@ -131,16 +131,14 @@ class StreamArmTrack(StreamArmTrackBase[StreamLikeT]):
         return self.path.affine
 
     @property
-    def frame(self) -> coords.BaseCoordinateFrame:
+    def frame(self) -> BaseCoordinateFrame:
         """The coordinate frame of the track."""
         return self.path.frame
 
     @cached_property
     def has_distances(self) -> bool:
         """Whether the data has distances or is on-sky."""
-        # TODO a more robust check
-        data_onsky = issubclass(type(self.coords.data), coords.UnitSphericalRepresentation)
-        return not data_onsky
+        return hasattr(self.coords, "distance") and self.coords.distance.unit != u.one
 
     @cached_property
     def has_kinematics(self) -> bool:
