@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import KW_ONLY, dataclass
 from functools import singledispatchmethod
 from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple, cast, final
 import warnings
@@ -59,6 +59,59 @@ class KFInfo(FrameInfo):
 
 
 @dataclass(frozen=True)
+class X0Field:
+    """Dataclass for x0 field."""
+
+    def __set_name__(self, owner: type, name: str) -> None:
+        self.name: str
+        object.__setattr__(self, "name", "_" + name)
+
+    def __get__(self, instance: FONKFBase, owner: type) -> NDFloating:
+        if instance is None:
+            raise AttributeError
+        return getattr(instance, self.name)
+
+    def __set__(self, instance: FONKFBase, value: NDFloating) -> None:
+        if len(value.shape) != 1:
+            msg = "x0 must be 1D"
+            raise ValueError(msg)
+        if len(value) % 2 != 0:
+            msg = "x0 must have an even number of dimensions."
+            raise ValueError(msg)
+
+        nd = len(value) // 2
+        if nd < 2 or nd > 6:
+            msg = f"x0 must have 2 <= x0 <= 6 components, not {nd}"
+            raise ValueError(msg)
+
+        object.__setattr__(instance, self.name, value)
+
+
+@dataclass(frozen=True)
+class P0Field:
+    """Dataclass for P0 field."""
+
+    def __set_name__(self, owner: type, name: str) -> None:
+        self.name: str
+        object.__setattr__(self, "name", "_" + name)
+
+    def __get__(self, instance: FONKFBase, owner: type) -> NDFloating:
+        if instance is None:
+            raise AttributeError
+        return getattr(instance, self.name)
+
+    def __set__(self, instance: FONKFBase, value: NDFloating) -> None:
+        if len(value.shape) != 2:
+            msg = "P0 must be 2D"
+            raise ValueError(msg)
+        if not np.all(np.array(value.shape) % 2 == 0):
+            msg = "P0 must have an even number of dimensions."
+            raise ValueError(msg)
+
+        object.__setattr__(instance, self.name, value)
+
+
+@dataclass(frozen=True)
 class FONKFBase:
     """First-order Newtonian Kalman filter class.
 
@@ -79,23 +132,13 @@ class FONKFBase:
     R0 : ndarray callable or None, optional keyword-only
     """
 
-    x0: NDFloating
-    """Positions."""
-
-    P0: NDFloating
-    """Covariance."""
-
+    x0: X0Field = X0Field()
+    P0: P0Field = P0Field()
+    _: KW_ONLY
     Q0: NDFloating | None
-    """Process noise."""
-
-    info: ClassVar[KFInfo]  # for typing
-    """Information for interfacing with frame information."""
+    info: ClassVar[KFInfo]
 
     def __post_init__(self) -> None:
-        # validating
-        self._x0_validate(None, self.x0)
-        self._P0_validate(None, self.P0)
-
         # H
         self.H: NDFloating
         # component of block diagonal
@@ -108,27 +151,6 @@ class FONKFBase:
         # I
         self._I: NDFloating
         object.__setattr__(self, "_I", np.eye(2 * self.nfeature))
-
-    def _x0_validate(self, _: Any, value: NDFloating) -> None:
-        if len(value.shape) != 1:
-            msg = "x0 must be 1D"
-            raise ValueError(msg)
-        if len(value) % 2 != 0:
-            msg = "x0 must have an even number of dimensions."
-            raise ValueError(msg)
-
-        nd = self.nfeature
-        if nd < 2 or nd > 6:
-            msg = f"x0 must have 2 <= x0 <= 6 components, not {nd}"
-            raise ValueError(msg)
-
-    def _P0_validate(self, _: Any, value: NDFloating) -> None:
-        if len(value.shape) != 2:
-            msg = "P0 must be 2D"
-            raise ValueError(msg)
-        if not np.all(np.array(value.shape) % 2 == 0):
-            msg = "P0 must have an even number of dimensions."
-            raise ValueError(msg)
 
     # ===============================================================
 
@@ -162,7 +184,7 @@ class FONKFBase:
 
     @from_format.register(StreamArm)
     @classmethod
-    def _from_format_streamarm(  # noqa: C901, PLR0915
+    def _from_format_streamarm(  # noqa: C901
         cls: type[Self],
         arm: StreamArm,
         *,
@@ -201,10 +223,10 @@ class FONKFBase:
         info = cls.info  # all necessary info to extract data
         nfeature = len(info.components(kinematics=kinematics))  # index for slicing
 
-        crds = arm.coords
-        crds.representation_type = info.representation_type
-        crds.differential_type = info.differential_type
-        svs = f2q(crds, flatten=True)
+        f = arm.coords[0]
+        f.representation_type = info.representation_type
+        f.differential_type = info.differential_type
+        dtype_names = f2q(f, flatten=True).dtype.names
 
         orgn = arm.origin.transform_to(arm.frame)
         orgn.representation_type = info.representation_type
@@ -234,9 +256,8 @@ class FONKFBase:
         elif not isinstance(width0, u.Quantity) or not is_structured(width0):
             raise ValueError
 
-        ws: list[NDFloating] = []
         ps: list[NDFloating] = []
-        for rn, fn in zip(info.components(kinematics=kinematics), svs.dtype.names, strict=False):
+        for rn, fn in zip(info.components(kinematics=kinematics), dtype_names, strict=False):
             # ^ relying on zip-shortest to cut off svs iter b/c that always
             # includes the kinematics.
             unit = flat_units[rn]
@@ -248,8 +269,6 @@ class FONKFBase:
                 msg = f"{rn} & {fn} are not in the stream data, setting the width to 0."
                 warnings.warn(msg, stacklevel=2)
                 wn0 = 0
-
-            ws.append(np.array([[wn0**2, 0], [0, 0]]))
 
             # The R contribution to the error
             # there are 2 options, the frame or the rep component name.
