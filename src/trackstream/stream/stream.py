@@ -367,10 +367,9 @@ class Stream(StreamArmsBase, StreamBase):
         # LOCAL
         from trackstream.track.plural import StreamArmsTracks, StreamTrack
 
+        track_name = (self.full_name or "").lstrip()
         track = (
-            StreamTrack.from_stream(self, name=(self.full_name or "").lstrip())
-            if composite
-            else StreamArmsTracks(tracks, name=(self.full_name or "").lstrip())
+            StreamTrack.from_stream(self, name=track_name) if composite else StreamArmsTracks(tracks, name=track_name)
         )
 
         self._cache["track"] = track
