@@ -11,12 +11,12 @@ from trackstream.setup_package import HAS_TQDM
 if HAS_TQDM:
     import tqdm
 
+__all__ = ["get_progress_bar"]
+__credits__ = ["emcee"]
+
 if TYPE_CHECKING:
     from typing_extensions import Self
 
-
-__all__ = ["get_progress_bar"]
-__credits__ = ["emcee"]
 
 ##############################################################################
 # CODE

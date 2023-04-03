@@ -12,10 +12,11 @@ import warnings
 
 import astropy.units as u
 import numpy as np
-from numpy import exp, ndarray, power
+from numpy import exp, power
 from numpy.lib.recfunctions import structured_to_unstructured
 from numpy.random import Generator, default_rng
 
+from trackstream._typing import NDFloating  # noqa: TCH001, RUF100
 from trackstream.stream.core import StreamArm
 from trackstream.stream.plural import StreamArmsBase
 from trackstream.track.fit.exceptions import EXCEPT_NO_KINEMATICS
@@ -25,8 +26,8 @@ from trackstream.utils.coord_utils import f2q
 from trackstream.utils.pbar import get_progress_bar
 
 __all__: list[str] = []
-
 __credits__ = "MiniSom"
+
 
 ##############################################################################
 # PARAMETERS
@@ -83,7 +84,7 @@ class SOM1DBase:
     .. [frankenz] Josh Speagle. Frankenz: a photometric redshift monstrosity.
     """
 
-    prototypes: ndarray
+    prototypes: np.ndarray[Any, np.dtype[np.floating[Any]]]
     rng: Generator = default_rng()
     sigma: float = 0.3
     learning_rate: float = 0.3
@@ -97,16 +98,17 @@ class SOM1DBase:
             object.__setattr__(self, "prototypes", prototypes)
 
         # initial prototypes
-        self._init_prototypes: ndarray
+        self._init_prototypes: NDFloating
         _init_prototypes = self.prototypes.copy()
         _init_prototypes.flags.writeable = False
         object.__setattr__(self, "_init_prototypes", _init_prototypes)
 
-        self._lattice: ndarray
+        self._lattice: NDFloating
         object.__setattr__(self, "_lattice", np.arange(self.nlattice, dtype=float))
 
         if self.sigma >= 1 or self.sigma >= self.nlattice:
-            warnings.warn("sigma is too high for the dimension of the map")
+            msg = "sigma is too high for the dimension of the map"
+            warnings.warn(msg, stacklevel=2)
 
     @property
     def nlattice(self) -> int:
@@ -121,14 +123,14 @@ class SOM1DBase:
     @staticmethod
     @abstractmethod
     def _make_prototypes_from_binned_data(
-        data: ndarray,
+        data: NDFloating,
         /,
         nlattice: int,
         *,
         byphi: bool = False,
-        maxsep: ndarray | None = None,
+        maxsep: NDFloating | None = None,
         **_: Any,
-    ) -> ndarray:
+    ) -> NDFloating:
         raise NotImplementedError
 
     # =======================================================
@@ -166,7 +168,7 @@ class SOM1DBase:
             Initial learning rate.
         rng : int, optional keyword-only
             Random seed to use.
-        prototype_kw : dict | None, optional keyword-only
+        prototype_kw : dict[str, Any] | None, optional keyword-only
             Keyword arguments to pass to the prototype initialization function.
 
         Returns
@@ -252,7 +254,7 @@ class SOM1DBase:
     # ===============================================================
 
     @property
-    def init_prototypes(self) -> ndarray:
+    def init_prototypes(self) -> NDFloating:
         """Initial prototypes."""
         return self._init_prototypes
 
@@ -260,17 +262,17 @@ class SOM1DBase:
     # fitting
 
     @abstractmethod
-    def _activation_distance(self, x: ndarray, w: ndarray) -> ndarray:
+    def _activation_distance(self, x: NDFloating, w: NDFloating) -> NDFloating:
         pass
 
     @abstractmethod
-    def _update(self, x: ndarray, t: int, max_iteration: int) -> None:
+    def _update(self, x: NDFloating, t: int, max_iteration: int) -> None:
         pass
 
     @final
     def fit(
         self,
-        data: ndarray,
+        data: NDFloating,
         num_iteration: int = 100_000,
         *,
         random_order: bool = False,
@@ -310,17 +312,17 @@ class SOM1DBase:
 
                 self._update(data[i], t, num_iteration)
 
-    def _neighborhood(self, c: int, sigma: float) -> ndarray:
+    def _neighborhood(self, c: int, sigma: float) -> NDFloating:
         """Return a Gaussian centered in c.
 
         This is in the lattice space, so Cartesian vs UnitSpherical does not
         matter.
         """
         d = 2 * pi * sigma**2
-        ay: ndarray = exp(-power(self._lattice - self._lattice.T[c], 2) / d).T
+        ay: NDFloating = exp(-power(self._lattice - self._lattice.T[c], 2) / d).T
         return ay  # the external product gives a matrix
 
-    def _best_matching_unit_index(self, x: ndarray, /) -> int:
+    def _best_matching_unit_index(self, x: NDFloating, /) -> int:
         """Compute the coordinates of the best prototype for the sample.
 
         Parameters
@@ -339,7 +341,7 @@ class SOM1DBase:
     # ---------------------------------------------------------------
     # Predicting structure
 
-    def predict(self, data: ndarray, /) -> tuple[ndarray, ndarray]:
+    def predict(self, data: NDFloating, /) -> tuple[NDFloating, NDFloating]:
         """Order data from SOM in 2+N Dimensions.
 
         Parameters
@@ -377,13 +379,13 @@ class SOM1DBase:
     @final
     def fit_predict(
         self,
-        data: ndarray,
+        data: NDFloating,
         /,
         num_iteration: int = 100_000,
         *,
         random_order: bool = False,
         progress: bool = False,
-    ) -> tuple[ndarray, ndarray]:
+    ) -> tuple[NDFloating, NDFloating]:
         """Fit then predict.
 
         Returns

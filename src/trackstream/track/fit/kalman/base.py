@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import KW_ONLY, dataclass
 from functools import singledispatchmethod
 from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple, cast, final
 import warnings
@@ -16,6 +16,7 @@ import numpy.lib.recfunctions as rfn
 from numpy.linalg import inv
 from scipy.linalg import block_diag
 
+from trackstream._typing import NDFloating  # noqa: TCH001, RUF100
 from trackstream.stream.core import StreamArm
 from trackstream.track.fit.exceptions import EXCEPT_NO_KINEMATICS
 from trackstream.track.fit.kalman.utils import intermix_arrays
@@ -39,9 +40,9 @@ __all__: list[str] = []
 class kalman_output(NamedTuple):
     """Kalman Filter output."""
 
-    timesteps: np.ndarray
-    x: np.ndarray
-    P: np.ndarray
+    timesteps: NDFloating
+    x: NDFloating
+    P: NDFloating
 
 
 @final
@@ -55,6 +56,59 @@ class KFInfo(FrameInfo):
 ##############################################################################
 # CODE
 ##############################################################################
+
+
+@dataclass(frozen=True)
+class X0Field:
+    """Dataclass for x0 field."""
+
+    def __set_name__(self, owner: type, name: str) -> None:
+        self.name: str
+        object.__setattr__(self, "name", "_" + name)
+
+    def __get__(self, instance: FONKFBase, owner: type) -> NDFloating:
+        if instance is None:
+            raise AttributeError
+        return getattr(instance, self.name)
+
+    def __set__(self, instance: FONKFBase, value: NDFloating) -> None:
+        if len(value.shape) != 1:
+            msg = "x0 must be 1D"
+            raise ValueError(msg)
+        if len(value) % 2 != 0:
+            msg = "x0 must have an even number of dimensions."
+            raise ValueError(msg)
+
+        nd = len(value) // 2
+        if nd < 2 or nd > 6:
+            msg = f"x0 must have 2 <= x0 <= 6 components, not {nd}"
+            raise ValueError(msg)
+
+        object.__setattr__(instance, self.name, value)
+
+
+@dataclass(frozen=True)
+class P0Field:
+    """Dataclass for P0 field."""
+
+    def __set_name__(self, owner: type, name: str) -> None:
+        self.name: str
+        object.__setattr__(self, "name", "_" + name)
+
+    def __get__(self, instance: FONKFBase, owner: type) -> NDFloating:
+        if instance is None:
+            raise AttributeError
+        return getattr(instance, self.name)
+
+    def __set__(self, instance: FONKFBase, value: NDFloating) -> None:
+        if len(value.shape) != 2:
+            msg = "P0 must be 2D"
+            raise ValueError(msg)
+        if not np.all(np.array(value.shape) % 2 == 0):
+            msg = "P0 must have an even number of dimensions."
+            raise ValueError(msg)
+
+        object.__setattr__(instance, self.name, value)
 
 
 @dataclass(frozen=True)
@@ -78,56 +132,25 @@ class FONKFBase:
     R0 : ndarray callable or None, optional keyword-only
     """
 
-    x0: np.ndarray
-    """Positions."""
-
-    P0: np.ndarray
-    """Covariance."""
-
-    Q0: np.ndarray | None
-    """Process noise."""
-
-    info: ClassVar[KFInfo]  # for typing
-    """Information for interfacing with frame information."""
+    x0: X0Field = X0Field()
+    P0: P0Field = P0Field()
+    _: KW_ONLY
+    Q0: NDFloating | None
+    info: ClassVar[KFInfo]
 
     def __post_init__(self) -> None:
-        # validating
-        self._x0_validate(None, self.x0)
-        self._P0_validate(None, self.P0)
-
         # H
-        self.H: np.ndarray
+        self.H: NDFloating
         # component of block diagonal
         h = np.array([[1, 0], [0, 0]])
         # full matrix is for all components
         # and reduce down to `dim_z` of Kalman Filter, skipping velocity rows
-        H: np.ndarray = block_diag(*([h] * self.nfeature))[::2]
+        H: NDFloating = block_diag(*([h] * self.nfeature))[::2]
         object.__setattr__(self, "H", H)
 
         # I
-        self._I: np.ndarray
+        self._I: NDFloating
         object.__setattr__(self, "_I", np.eye(2 * self.nfeature))
-
-    def _x0_validate(self, _: Any, value: np.ndarray) -> None:
-        if len(value.shape) != 1:
-            msg = "x0 must be 1D"
-            raise ValueError(msg)
-        if len(value) % 2 != 0:
-            msg = "x0 must have an even number of dimensions."
-            raise ValueError(msg)
-
-        nd = self.nfeature
-        if nd < 2 or nd > 6:
-            msg = f"x0 must have 2 <= x0 <= 6 components, not {nd}"
-            raise ValueError(msg)
-
-    def _P0_validate(self, _: Any, value: np.ndarray) -> None:
-        if len(value.shape) != 2:
-            msg = "P0 must be 2D"
-            raise ValueError(msg)
-        if not np.all(np.array(value.shape) % 2 == 0):
-            msg = "P0 must have an even number of dimensions."
-            raise ValueError(msg)
 
     # ===============================================================
 
@@ -161,7 +184,7 @@ class FONKFBase:
 
     @from_format.register(StreamArm)
     @classmethod
-    def _from_format_streamarm(  # noqa: C901, PLR0915
+    def _from_format_streamarm(  # noqa: C901
         cls: type[Self],
         arm: StreamArm,
         *,
@@ -200,10 +223,10 @@ class FONKFBase:
         info = cls.info  # all necessary info to extract data
         nfeature = len(info.components(kinematics=kinematics))  # index for slicing
 
-        crds = arm.coords
-        crds.representation_type = info.representation_type
-        crds.differential_type = info.differential_type
-        svs = f2q(crds, flatten=True)
+        f = arm.coords[0]
+        f.representation_type = info.representation_type
+        f.differential_type = info.differential_type
+        dtype_names = f2q(f, flatten=True).dtype.names
 
         orgn = arm.origin.transform_to(arm.frame)
         orgn.representation_type = info.representation_type
@@ -233,9 +256,8 @@ class FONKFBase:
         elif not isinstance(width0, u.Quantity) or not is_structured(width0):
             raise ValueError
 
-        ws: list[np.ndarray] = []
-        ps: list[np.ndarray] = []
-        for rn, fn in zip(info.components(kinematics=kinematics), svs.dtype.names, strict=False):
+        ps: list[NDFloating] = []
+        for rn, fn in zip(info.components(kinematics=kinematics), dtype_names, strict=False):
             # ^ relying on zip-shortest to cut off svs iter b/c that always
             # includes the kinematics.
             unit = flat_units[rn]
@@ -245,10 +267,8 @@ class FONKFBase:
                 wn0 = cast("Quantity", width0[fn]).to_value(unit).item()
             else:
                 msg = f"{rn} & {fn} are not in the stream data, setting the width to 0."
-                warnings.warn(msg)
+                warnings.warn(msg, stacklevel=2)
                 wn0 = 0
-
-            ws.append(np.array([[wn0**2, 0], [0, 0]]))
 
             # The R contribution to the error
             # there are 2 options, the frame or the rep component name.
@@ -258,7 +278,7 @@ class FONKFBase:
                 rn0 = arm.data[rne][:3].mean().to_value(unit)
             else:
                 msg = f"{fne} & {rne} are not in the stream data, setting the error to the width."
-                warnings.warn(msg)
+                warnings.warn(msg, stacklevel=2)
                 rn0 = 0
 
             # combine data error with stream width
@@ -284,7 +304,7 @@ class FONKFBase:
     # ---------------------------------------------------------------
     # Initial Conditions
 
-    def state_transition_model(self, dt: np.ndarray) -> np.ndarray:
+    def state_transition_model(self, dt: NDFloating) -> NDFloating:
         """Make Transition Matrix.
 
         Parameters
@@ -321,7 +341,7 @@ class FONKFBase:
 
         return F
 
-    def process_noise_model(self, dt: np.ndarray, var: float = 1.0) -> np.ndarray:
+    def process_noise_model(self, dt: NDFloating, var: float = 1.0) -> NDFloating:
         """Process noise.
 
         Parameters
@@ -365,10 +385,10 @@ class FONKFBase:
     # ---------------------------------------------------------------
     # Hooks for subclasses.
 
-    def _wrap_residual(self, x: np.ndarray) -> np.ndarray:
+    def _wrap_residual(self, x: NDFloating) -> NDFloating:
         return x
 
-    def _wrap_posterior(self, x: np.ndarray) -> np.ndarray:
+    def _wrap_posterior(self, x: NDFloating) -> NDFloating:
         return x
 
     #######################################################
@@ -376,13 +396,13 @@ class FONKFBase:
 
     def _math_predict_and_update(  # noqa: PLR0913
         self,
-        x: np.ndarray,
-        P: np.ndarray,
-        F: np.ndarray,
-        Q: np.ndarray,
-        z: np.ndarray,
-        R: np.ndarray,
-    ) -> tuple[np.ndarray, np.ndarray]:
+        x: NDFloating,
+        P: NDFloating,
+        F: NDFloating,
+        Q: NDFloating,
+        z: NDFloating,
+        R: NDFloating,
+    ) -> tuple[NDFloating, NDFloating]:
         """Predict and update step.
 
         Predict prior using Kalman filter transition functions.
@@ -442,11 +462,11 @@ class FONKFBase:
 
     def _rts_smoother(
         self,
-        Xs: np.ndarray,
-        Ps: np.ndarray,
-        Fs: np.ndarray,
-        Qs: np.ndarray,
-    ) -> tuple[np.ndarray, np.ndarray]:
+        Xs: NDFloating,
+        Ps: NDFloating,
+        Fs: NDFloating,
+        Qs: NDFloating,
+    ) -> tuple[NDFloating, NDFloating]:
         """Run Rauch-Tung-Striebel Kalman smoother on Kalman filter series.
 
         Implemented to be compatible with `filterpy`.
@@ -506,11 +526,11 @@ class FONKFBase:
 
     def fit(
         self,
-        data: np.ndarray,
+        data: NDFloating,
         /,
-        errors: np.ndarray,
-        widths: np.ndarray,
-        timesteps: np.ndarray,
+        errors: NDFloating,
+        widths: NDFloating,
+        timesteps: NDFloating,
     ) -> tuple[kalman_output, kalman_output]:
         """Run Kalman Filter with updates on each step.
 
@@ -577,7 +597,7 @@ class FONKFBase:
 
         # ------ run ------
         # iterate predict & update steps
-        z: np.ndarray
+        z: NDFloating
         for i, (z, R, F, Q) in enumerate(zip(data, Rs, Fs, Qs, strict=True)):
             R[idx, idx] += Ws[i]  # add stream width to uncertainty
             # TODO! this is at the previous step! need to

@@ -57,7 +57,8 @@ def concatenate(
         same_keys &= ws.keys()  # keep only the same
 
     if any(diff_keys):
-        warnings.warn(f"non-intersecting keys ({diff_keys}) are not concatenated.")
+        msg = f"non-intersecting keys ({diff_keys}) are not concatenated."
+        warnings.warn(msg, stacklevel=2)
 
     cws = {}
     for k in same_keys:

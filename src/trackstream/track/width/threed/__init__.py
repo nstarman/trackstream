@@ -2,7 +2,7 @@
 
 
 from trackstream.track.width.threed.core import (
-    Cartesian2DiffWidth,
+    Cartesian3DiffWidth,
     Cartesian3DWidth,
     SphericalDiffWidth,
     SphericalWidth,
@@ -14,7 +14,7 @@ __all__ = [
     "Cartesian3DWidth",
     "UnitSphericalWidth",
     "SphericalWidth",
-    "Cartesian2DiffWidth",
+    "Cartesian3DiffWidth",
     "UnitSphericalDiffWidth",
     "SphericalDiffWidth",
 ]

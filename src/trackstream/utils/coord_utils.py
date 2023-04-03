@@ -17,10 +17,11 @@ import astropy.units as u
 import numpy as np
 import numpy.lib.recfunctions as rfn
 
+__all__ = ["parse_framelike", "get_frame", "deep_transform_to", "f2q"]
+
 if TYPE_CHECKING:
     from typing import TypeAlias
 
-__all__ = ["parse_framelike", "get_frame", "deep_transform_to", "f2q"]
 
 ##############################################################################
 # PARAMETERS

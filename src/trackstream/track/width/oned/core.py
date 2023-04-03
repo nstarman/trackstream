@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-import astropy.coordinates as coords
+from astropy.coordinates import RadialDifferential, RadialRepresentation
 from astropy.units import Quantity  # noqa: TCH002
 
 from trackstream.track.width.core import (
@@ -35,9 +35,9 @@ class Cartesian1DWidth(ConfigSpaceWidth):
     x: Quantity  # [LENGTH | ANGLE]
 
     @classproperty
-    def corresponding_representation_type(cls) -> type[coords.RadialRepresentation]:
+    def corresponding_representation_type(cls) -> type[RadialRepresentation]:
         """Representation type corresponding to the width type."""
-        return coords.RadialRepresentation
+        return RadialRepresentation
 
     @property
     def corresponding_width_types(cls) -> dict[PhysicalType, None | type[BaseWidth]]:
@@ -52,9 +52,9 @@ class AngularWidth(ConfigSpaceWidth):
     lat: Quantity  # [ANGLE]
 
     @classproperty
-    def corresponding_representation_type(cls) -> type[coords.RadialRepresentation]:
+    def corresponding_representation_type(cls) -> type[RadialRepresentation]:
         """Representation type corresponding to the width type."""
-        return coords.RadialRepresentation
+        return RadialRepresentation
 
     @property
     def corresponding_width_types(cls) -> dict[PhysicalType, None | type[BaseWidth]]:
@@ -73,9 +73,9 @@ class Cartesian1DiffWidth(KinematicSpaceWidth):
     d_x: Quantity  # [SPEED | ANGULAR_SPEED]
 
     @classproperty
-    def corresponding_representation_type(cls) -> type[coords.RadialDifferential]:
+    def corresponding_representation_type(cls) -> type[RadialDifferential]:
         """Representation type corresponding to the width type."""
-        return coords.RadialDifferential
+        return RadialDifferential
 
     @property
     def corresponding_width_types(self) -> dict[PhysicalType, None | type[BaseWidth]]:
@@ -90,9 +90,9 @@ class AngularDiffWidth(KinematicSpaceWidth):
     d_lat: Quantity  # [ANGULAR_SPEED]
 
     @classproperty
-    def corresponding_representation_type(cls) -> type[coords.RadialDifferential]:
+    def corresponding_representation_type(cls) -> type[RadialDifferential]:
         """Representation type corresponding to the width type."""
-        return coords.RadialDifferential
+        return RadialDifferential
 
     @property
     def corresponding_width_types(self) -> dict[PhysicalType, None | type[BaseWidth]]:

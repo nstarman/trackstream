@@ -15,10 +15,10 @@ from trackstream.track.width.threed.core import (
 )
 from trackstream.track.width.transforms import register_transformation
 
+__all__: list[str] = []
+
 if TYPE_CHECKING:
     from astropy.units import Quantity
-
-__all__: list[str] = []
 
 
 ##############################################################################

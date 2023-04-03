@@ -113,7 +113,7 @@ def make_error(stream: StreamArm, kf: FirstOrderNewtonianKalmanFilter, default: 
             r = stream.data[rne].to_value(unit)
         else:
             msg = f"{fne} and {rne} are not in the data; setting to the default."
-            warnings.warn(msg)
+            warnings.warn(msg, stacklevel=2)
             r = default
 
         errors[rn] = r**2

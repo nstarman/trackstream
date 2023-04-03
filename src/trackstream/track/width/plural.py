@@ -22,6 +22,9 @@ from trackstream.track.utils import (
 from trackstream.track.width.base import FMT_OVERLOADS, WidthBase
 from trackstream.track.width.core import BASEWIDTH_KIND, LENGTH
 
+__all__ = ["Widths"]
+
+
 if TYPE_CHECKING:
     from types import NotImplementedType
 
@@ -29,8 +32,6 @@ if TYPE_CHECKING:
     from override_toformat import ToFormatOverloader
 
     from trackstream.track.width.interpolated import InterpolatedWidths
-
-__all__ = ["Widths"]
 
 
 T = TypeVar("T")

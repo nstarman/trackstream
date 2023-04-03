@@ -18,6 +18,8 @@ from trackstream.stream.stream import Stream
 from trackstream.track.fit import FitterStreamArmTrack
 from trackstream.utils.coord_utils import parse_framelike
 
+__all__: list[str] = []
+
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
@@ -293,11 +295,11 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
 
     def test_track_notfit(self, stream: S) -> None:
         with pytest.raises(ValueError, match="need to fit"):
-            stream.track
+            stream.track  # noqa: B018, RUF100
 
     @pytest.mark.skip("TODO!")
     def test_track_fit(self, tempstream_f: S) -> None:
-        tempstream_f.track
+        tempstream_f.track  # noqa: B018, RUF100
 
     # -----------------------------------------------------
 
@@ -320,7 +322,7 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
 
     @pytest.mark.skip("TODO!")
     def test_track_probability(self, stream_t: S) -> None:
-        stream_t.track
+        stream_t.track  # noqa: B018, RUF100
 
     @pytest.mark.xfail(reason="can't pickle GenericDifferential")
     def test_pickle_fit(self, stream_t: S) -> None:

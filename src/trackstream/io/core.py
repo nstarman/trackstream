@@ -6,12 +6,11 @@ from typing import TYPE_CHECKING, Any
 
 from astropy.io.registry import UnifiedIORegistry, UnifiedReadWrite
 
-if TYPE_CHECKING:
-    from trackstream.stream.core import StreamArm
-
-
 __all__: list[str] = []
 __doctest_skip__ = ["*"]
+
+if TYPE_CHECKING:
+    from trackstream.stream.core import StreamArm
 
 
 ##############################################################################

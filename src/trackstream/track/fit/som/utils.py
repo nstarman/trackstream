@@ -3,19 +3,26 @@
 from __future__ import annotations
 
 from math import pi
-from typing import TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import numpy as np
-from numpy import arccos, cos, diff, ndarray, nonzero
+from numpy import arccos, cos, diff, nonzero
 from numpy.linalg import norm
 
 __all__: list[str] = []
+
+if TYPE_CHECKING:
+    from numpy import floating
+    from numpy.typing import NDArray
+
+    from trackstream._typing import NDFloating
+
 
 ##############################################################################
 # PARAMETERS
 
 
-NDT = TypeVar("NDT", bound=ndarray)
+NDT = TypeVar("NDT", bound="NDFloating")
 
 
 ##############################################################################
@@ -23,7 +30,7 @@ NDT = TypeVar("NDT", bound=ndarray)
 ##############################################################################
 
 
-def _respace_bins_from_left(bins: NDT, maxsep: ndarray, eps: float | np.floating, *, onsky: bool) -> NDT:
+def _respace_bins_from_left(bins: NDT, maxsep: NDFloating, eps: float | floating[Any], *, onsky: bool) -> NDT:
     """Respace bins to have a maximum separation.
 
     Bins are respaced from the left-most bin up to the penultimate bin. The
@@ -65,7 +72,7 @@ def _respace_bins_from_left(bins: NDT, maxsep: ndarray, eps: float | np.floating
     return bins
 
 
-def _respace_bins(bins: NDT, maxsep: ndarray, eps: float | np.floating, *, onsky: bool) -> NDT:
+def _respace_bins(bins: NDT, maxsep: NDFloating, eps: float | floating[Any], *, onsky: bool) -> NDT:
     """Respace bins to have a maximum separation.
 
     Parameters
@@ -125,9 +132,9 @@ def _decay_function(learning_rate: float, iteration: int, max_iter: float) -> fl
 
 
 def _get_info_for_projection(
-    data: ndarray,
-    prototypes: ndarray,
-) -> tuple[ndarray, ndarray, ndarray, ndarray]:
+    data: NDFloating,
+    prototypes: NDFloating,
+) -> tuple[NDFloating, NDFloating, NDFloating, NDFloating]:
     """Get orthogonal distance matrix for each point to each segment & node.
 
     Parameters
@@ -186,13 +193,13 @@ def _get_info_for_projection(
 
 
 def _order_data_along_som_projection(
-    data: ndarray,
+    data: NDFloating,
     /,
     *,
-    lattice_p2p_distance: ndarray,
-    segment_projection: ndarray,
-    distances: ndarray,
-) -> ndarray:
+    lattice_p2p_distance: NDFloating,
+    segment_projection: NDFloating,
+    distances: NDFloating,
+) -> NDArray[np.integer[Any]]:
     r"""Order data along its projection onto 1D lattice.
 
     The curve is approximated by the linear segments connecting prototypes.
@@ -266,7 +273,7 @@ def _order_data_along_som_projection(
     return ordering
 
 
-def project_data_on_som(prototypes: ndarray, data: ndarray) -> tuple[ndarray, ndarray]:
+def project_data_on_som(prototypes: NDFloating, data: NDFloating) -> tuple[NDFloating, NDFloating]:
     """Project data onto a trained SOM.
 
     Parameters
@@ -300,7 +307,7 @@ def project_data_on_som(prototypes: ndarray, data: ndarray) -> tuple[ndarray, nd
 # ===================================================================
 
 
-def wrap_at(q: np.ndarray, /, wrap_angle: float) -> np.ndarray:
+def wrap_at(q: NDFloating, /, wrap_angle: float) -> NDFloating:
     """Wrap at value in radians.
 
     Function adapted from Astropy.

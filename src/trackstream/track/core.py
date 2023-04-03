@@ -8,7 +8,7 @@ from functools import cached_property
 from typing import TYPE_CHECKING, Any, Generic
 import weakref
 
-import astropy.coordinates as coords
+import astropy.units as u
 from astropy.utils.metadata import MetaAttribute, MetaData
 from astropy.utils.misc import indent
 
@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from dataclasses import InitVar
 
+    from astropy.coordinates import BaseCoordinateFrame, SkyCoord
     from astropy.units import Quantity, percent
     from interpolated_coordinates import InterpolatedSkyCoord
 
@@ -72,7 +73,14 @@ class StreamArmTrack(StreamArmTrackBase[StreamLikeT]):
     path: Path
     name: str | None
 
-    def __init__(self, stream: StreamLikeT, path: Path, *, name: str | None = None, meta: dict | None = None) -> None:
+    def __init__(
+        self,
+        stream: StreamLikeT,
+        path: Path,
+        *,
+        name: str | None = None,
+        meta: dict[str, Any] | None = None,
+    ) -> None:
         object.__setattr__(self, "path", path)
         object.__setattr__(self, "name", name)
 
@@ -103,7 +111,7 @@ class StreamArmTrack(StreamArmTrackBase[StreamLikeT]):
         return strm
 
     @property
-    def origin(self) -> coords.SkyCoord:
+    def origin(self) -> SkyCoord:
         """The origin of the track."""
         return self.stream.origin
 
@@ -123,16 +131,14 @@ class StreamArmTrack(StreamArmTrackBase[StreamLikeT]):
         return self.path.affine
 
     @property
-    def frame(self) -> coords.BaseCoordinateFrame:
+    def frame(self) -> BaseCoordinateFrame:
         """The coordinate frame of the track."""
         return self.path.frame
 
     @cached_property
     def has_distances(self) -> bool:
         """Whether the data has distances or is on-sky."""
-        # TODO a more robust check
-        data_onsky = issubclass(type(self.coords.data), coords.UnitSphericalRepresentation)
-        return not data_onsky
+        return hasattr(self.coords, "distance") and self.coords.distance.unit != u.one
 
     @cached_property
     def has_kinematics(self) -> bool:
@@ -163,8 +169,8 @@ class StreamArmTrack(StreamArmTrackBase[StreamLikeT]):
 
     def probability(
         self,
-        point: coords.SkyCoord,
-        background_model: Callable[[coords.SkyCoord], Quantity[percent]] | None = None,
+        point: SkyCoord,
+        background_model: Callable[[SkyCoord], Quantity[percent]] | None = None,
         *,
         angular: bool = False,
         affine: Quantity | None = None,

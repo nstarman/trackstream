@@ -5,14 +5,18 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import pi
+from typing import TYPE_CHECKING
 
 import astropy.coordinates as coords
 import astropy.units as u
-from numpy import arccos, arctan2, array, cos, ndarray, sign, sin
+from numpy import arccos, arctan2, array, cos, sign, sin
 
 from trackstream.track.fit.kalman.base import FONKFBase, KFInfo
 
 __all__: list[str] = []
+
+if TYPE_CHECKING:
+    from trackstream._typing import NDFloating
 
 
 ##############################################################################
@@ -50,12 +54,12 @@ class USphereFONKF(FONKFBase):
     def __post_init__(self) -> None:
         super().__post_init__()
 
-        self._wrap_at: ndarray
+        self._wrap_at: NDFloating
         object.__setattr__(self, "_wrap_at", array([pi, pi / 2]))  # lon, lat [rad]
 
     # ===============================================================
 
-    def _wrap_residual(self, residual: ndarray) -> ndarray:
+    def _wrap_residual(self, residual: NDFloating) -> NDFloating:
         deltalon = residual[0]  # first coordinate is always the longitude
         pa = arctan2(sin(deltalon), 0)  # position angle
         residual[0] = sign(pa) * arccos(cos(deltalon))
@@ -64,10 +68,10 @@ class USphereFONKF(FONKFBase):
 
         return residual
 
-    def _wrap_posterior(self, x: ndarray) -> ndarray:
+    def _wrap_posterior(self, x: NDFloating) -> NDFloating:
         # first coordinate is always the longitude
         # keeps in (-180, 180) deg
-        wlon, wlat = self._wrap_at
+        wlon, _ = self._wrap_at
         x[0] += 2 * wlon if (x[0] < -wlon) else 0
         x[0] -= 2 * wlon if (x[0] >= wlon) else 0
 

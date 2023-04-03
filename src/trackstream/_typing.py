@@ -7,7 +7,7 @@ Note that this is not (necessarily) static typing.
 
 from __future__ import annotations
 
-from typing import Protocol, TypeAlias, TypeVar
+from typing import Any, Protocol, TypeAlias, TypeVar
 
 from astropy.coordinates import BaseCoordinateFrame, SkyCoord
 from numpy import floating
@@ -31,7 +31,8 @@ EllipsisType = type(Ellipsis)
 N1 = TypeVar("N1", bound=NBitBase)
 N2 = TypeVar("N2", bound=NBitBase)
 
-NDFloat = NDArray[floating[N1]]
+NDFloat: TypeAlias = NDArray[floating[N1]]
+NDFloating = NDArray[floating[Any]]
 
 
 # -------------------------------------

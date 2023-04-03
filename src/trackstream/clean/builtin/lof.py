@@ -11,23 +11,15 @@ from scipy.spatial import KDTree
 
 from trackstream.clean.base import OutlierDetectorBase
 
+__all__: list[str] = []
+
 if TYPE_CHECKING:
     from numpy.typing import NDArray
 
     from trackstream._typing import N1, NDFloat
 
-__all__: list[str] = []
-
-
-##############################################################################
-# PARAMETERS
 
 KDT = TypeVar("KDT")
-
-
-##############################################################################
-# CODE
-##############################################################################
 
 
 class KDTreeLOFBase(OutlierDetectorBase, Generic[KDT], register=False):

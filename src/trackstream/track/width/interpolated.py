@@ -20,10 +20,11 @@ from trackstream.track.width.base import WidthBase
 from trackstream.track.width.core import BaseWidth
 from trackstream.track.width.plural import Widths
 
+__all__ = ["InterpolatedWidth"]
+
+
 if TYPE_CHECKING:
     from astropy.coordinates import BaseRepresentation
-
-__all__ = ["InterpolatedWidth"]
 
 
 Self = TypeVar("Self", bound="InterpolatedWidth")

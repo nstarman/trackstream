@@ -141,9 +141,9 @@ class Path(NPArrayOverloadMixin):
         *,
         affine: u.Quantity,  # noqa: ARG003
         name: str | None = None,  # noqa: ARG003
-        metadata: dict | None = None,  # noqa: ARG003
+        metadata: dict[str, Any] | None = None,  # noqa: ARG003
         **kwargs: Any,  # noqa: ARG003
-    ) -> Any:  # https://github.com/python/mypy/issues/11727
+    ) -> Path:  # https://github.com/python/mypy/issues/11727
         """Create a path from an object.
 
         Parameters
@@ -180,7 +180,7 @@ class Path(NPArrayOverloadMixin):
         *,
         affine: u.Quantity,
         name: str | None = None,
-        metadata: dict | None = None,
+        metadata: dict[str, Any] | None = None,
         **_: Any,
     ) -> Path:
         if isinstance(data, icoords.InterpolatedSkyCoord) and data.affine != affine:
@@ -203,7 +203,7 @@ class Path(NPArrayOverloadMixin):
         *,
         affine: u.Quantity,
         name: str | None = None,
-        metadata: dict | None = None,
+        metadata: dict[str, Any] | None = None,
         **_: Any,
     ) -> Path:
         if isinstance(data, icoords.InterpolatedCoordinateFrame) and not np.array_equal(data.affine, affine):
@@ -225,7 +225,7 @@ class Path(NPArrayOverloadMixin):
         *,
         affine: u.Quantity,
         name: str | None = None,
-        metadata: dict | None = None,
+        metadata: dict[str, Any] | None = None,
         frame: FrameLikeType,
         **_: Any,
     ) -> Path:

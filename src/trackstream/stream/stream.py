@@ -60,7 +60,7 @@ class _StreamCache(TypedDict):
     frame_fit_result: FrameOptimizeResult | None
     # track
     track: StreamArmTrack | None
-    fitters: MappingProxyType | None  # arms' caches
+    fitters: MappingProxyType[str, bool | FitterStreamArmTrack] | None  # arms' caches
 
 
 ##############################################################################
@@ -260,7 +260,7 @@ class Stream(StreamArmsBase, StreamBase):
         else:
             arm0, arm1 = tuple(self.values())
             sc = concatenate_coords((arm0.coords[::-1], arm1.coords))
-        return sc  # noqa: RET504
+        return sc
 
     @property
     def frame(self) -> BaseCoordinateFrame | None:
@@ -367,10 +367,9 @@ class Stream(StreamArmsBase, StreamBase):
         # LOCAL
         from trackstream.track.plural import StreamArmsTracks, StreamTrack
 
+        track_name = (self.full_name or "").lstrip()
         track = (
-            StreamTrack.from_stream(self, name=(self.full_name or "").lstrip())
-            if composite
-            else StreamArmsTracks(tracks, name=(self.full_name or "").lstrip())
+            StreamTrack.from_stream(self, name=track_name) if composite else StreamArmsTracks(tracks, name=track_name)
         )
 
         self._cache["track"] = track

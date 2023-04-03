@@ -9,17 +9,13 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from trackstream.utils.exceptions import NotFittedError
 
+__all__: list[str] = []
+
 if TYPE_CHECKING:
     from numpy import bool_
     from numpy.typing import NDArray
 
     from trackstream._typing import N1, N2, NDFloat
-
-__all__: list[str] = []
-
-
-##############################################################################
-# PARAMETERS
 
 
 OUTLIER_DETECTOR_CLASSES: dict[str, type[OutlierDetectorBase]] = {}
@@ -117,6 +113,7 @@ class OutlierDetectorBase(metaclass=ABCMeta):
         """
         if not self._isfit:
             raise NotFittedError
+        ...
 
     def fit_predict(
         self,

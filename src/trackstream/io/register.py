@@ -10,17 +10,15 @@ import warnings
 from astropy.io.registry import IORegistryError, UnifiedIORegistry
 from importlib_metadata import EntryPoint, entry_points
 
+__all__ = ["UnifiedIOEntryPointRegistrar"]
+
 if TYPE_CHECKING:
     from typing import TypeGuard
 
     from typing_extensions import NotRequired
 
 
-__all__ = ["UnifiedIOEntryPointRegistrar"]
-
-
 ##############################################################################
-# PARAMETERS
 
 
 class IdentifyCallable(Protocol):
@@ -100,7 +98,7 @@ class UnifiedIOEntryPointRegistrar:
         try:
             registration_func(regname, data_class, value["func"])
         except IORegistryError as e:
-            warnings.warn(str(e))
+            warnings.warn(str(e), stacklevel=2)
 
         if "identify" in value:
             registry.register_identifier(regname, data_class, value["identify"], force=True)

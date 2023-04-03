@@ -16,23 +16,19 @@ from trackstream.track.fit.som.sphere import USphereSOM
 from trackstream.track.fit.som.utils import _get_info_for_projection
 from trackstream.track.fit.utils import _c2v, _v2c
 from trackstream.track.width.core import LENGTH, SPEED, BaseWidth
-from trackstream.track.width.oned.core import (
-    AngularDiffWidth,
-    AngularWidth,
-    Cartesian1DiffWidth,
-    Cartesian1DWidth,
-)
+from trackstream.track.width.oned.core import AngularDiffWidth, AngularWidth, Cartesian1DiffWidth, Cartesian1DWidth
 from trackstream.track.width.plural import Widths
-
-if TYPE_CHECKING:
-    from numpy.random import Generator
-
-    from trackstream.track.fit.som.base import SOM1DBase, SOMInfo
 
 __all__: list[str] = []
 
 if TYPE_CHECKING:
+    from astropy.coordinates import SkyCoord
     from astropy.units import PhysicalType
+    from numpy.random import Generator
+
+    from trackstream._typing import NDFloating
+    from trackstream.track.fit.som.base import SOM1DBase, SOMInfo
+    from trackstream.track.width.base import WidthBase
 
 
 #####################################################################
@@ -226,7 +222,7 @@ class SelfOrganizingMap:
 
     def fit(
         self,
-        data: coords.SkyCoord,
+        data: SkyCoord,
         num_iteration: int = 100_000,
         *,
         random_order: bool = False,
@@ -253,7 +249,7 @@ class SelfOrganizingMap:
         v = _c2v(self, data)
         return self.som.fit(v, num_iteration=num_iteration, random_order=random_order, progress=progress)
 
-    def predict(self, data: coords.SkyCoord, /) -> tuple[coords.SkyCoord, np.ndarray]:
+    def predict(self, data: SkyCoord, /) -> tuple[SkyCoord, NDFloating]:
         """Predict projection and ordering.
 
         Parameters
@@ -287,13 +283,13 @@ class SelfOrganizingMap:
 
     def fit_predict(
         self,
-        data: coords.SkyCoord,
+        data: SkyCoord,
         /,
         num_iteration: int = 100_000,
         *,
         random_order: bool = False,
         progress: bool = True,
-    ) -> tuple[coords.SkyCoord, np.ndarray]:
+    ) -> tuple[coords.SkyCoord, NDFloating]:
         """Fit and predict.
 
         Parameters
@@ -322,7 +318,7 @@ class SelfOrganizingMap:
 
     # ===============================================================
 
-    def separation(self, data: coords.SkyCoord, /) -> Widths:
+    def separation(self, data: SkyCoord, /) -> Widths[WidthBase]:
         """Compute orthogonal distances to SOM.
 
         Parameters

@@ -12,14 +12,11 @@ import astropy.units as u
 import numpy as np
 from scipy.optimize import OptimizeResult
 
+__all__: list[str] = []
+
 if TYPE_CHECKING:
     from astropy.units import Quantity
 
-__all__: list[str] = []
-
-
-##############################################################################
-# Parameters
 
 R = TypeVar("R")
 

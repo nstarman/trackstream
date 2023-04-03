@@ -13,11 +13,11 @@ from astropy.utils.misc import indent
 from trackstream.utils.descriptors.attribute import Attribute
 from trackstream.utils.descriptors.cache import CacheProperty
 
+__all__: list[str] = []
+
+
 if TYPE_CHECKING:
     from astropy.table import QTable
-
-
-__all__: list[str] = []
 
 
 StreamLikeT = TypeVar("StreamLikeT", bound="StreamLike")
@@ -28,7 +28,8 @@ StreamBaseT = TypeVar("StreamBaseT", bound="StreamBase")
 class StreamLike(Protocol):
     """Stream-like Protocol."""
 
-    cache: CacheProperty
+    _cache: dict[str, Any]
+    cache: CacheProperty[Any]
     flags: Any
 
     @property
@@ -116,10 +117,10 @@ class StreamBase:
     # TODO! py3.10 fixes the problems of ordering in subclasses
     # """The stream data table."""
     # """The name of the stream."""
-    # def __post_init__(self, prior_cache: dict | None) -> None:
+    # def __post_init__(self, prior_cache: dict[str, Any] | None) -> None:
 
     # this is included only for type hinting
-    def __post_init__(self) -> None:
+    def __post_init__(self, *args: Any, **kwargs: Any) -> None:
         self._cache: dict[str, Any]
         self.data: QTable
         self.origin: SkyCoord

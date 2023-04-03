@@ -125,7 +125,7 @@ class PhysicalTypeKeyMutableMapping(PhysicalTypeKeyMapping[V], MutableMapping[u.
     """Mutable mapping with PhysicalType keys."""
 
     def __init__(self, mapping: MutableMapping[u.PhysicalType, V], /) -> None:
-        self._mapping = mapping
+        self._mapping: MutableMapping[u.PhysicalType, V] = mapping
 
     def __setitem__(self, key: str | u.PhysicalType, value: V, /) -> None:
         self._mapping[self._get_key(key)] = value
