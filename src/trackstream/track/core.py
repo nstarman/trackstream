@@ -8,6 +8,7 @@ from functools import cached_property
 from typing import TYPE_CHECKING, Any, Generic
 import weakref
 
+from astropy.coordinates import PhysicsSphericalRepresentation, SphericalRepresentation, UnitSphericalRepresentation
 import astropy.units as u
 from astropy.utils.metadata import MetaAttribute, MetaData
 from astropy.utils.misc import indent
@@ -137,8 +138,11 @@ class StreamArmTrack(StreamArmTrackBase[StreamLikeT]):
 
     @cached_property
     def has_distances(self) -> bool:
-        """Whether the data has distances or is on-sky."""
-        return hasattr(self.coords, "distance") and self.coords.distance.unit != u.one
+        """Whether the data is in 3D or is on-sky."""
+        out = not issubclass(self.coords.representation_type, UnitSphericalRepresentation)
+        if issubclass(self.coords.representation_type, SphericalRepresentation | PhysicsSphericalRepresentation):
+            out &= self.coords.distance.unit != u.one
+        return out
 
     @cached_property
     def has_kinematics(self) -> bool:
