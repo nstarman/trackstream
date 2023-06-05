@@ -122,7 +122,7 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
         """Test property ``data``."""
         super().test_data(stream)
 
-        # todo!
+        # TODO!
 
         # See Data Normalization tests
 
