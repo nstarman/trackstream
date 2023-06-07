@@ -18,9 +18,9 @@
 #     @pytest.fixture(params=[(None, None), (True, None), (None, True), (True, True)])
 #     def tracker(self, request):
 #         if arm1SOM is True:
-#             # TODO! have a test for a pre-made SOM
+#             # TODO: have a test for a pre-made SOM
 #         if arm2SOM is True:
-#             # TODO! have a test for a pre-made SOM
+#             # TODO: have a test for a pre-made SOM
 
 
 #     @pytest.fixture
@@ -44,7 +44,7 @@
 #     def test_fit(self, tracker, stream):
 #         """Test method ``fit``."""
 
-#         # TODO! a lot more tests
+#         # TODO: a lot more tests
 
 #     def test_predict(self, tracker):
 #         """Test method ``predict``."""
@@ -65,7 +65,7 @@
 
 #     #     @classmethod
 #     #         """Setup fixtures for testing."""
-#     #         # TODO! move to
+#     #         # TODO: move to
 #     #
 #     #
 #     #

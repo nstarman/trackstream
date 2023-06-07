@@ -168,7 +168,7 @@ class StreamArmTrack(StreamArmTrackBase[StreamLikeT]):
         `trackstream.utils.path.path_moments`
             Realized from the ``.path`` attribute.
         """
-        # TODO! add amplitude (density)
+        # TODO: add amplitude (density)
         return self.path(affine=affine, angular=angular)
 
     def probability(

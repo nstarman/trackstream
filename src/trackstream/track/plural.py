@@ -53,7 +53,7 @@ class StreamTrack(StreamArmTrack[Stream], StreamArmsTrackBase[Stream]):
     Currently only works for 2 arms.
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         stream: Stream,
         tracks: Mapping[str, StreamArmTrack[StreamLikeT]],
@@ -90,7 +90,7 @@ class StreamTrack(StreamArmTrack[Stream], StreamArmsTrackBase[Stream]):
         # Get StreamArmTrack from each stream arm.
         tracks = {k: arm.track for k, arm in stream.items()}
 
-        # TODO! concatenation that works with more than two streams
+        # TODO: concatenation that works with more than two streams
         if len(tracks) == 1:
             path = next(iter(tracks.values())).path
         elif len(tracks) == 2:

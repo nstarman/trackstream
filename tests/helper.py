@@ -35,7 +35,7 @@ def IbataEtAl2017() -> dict[str, Any]:
     data["tail"] = "arm1"
     data["tail"][data["ra"] < origin.ra] = "arm2"
 
-    # Make error table  # TODO! real errors?
+    # Make error table  # TODO: real errors?
     data_err = QTable()
     data_err["ra_err"] = 0 * data["ra"]  # (for the shape)
     data_err["dec_err"] = u.Quantity(0, u.deg)

@@ -83,7 +83,7 @@ class Flags:
         """Set the value of a flag."""
         for key, value in kwargs.items():
             if not isinstance(value, type(getattr(self, key))):
-                # TODO! allow for more general check
+                # TODO: allow for more general check
                 raise TypeError
 
             object.__setattr__(self, key, value)
@@ -114,7 +114,7 @@ class StreamBase:
     # ===============================================================
     # Initializatino
 
-    # TODO! py3.10 fixes the problems of ordering in subclasses
+    # TODO: py3.10 fixes the problems of ordering in subclasses
     # """The stream data table."""
     # """The name of the stream."""
     # def __post_init__(self, prior_cache: dict[str, Any] | None) -> None:

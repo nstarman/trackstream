@@ -122,7 +122,7 @@ class USphereSOM(SOM1DBase):
             d[d == 0] = np.nan
             t = np.mean(np.nanmean(d, axis=0))  # typical separation, upweighted by sep groups
             label = fclusterdata(x[:, None], t=t, criterion="distance") - 1
-            # TODO! this is only for 2 pops, what if 3+?
+            # TODO: this is only for 2 pops, what if 3+?
             x0, x1, lesser = x[label == 0], x[label == 1], 0
             # determine if there's more than one group. There might be only 1.
             groups = bool(len(x0) >= 1 and len(x1) >= 1)
@@ -194,7 +194,7 @@ class USphereSOM(SOM1DBase):
         if len(x) <= 2 * 2:
             vd = 0
         else:
-            # FIXME! have to transform to cartesian and then back.
+            # TODO: have to transform to cartesian and then back.
             _, xv = s2pv(theta=x[0], phi=x[1], r=1, td=x[2], pd=x[3], rd=0)
             _, wv = s2pv(theta=w[:, 0], phi=w[:, 1], r=1, td=w[:, 2], pd=w[:, 3], rd=0)
             vd = norm(subtract(xv, wv), axis=-1)
@@ -226,12 +226,12 @@ class USphereSOM(SOM1DBase):
         posang = position_angle(ps[:, 0], ps[:, 1], x[0], x[1])
         newlon, newlat = offset_by(ps[:, 0], ps[:, 1], posang=posang, distance=g * separation)
         # keep in correct phase lon (-pi, pi), lat (-pi/2, pi/2)
-        # TODO! check that can do these separately. Might need to do simultaneously.
+        # TODO: check that can do these separately. Might need to do simultaneously.
         newlon = (newlon + pi) % twopi - pi
         newlat = (newlat + halfpi) % pi - halfpi
         self.prototypes[:, :2] = np.c_[newlon, newlat]  # assign on view (works around frozen)
 
-        # TODO! better treatment of on-sphere
+        # TODO: better treatment of on-sphere
         if ps.shape[1] > 2:  # kinematics
             self.prototypes[:, 2:] += g[:, None] * (x[2:] - ps[:, 2:])
 
@@ -272,7 +272,7 @@ class USphereSOM(SOM1DBase):
         projdata, ordering = super().predict(crd)
 
         # Correct for possible phase wraps
-        # TODO! more general correction for arbitrary number of phase wraps
+        # TODO: more general correction for arbitrary number of phase wraps
         crd = crd[:, 0][ordering]
         discont = pi / 2  # [rad]
         jumps = np.where(np.diff(crd) >= discont)[0]

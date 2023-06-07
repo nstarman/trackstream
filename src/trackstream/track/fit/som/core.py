@@ -66,7 +66,7 @@ class SelfOrganizingMap:
 
     @singledispatchmethod
     @classmethod
-    def from_format(
+    def from_format(  # noqa: PLR0913
         cls,
         arm: object,  # noqa: ARG003
         /,
@@ -116,7 +116,7 @@ class SelfOrganizingMap:
 
     @from_format.register(StreamArm)
     @classmethod
-    def _from_format_streamarm(
+    def _from_format_streamarm(  # noqa: PLR0913
         cls,
         arm: StreamArm,
         /,
@@ -151,7 +151,7 @@ class SelfOrganizingMap:
 
     @from_format.register(StreamArmsBase)
     @classmethod
-    def _from_format_streamarmsbase(
+    def _from_format_streamarmsbase(  # noqa: PLR0913
         cls,
         arms: StreamArmsBase,
         /,

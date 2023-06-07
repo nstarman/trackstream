@@ -42,7 +42,7 @@ def cartesian_to_unitspherical(cw: Cartesian3DWidth, point: BaseRepresentation) 
     UnitSphericalWidth
         The converted width.
     """
-    # FIXME! actual projection. This is a bad approx.
+    # TODO: actual projection. This is a bad approx.
     w = cast("Quantity", np.sqrt(cw.x**2 + cw.y**2 + cw.z**2))
     spnt = cast("SphericalRepresentation", point.represent_as(SphericalRepresentation))
     distance = spnt.distance.to_value(w.unit)
@@ -68,6 +68,6 @@ def cartesian_to_spherical(cw: Cartesian3DWidth, point: BaseRepresentation) -> S
         The converted width.
     """
     usw = cartesian_to_unitspherical(cw, point)
-    distance = cast("Quantity", np.sqrt(cw.x**2 + cw.y**2 + cw.z**2))  # FIXME! This is a bad approx.
+    distance = cast("Quantity", np.sqrt(cw.x**2 + cw.y**2 + cw.z**2))  # TODO: This is a bad approx.
 
     return SphericalWidth(lat=usw.lat, lon=usw.lon, distance=distance)

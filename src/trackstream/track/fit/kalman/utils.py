@@ -97,7 +97,7 @@ def make_error(stream: StreamArm, kf: FirstOrderNewtonianKalmanFilter, default: 
     flat_units = merge_units(kf.info.units)
     errors = np.zeros(len(stream), dtype=[(n, float) for n in flat_units.field_names])
 
-    # TODO! without transforming the data. See ``get_representation_names``.
+    # TODO: without transforming the data. See ``get_representation_names``.
     crds = stream.coords
     crds.representation_type = kf.info.representation_type
     crds.differential_type = kf.info.differential_type

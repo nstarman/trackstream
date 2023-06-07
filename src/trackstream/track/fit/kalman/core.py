@@ -205,7 +205,7 @@ class FirstOrderNewtonianKalmanFilter:
 
     # ===============================================================
 
-    def fit(
+    def fit(  # noqa: PLR0913
         self,
         data: SkyCoord,
         /,
@@ -297,7 +297,7 @@ class FirstOrderNewtonianKalmanFilter:
         return Path.from_format(
             mc,
             width=stream_width,
-            amplitude=None,  # TODO!
+            amplitude=None,  # TODO: implement this
             name=name,
             affine=affine,
             metadata={"result": result, "smooth": smooth},

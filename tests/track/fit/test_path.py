@@ -43,7 +43,7 @@
 #     @pytest.mark.skip("TODO!")
 #     def test_init_width(self):
 #         assert False
-#         # TODO! tests for initialize width
+#         # TODO: tests for initialize width
 
 #     # -----------------------------------------------------
 
@@ -84,7 +84,7 @@
 #         # default
 
 
-#         # TODO! test non-constant function
+#         # TODO: test non-constant function
 
 #     @pytest.mark.skip("TODO!")
 #     def test_width_angular(self, path, affine):
@@ -117,7 +117,7 @@
 #     @pytest.mark.parametrize("angular", [False, True])
 #     def test_closest_affine_to_point(self, path, point_on, angular, affine_on):
 
-#         # TODO! a point off the path
+#         # TODO: a point off the path
 
 #     @pytest.mark.parametrize("angular", [False, True])
 #     def test_closest_position_to_point(self, path, point_on, angular, affine_on):

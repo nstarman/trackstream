@@ -24,7 +24,7 @@ __all__: list[str] = []
 # ===================================================================
 
 
-def stream_arm_from_table(
+def stream_arm_from_table(  # noqa: PLR0913
     table: Table,
     /,
     data_err: QTable | None = None,
@@ -45,7 +45,7 @@ def stream_arm_from_table(
 
     # Cache:
     # it's not a passable parameter. It's specific to the table.
-    # TODO! should it be meta[...] or meta[cache[]]
+    # TODO: should it be meta[...] or meta[cache[]]
     meta_cache = table_meta.pop("cache", None)
     if _cache is None:
         _cache = meta_cache
@@ -80,7 +80,7 @@ def stream_arm_from_table(
     if not isinstance(origin, SkyCoord):
         raise TypeError
 
-    # TODO! offer different normalizers
+    # TODO: offer different normalizers
     data: QTable
     data = StreamArmDataNormalizer(frame)(table, data_err)
 
