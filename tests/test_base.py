@@ -37,15 +37,15 @@ class StreamBaseTest(metaclass=ABCMeta):
 
     @pytest.fixture(scope="class")
     def data_error_table(self):
-        return None  # TODO!
+        return None  # TODO: more options
 
     @pytest.fixture(scope="class")
     def origin(self, data_table):
-        return None  # TODO!
+        return None  # TODO: more options
 
     @pytest.fixture(scope="class")
     def frame(self):
-        return None  # TODO! more options
+        return None  # TODO: more options
 
     @pytest.fixture(scope="class")
     @abstractmethod

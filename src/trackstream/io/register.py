@@ -29,7 +29,7 @@ class IdentifyCallable(Protocol):
         ...
 
 
-class FuncCallable(Protocol):  # TODO!
+class FuncCallable(Protocol):
     """Callable that reads or writes a format."""
 
     def __call__(self, base: Any, /, *args: Any, **kwds: Any) -> Any:

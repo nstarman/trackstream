@@ -80,7 +80,7 @@ class BaseWidth(WidthBase, metaclass=ABCMeta):
 
     # ===============================================================
 
-    @classproperty  # TODO! this obscures inspect.isabstract
+    @classproperty  # TODO: this obscures inspect.isabstract
     @abstractmethod
     def corresponding_representation_type(cls) -> None | type[BaseRepresentationOrDifferential]:
         """Representation type corresponding to the width type."""
@@ -90,7 +90,7 @@ class BaseWidth(WidthBase, metaclass=ABCMeta):
     def dimensions(cls) -> u.PhysicalType | None:
         """Physical type of the width (or `None`)."""
 
-    # TODO! make a classproperty. But problematic with ABCMeta
+    # TODO: make a classproperty. But problematic with ABCMeta
     @property
     @abstractmethod
     def corresponding_width_types(cls) -> dict[u.PhysicalType, None | type[BaseWidth]]:

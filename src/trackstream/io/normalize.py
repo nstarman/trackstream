@@ -74,9 +74,7 @@ class StreamArmDataNormalizer:
         data.meta = {**meta, **data.meta}
 
         # Finally, merge original_err into data
-        # TODO!
-        # https://docs.astropy.org/en/stable/table/operations.html#merging-details
-        # TODO! make sure `arm` matches
+        # TODO: make sure `arm` matches
         if original_err is not None:
             for n in set(original_err.colnames) - {"arm"}:
                 nn = f"err_{n}" if n in original.colnames else n
@@ -190,7 +188,7 @@ class StreamArmDataNormalizer:
 
         # ----------
         # 2) the error
-        # TODO! want the ability to convert errors into the frame of the data.
+        # TODO: want the ability to convert errors into the frame of the data.
         # gc.transform_pm_cov(sc.icrs, repeat(cov[None, :], len(sc), axis=0),
         #                     coord.Galactic())
 

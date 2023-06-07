@@ -53,7 +53,7 @@ WS_FUNCS = NumPyOverloader()
 class Widths(PhysicalTypeKeyMutableMapping[W1], NPArrayOverloadMixin, ToFormatOverloadMixin):
     """Widths."""
 
-    # TODO! make work with Interpolated
+    # TODO: make work with Interpolated
 
     NP_OVERLOADS: ClassVar[NumPyOverloader] = WS_FUNCS
     FMT_OVERLOADS: ClassVar[ToFormatOverloader] = FMT_OVERLOADS

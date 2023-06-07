@@ -64,7 +64,7 @@ class USphereFONKF(FONKFBase):
         pa = arctan2(sin(deltalon), 0)  # position angle
         residual[0] = sign(pa) * arccos(cos(deltalon))
 
-        # TODO! similar for |Latitude|
+        # TODO: similar for |Latitude|
 
         return residual
 

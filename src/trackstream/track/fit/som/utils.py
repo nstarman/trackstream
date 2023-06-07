@@ -177,7 +177,7 @@ def _get_info_for_projection(
     all_points[:, 1::2, :] = projected_points
     all_points[:, 0::2, :] = prototypes
     distances = norm(np.subtract(data[:, None, :], all_points), axis=-1)
-    # TODO! better on-sky treatment. This is a small-angle / flat-sky
+    # TODO: better on-sky treatment. This is a small-angle / flat-sky
     # approximation.
 
     # Detect whether it is in the segment. Nodes are considered in the segment. The end segments are allowed to extend.
@@ -251,7 +251,7 @@ def _order_data_along_som_projection(
             rowsorter = np.argsort(ts)
 
         # evens are by nodes
-        else:  # TODO! how many dimensions does this consider?
+        else:  # TODO: how many dimensions does this consider?
             phi1 = np.arctan2(*lattice_p2p_distance[segi // 2 - 1, :2])
             phim2 = np.arctan2(*-lattice_p2p_distance[segi // 2, :2])
             phi = np.arctan2(*data[rowi, :2].T)

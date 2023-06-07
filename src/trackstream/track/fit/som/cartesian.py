@@ -94,7 +94,7 @@ class CartesianSOM(SOM1DBase):
         maxsep : Quantity or None, optional keyword-only
             Maximum separation (in data space) between prototypes.
         """
-        # TODO? generalize to also kinematics
+        # TODO: generalize to also kinematics
         # Get coordinate to bin
         x: NDArray[np.floating[Any]] = data[:, 0]
 
@@ -119,7 +119,7 @@ class CartesianSOM(SOM1DBase):
                 )
                 raise ValueError(msg)
             # Respace bins
-            bins = _respace_bins(  # TODO! speed up
+            bins = _respace_bins(  # TODO: speed up
                 deepcopy(bins),
                 maxsep,
                 onsky=False,

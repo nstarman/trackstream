@@ -133,7 +133,7 @@ class Path(NPArrayOverloadMixin):
 
     @singledispatchmethod
     @classmethod
-    def from_format(
+    def from_format(  # noqa: PLR0913
         cls,
         data: object,  # noqa: ARG003
         width: u.Quantity | Callable | None,  # noqa: ARG003
@@ -172,7 +172,7 @@ class Path(NPArrayOverloadMixin):
 
     @from_format.register(coords.SkyCoord)
     @classmethod
-    def _from_format_skycoord(
+    def _from_format_skycoord(  # noqa: PLR0913
         cls,
         data: coords.SkyCoord,
         width: Widths | None,
@@ -195,7 +195,7 @@ class Path(NPArrayOverloadMixin):
     @from_format.register(coords.BaseCoordinateFrame)
     @from_format.register(icoords.InterpolatedCoordinateFrame)
     @classmethod
-    def _from_format_frame(
+    def _from_format_frame(  # noqa: PLR0913
         cls,
         data: coords.BaseCoordinateFrame | icoords.InterpolatedCoordinateFrame,
         width: Widths | None,
@@ -217,7 +217,7 @@ class Path(NPArrayOverloadMixin):
     @from_format.register(coords.BaseRepresentation)
     @from_format.register(icoords.InterpolatedRepresentation)
     @classmethod
-    def _from_format_representation(
+    def _from_format_representation(  # noqa: PLR0913
         cls,
         data: coords.BaseRepresentation | icoords.InterpolatedRepresentation,
         width: Widths | None,
@@ -270,7 +270,7 @@ class Path(NPArrayOverloadMixin):
         """
         mean = self.position(affine)
         width = (self.width(affine) if not angular else self.width_angular(affine)) if self.width is not None else None
-        # TODO! add amplitude (density)
+        # TODO: add amplitude (density)
         return path_moments(mean, width)
 
     # -----------------------
@@ -322,7 +322,7 @@ class Path(NPArrayOverloadMixin):
         if width.unit.physical_type == "angle":
             return width
 
-        # TODO! is there a more succinct Astropy func for this?
+        # TODO: is there a more succinct Astropy func for this?
         r = self.data(affine).represent_as(coords.SphericalRepresentation)
         distance = r.distance.to_value(width.unit)
 
@@ -501,7 +501,7 @@ def concatenate(
     affine = cast("u.Quantity", np.concatenate((-npth.affine[::-1], ppth.affine)))
 
     # get representations, uninterpolated
-    # TODO! add concatenated to InterpolatedSkyCoord
+    # TODO: add concatenated to InterpolatedSkyCoord
     nr = npth.data.data.data  # Representation
     if "s" in nr.differentials:
         nr.differentials["s"] = nr.differentials["s"].data
@@ -528,10 +528,10 @@ def concatenate(
     name = ppth.name if (npth.name == ppth.name) else f"{npth.name} | {ppth.name}"
 
     # Metadata
-    # TODO! a better merge
+    # TODO: a better merge
     metadata = {"npth": npth.meta, "ppth": ppth.meta}
 
-    # TODO! amplitude
+    # TODO: amplitude
     return Path(c, width=width, amplitude=None, name=name, metadata=metadata)
 
 

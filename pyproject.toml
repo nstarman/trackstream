@@ -26,7 +26,7 @@
     "bound_class.core @ git+https://github.com/nstarman/bound-class.git",
     "importlib_metadata",
     "interpolated_coordinates  @ git+https://github.com/GalOrrery/interpolated-coordinates.git",
-    "matplotlib>=3.4",
+    "matplotlib>=3.5",
     "numpy>=1.22",
     "overload_numpy >= 0.1",
     "override_toformat @ git+https://github.com/nstarman/override_toformat.git",
@@ -152,6 +152,10 @@ ignore = [
   "PD",
   "PLR2004",
   "RUF009",
+
+  # flake8-todos (TD)
+  "TD002",  # Missing author in TODO
+  "TD003",  # Missing issue link on the line following this TODO
 ]
 
 [tool.ruff.per-file-ignores]

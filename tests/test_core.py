@@ -42,7 +42,7 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
     @pytest.fixture(scope="class")
     def DATA(self) -> Iterator[dict[str, Any]]:
         """Fixture yielding all stream data sets."""
-        yield from ()  # TODO!
+        yield from ()  # TODO:  implement this
 
     @pytest.fixture(scope="class")
     def data_table(self, DATA) -> QTable:
@@ -102,7 +102,7 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
     def stream_t(self, stream_f):
         """Fixture returning a fit stream."""
         strm = copy.deepcopy(stream_f)  # decouple from stream
-        strm.fit_track(force=False)  # TODO! test kwargs
+        strm.fit_track(force=False)  # TODO: test kwargs
         return strm
 
     @pytest.fixture()
@@ -122,7 +122,7 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
         """Test property ``data``."""
         super().test_data(stream)
 
-        # todo!
+        # TODO:  implement this test
 
         # See Data Normalization tests
 
@@ -281,7 +281,7 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
         fitframe = tempstream_f.fit_frame(force=True)
 
         assert isinstance(fitframe, BaseCoordinateFrame)
-        raise AssertionError  # TODO! tests
+        raise AssertionError  # TODO: tests
 
     @pytest.mark.skip("TODO!")
     def test_fit_frame(self, tempstream: S) -> None:

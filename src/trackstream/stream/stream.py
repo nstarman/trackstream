@@ -163,7 +163,7 @@ class Stream(StreamArmsBase, StreamBase):
             raise NotImplementedError(msg)
 
     @classmethod
-    def from_data(
+    def from_data(  # noqa: PLR0913
         cls: type[Self],
         data: QTable,
         origin: SkyCoord,

@@ -96,7 +96,7 @@ class FitterStreamArmTrack:
 
     def _kalman_validator(self, _: Any, value: FirstOrderNewtonianKalmanFilter) -> None:
         """Validate the Kalman Filter."""
-        # TODO!
+        # TODO: implement checks
         # if value.onsky != self.onsky:
         #     raise ValueError
         # if value.kinematics != self.kinematics:
@@ -107,7 +107,7 @@ class FitterStreamArmTrack:
 
     @singledispatchmethod
     @classmethod
-    def from_format(
+    def from_format(  # noqa: PLR0913
         cls,
         arm: object,  # noqa: ARG003
         onsky: bool | None = None,  # noqa: ARG003
@@ -122,7 +122,7 @@ class FitterStreamArmTrack:
 
     @from_format.register(StreamArm)
     @classmethod
-    def _from_format_streamarm(  # type: ignore[misc]
+    def _from_format_streamarm(  # noqa: PLR0913  # type: ignore[misc]
         cls: type[Self],
         arm: StreamArm,
         onsky: bool | None = None,
@@ -142,7 +142,7 @@ class FitterStreamArmTrack:
 
         # SOM instance
         som = SelfOrganizingMap.from_format(arm, onsky=onsky, kinematics=kinematics, **(som_kw or {}))
-        # TODO? flag for kinematics
+        # TODO: flag for kinematics
 
         # Kalman filter
         kalman = FirstOrderNewtonianKalmanFilter.from_format(
@@ -156,7 +156,7 @@ class FitterStreamArmTrack:
 
     @from_format.register(StreamArmsBase)
     @classmethod
-    def _from_format_streamarmsbase(  # type: ignore[misc]
+    def _from_format_streamarmsbase(  # noqa: PLR0913  # type: ignore[misc]
         cls: type[Self],
         arms: StreamArmsBase,
         onsky: bool | None = None,

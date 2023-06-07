@@ -68,7 +68,7 @@ def _make_timesteps(
     return dts
 
 
-def make_timesteps(
+def make_timesteps(  # noqa: PLR0913
     data: coords.SkyCoord,
     /,
     kf: FirstOrderNewtonianKalmanFilter,

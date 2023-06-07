@@ -577,7 +577,7 @@ class FONKFBase:
 
         # Error matrix
         #
-        # TODO! it would be great to be able to transform errors as well. For
+        # TODO: it would be great to be able to transform errors as well. For
         # now, the errors must be in kalman filter's rep/diff type and units
         idx = np.arange(self.nfeature)  # diagonal indices
         Rs = np.zeros((N, self.nfeature, self.nfeature))
@@ -600,7 +600,7 @@ class FONKFBase:
         z: NDFloating
         for i, (z, R, F, Q) in enumerate(zip(data, Rs, Fs, Qs, strict=True)):
             R[idx, idx] += Ws[i]  # add stream width to uncertainty
-            # TODO! this is at the previous step! need to
+            # TODO: this is at the previous step! need to
             # do it during predict / update, not before
             # predict & update
             x, P = self._math_predict_and_update(x=x, P=P, F=F, Q=Q, z=z, R=R)
