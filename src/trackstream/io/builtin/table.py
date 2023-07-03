@@ -97,7 +97,7 @@ def table_identify(origin: str, format: str | None, /, *args: Any, **kwargs: Any
     itis: bool = False
     if origin == "read":
         itis = isinstance(args[1], Table) and (format in (None, "astropy.table"))
-    return itis  # noqa: RET504
+    return itis
 
 
 # ===================================================================
