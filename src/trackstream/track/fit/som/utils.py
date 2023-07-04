@@ -268,9 +268,7 @@ def _order_data_along_som_projection(
 
         counter += numrows
 
-    ordering = np.array(ordering, dtype=int)
-
-    return ordering
+    return np.array(ordering, dtype=int)
 
 
 def project_data_on_som(prototypes: NDFloating, data: NDFloating) -> tuple[NDFloating, NDFloating]:

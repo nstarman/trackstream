@@ -146,11 +146,25 @@ target-version = "py310"
 line-length = 120
 select = ["ALL"]
 ignore = [
+  # flake8-annotations (ANN)
   "ANN101", "ANN102", "ANN401",
+
+  # pydocstyle (D)
   "D105", "D107", "D203", "D213",
+
+  # flake8-fixme (FIX)
+  "FIX002",  # Line contains TODO
+
+  # pep8-naming (N)
   "N80",
+
+  # pandas-vet (PD)
   "PD",
+
+  # Refactor (PLR)
   "PLR2004",
+
+  # Ruff-specific rules (RUF)
   "RUF009",
 
   # flake8-todos (TD)

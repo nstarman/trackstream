@@ -253,7 +253,7 @@ class InterpolatedWidths(Widths[InterpolatedWidth[W1]]):
         for wcls, k in BASEWIDTH_KIND.items():
             try:
                 w = InterpolatedWidth.from_format(wcls.from_format(data), affine=affine)
-            except (NotImplementedError, ValueError):
+            except (NotImplementedError, ValueError):  # noqa: PERF203
                 continue
             if k in ws and len(fields(ws[k])) > len(fields(w)):
                 continue

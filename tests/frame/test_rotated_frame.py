@@ -24,35 +24,27 @@
 
 # @pytest.mark.parametrize(
 #     "test_data,lon,lat,rotation,deg,expected_data",
-#             data.icrs,  # TODO as fixture
 #             example_coords.RA,
 #             example_coords.DEC,
 #             example_coords.ICRS_ROTATION,
 #             True,
-#             data.ricrs,  # TODO as fixture
 #         ),
-#             data.icrs,  # TODO fixtures
 #             example_coords.RA,
 #             example_coords.DEC,
 #             example_coords.ICRS_ROTATION,
 #             False,
-#             data.ricrs,  # TODO as fixture
 #         ),
-#             data.gcentric,  # TODO as fixture
 #             example_coords.LON,
 #             example_coords.LAT,
 #             example_coords.GALACTOCENTRIC_ROTATION,
 #             True,
-#             data.rgcentric,  # TODO as fixture
 #         ),
-#             data.gcentric,  # TODO as fixture
 #             example_coords.LON,
 #             example_coords.LAT,
 #             example_coords.GALACTOCENTRIC_ROTATION,
 #             False,
-#             data.rgcentric,  # TODO as fixture
 #         ),
-#         # TODO the other datasets
+#         # TODO: the other datasets
 #     ],
 # def test_cartesian_model(
 #     test_data,
@@ -143,39 +135,31 @@
 
 # @pytest.mark.parametrize(
 #     "test_data,variables,scalar,expected_lat",
-#             data.icrs,  # TODO fixtures
 #                 example_coords.ICRS_ROTATION,
 #                 example_coords.RA,
 #                 example_coords.DEC,
 #             ),
 #             True,
-#             0,  # TODO fixtures
 #         ),
-#             data.icrs,  # TODO fixtures
 #                 example_coords.ICRS_ROTATION,
 #                 example_coords.RA,
 #                 example_coords.DEC,
 #             ),
 #             False,
-#             data.ricrs.phi2,  # TODO fixtures
 #         ),
-#             data.gcentric,  # TODO fixtures
 #                 example_coords.GALACTOCENTRIC_ROTATION,
 #                 example_coords.LON,
 #                 example_coords.LAT,
 #             ),
 #             True,
-#             0,  # TODO fixtures
 #         ),
-#             data.gcentric,  # TODO fixtures
 #                 example_coords.GALACTOCENTRIC_ROTATION,
 #                 example_coords.LON,
 #                 example_coords.LAT,
 #             ),
 #             False,
-#             data.rgcentric.phi2,  # TODO fixtures
 #         ),
-#         # TODO the other datasets
+#         # TODO: the other datasets
 #     ],
 # def test_residual(test_data, variables, scalar, expected_lat):
 #     """Test `~trackstream.rotated_frame.residual`."""
