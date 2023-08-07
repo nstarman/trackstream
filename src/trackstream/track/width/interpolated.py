@@ -219,7 +219,7 @@ class InterpolatedWidths(Widths[InterpolatedWidth[W1]]):
         self.affine: Quantity = affine
 
         # post-init verification
-        for _k, v in self.items():
+        for v in self.values():
             if not np.array_equal(v.affine, self.affine):
                 raise ValueError
 
@@ -253,7 +253,7 @@ class InterpolatedWidths(Widths[InterpolatedWidth[W1]]):
         for wcls, k in BASEWIDTH_KIND.items():
             try:
                 w = InterpolatedWidth.from_format(wcls.from_format(data), affine=affine)
-            except (NotImplementedError, ValueError):  # noqa: PERF203
+            except (NotImplementedError, ValueError):
                 continue
             if k in ws and len(fields(ws[k])) > len(fields(w)):
                 continue
