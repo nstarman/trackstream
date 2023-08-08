@@ -162,7 +162,7 @@ class Widths(PhysicalTypeKeyMutableMapping[W1], NPArrayOverloadMixin, ToFormatOv
         for wcls, k in BASEWIDTH_KIND.items():
             try:
                 w = wcls.from_format(data)
-            except (NotImplementedError, ValueError, KeyError):  # noqa: PERF203
+            except (NotImplementedError, ValueError, KeyError):
                 continue
             if k in ws and len(fields(ws[k])) > len(fields(w)):
                 continue
