@@ -29,7 +29,7 @@ class _NoOpPBar:
     def __enter__(self: Self, *_: Any, **__: Any) -> Self:
         return self
 
-    def __exit__(self: Any, *_: Any, **__: Any) -> None:
+    def __exit__(self: Any, *_: object, **__: Any) -> None:
         pass
 
     def update(self: Any, _: int) -> None:
