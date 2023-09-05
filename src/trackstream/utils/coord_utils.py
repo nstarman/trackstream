@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import functools
-from typing import TYPE_CHECKING, Any, Literal, TypeVar
+from typing import TYPE_CHECKING, Any, Literal
 
 from astropy.coordinates import (
     BaseCoordinateFrame,
@@ -22,12 +22,6 @@ __all__ = ["parse_framelike", "get_frame", "deep_transform_to", "f2q"]
 if TYPE_CHECKING:
     from typing import TypeAlias
 
-
-##############################################################################
-# PARAMETERS
-
-_FT = TypeVar("_FT", bound=BaseCoordinateFrame)
-_RT = TypeVar("_RT", bound=BaseRepresentation)
 
 ##############################################################################
 # CODE
@@ -195,7 +189,7 @@ def _get_frame_skycoord(frame: SkyCoord) -> BaseCoordinateFrame:
 
 # ===================================================================
 
-_DifT: TypeAlias = type[BaseDifferential] | None | Literal["base"]
+_DifType: TypeAlias = type[BaseDifferential] | None | Literal["base"]
 
 
 @functools.singledispatch
@@ -203,7 +197,7 @@ def deep_transform_to(
     crd: object,  # noqa: ARG001
     frame: BaseCoordinateFrame,  # noqa: ARG001
     representation_type: type[BaseRepresentation],  # noqa: ARG001
-    differential_type: _DifT,  # noqa: ARG001
+    differential_type: _DifType,  # noqa: ARG001
 ) -> Any:  # https://github.com/python/mypy/issues/11727
     """Transform a coordinate to a frame and representation type.
 
@@ -238,7 +232,7 @@ def _deep_transform_frame(
     crd: BaseCoordinateFrame,
     frame: BaseCoordinateFrame,
     representation_type: type[BaseRepresentation],
-    differential_type: _DifT,
+    differential_type: _DifType,
 ) -> BaseCoordinateFrame:
     # Get representation, with differential possibly determined by the representation.
     dt = None if "s" not in crd.data.differentials else differential_type
@@ -259,7 +253,7 @@ def _deep_transform_skycoord(
     crd: SkyCoord,
     frame: BaseCoordinateFrame,
     representation_type: type[BaseRepresentation],
-    differential_type: _DifT,
+    differential_type: _DifType,
 ) -> SkyCoord:
     # SkyCoord from transformation
     return SkyCoord(
