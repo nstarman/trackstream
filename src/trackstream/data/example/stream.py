@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING, cast
 
 import astropy.coordinates as coords
 from astropy.table import QTable
-import astropy.units as u
 from astropy.units import Quantity
+import astropy.units as u
 from astropy.utils.data import get_pkg_data_filename
 from astropy.utils.misc import NumpyRNGContext
 from galpy.df import streamspraydf

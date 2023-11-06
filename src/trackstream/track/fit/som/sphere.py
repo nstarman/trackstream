@@ -11,8 +11,8 @@ import astropy.coordinates as coords
 from astropy.coordinates.angle_utilities import angular_separation
 import astropy.units as u
 from erfa import s2pv
-import numpy as np
 from numpy import subtract
+import numpy as np
 from numpy.linalg import norm
 from scipy.cluster.hierarchy import fclusterdata
 from scipy.spatial import distance_matrix

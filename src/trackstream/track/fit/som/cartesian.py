@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING, Any, final
 
 import astropy.coordinates as coords
 import astropy.units as u
-import numpy as np
 from numpy import subtract
+import numpy as np
 from numpy.linalg import norm
 from scipy.stats import binned_statistic
 

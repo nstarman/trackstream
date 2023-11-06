@@ -7,8 +7,8 @@ from dataclasses import dataclass, fields, replace
 from functools import singledispatchmethod
 from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast
 
-import astropy.units as u
 from astropy.units import Quantity
+import astropy.units as u
 from interpolated_coordinates.utils import (  # noqa: N817
     InterpolatedUnivariateSplinewithUnits as IUSU,
 )

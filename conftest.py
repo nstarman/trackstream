@@ -12,10 +12,10 @@ from __future__ import annotations
 import pathlib
 from typing import TYPE_CHECKING, Any, cast
 
-import astropy.coordinates as coords
 from astropy.coordinates import Angle, CartesianDifferential, CartesianRepresentation, SkyCoord
-import astropy.units as u
+import astropy.coordinates as coords
 from astropy.units import Quantity
+import astropy.units as u
 from interpolated_coordinates import (
     InterpolatedCoordinateFrame,
     InterpolatedDifferential,
