@@ -11,8 +11,8 @@ from typing import Any, ClassVar, final
 import warnings
 
 import astropy.units as u
-import numpy as np
 from numpy import exp, power
+import numpy as np
 from numpy.lib.recfunctions import structured_to_unstructured
 from numpy.random import Generator, default_rng
 

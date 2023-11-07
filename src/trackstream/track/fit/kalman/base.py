@@ -10,8 +10,8 @@ from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple, cast, final
 import warnings
 
 import astropy.units as u
-import numpy as np
 from numpy import dot
+import numpy as np
 import numpy.lib.recfunctions as rfn
 from numpy.linalg import inv
 from scipy.linalg import block_diag
