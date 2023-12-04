@@ -2,6 +2,7 @@
 
 from math import pi
 
+import astropy.coordinates as coord
 from astropy.coordinates import (
     FK5,
     LSR,
@@ -11,11 +12,10 @@ from astropy.coordinates import (
     SphericalDifferential,
     SphericalRepresentation,
 )
-import astropy.coordinates as coord
-from astropy.units import Quantity
 import astropy.units as u
-from numpy import allclose, array, array_equal
+from astropy.units import Quantity
 import numpy as np
+from numpy import allclose, array, array_equal
 import pytest
 
 from trackstream.track.fit.utils import offset_by, position_angle

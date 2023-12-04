@@ -6,8 +6,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, cast
 
 import astropy.coordinates as coords
-from astropy.units import Quantity
 import astropy.units as u
+from astropy.units import Quantity
 import numpy as np
 
 from trackstream.track.fit.timesteps.plural import LENGTH, SPEED, Times

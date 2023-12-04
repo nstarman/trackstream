@@ -6,8 +6,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 import warnings
 
-from numpy import asanyarray
 import numpy as np
+from numpy import asanyarray
 
 from trackstream.utils.coord_utils import f2q
 from trackstream.utils.unit_utils import merge_units
