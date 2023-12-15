@@ -5,8 +5,8 @@ from __future__ import annotations
 from math import pi
 from typing import TYPE_CHECKING, Any, TypeVar
 
-from numpy import arccos, cos, diff, nonzero
 import numpy as np
+from numpy import arccos, cos, diff, nonzero
 from numpy.linalg import norm
 
 __all__: list[str] = []

@@ -7,8 +7,8 @@ from dataclasses import asdict, replace
 from functools import singledispatch
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
-from astropy.units import Quantity
 import astropy.units as u
+from astropy.units import Quantity
 
 from trackstream._typing import SupportsFrame
 from trackstream.stream.core import StreamArm

@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING, Any, ClassVar, Generic, Protocol, TypeVar
 
 import astropy.coordinates as coords
 import astropy.units as u
-from numpy import arcsin, arctan2, broadcast_to, cos, ndarray, pi, sin
 import numpy as np
+from numpy import arcsin, arctan2, broadcast_to, cos, ndarray, pi, sin
 import numpy.lib.recfunctions as rfn
 
 from trackstream._typing import SupportsFrame
