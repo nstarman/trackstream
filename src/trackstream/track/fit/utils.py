@@ -1,6 +1,5 @@
 """Coordinates Utilities."""
 
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -64,6 +63,7 @@ class FrameInfo(Generic[T]):
         -------
         tuple[str, ...]
             Names of components of representation and differential types.
+
         """
         cs = tuple(self.representation_type.attr_classes.keys())
         if kinematics:
@@ -110,6 +110,7 @@ def _c2v(obj: HasFrameAndInfo, c: SkyCoord, /) -> ndarray:
     Returns
     -------
     ndarray
+
     """
     sc = deep_transform_to(c, obj.frame, obj.info.representation_type, obj.info.differential_type)
     return rfn.structured_to_unstructured(f2q(sc).to_value(obj.info.units))[:, : obj.nfeature]
@@ -168,6 +169,7 @@ def position_angle(lon1: ndarray, lat1: ndarray, lon2: float, lat2: float) -> nd
         The (positive) position angle of the vector pointing from position 1 to
         position 2.  If any of the angles are arrays, this will contain an array
         following the appropriate `numpy` broadcasting rules.
+
     """
     deltalon = lon2 - lon1
     colat = cos(lat2)
@@ -199,6 +201,7 @@ def offset_by(lon: ndarray, lat: ndarray, posang: ndarray, distance: ndarray) ->
     Notes
     -----
     See :mod:`astropy` implementation.
+
     """
     cos_a = cos(distance)
     sin_a = sin(distance)

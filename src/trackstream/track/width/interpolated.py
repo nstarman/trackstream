@@ -49,6 +49,7 @@ class InterpolatedWidth(WidthBase, Generic[W1]):
         The width to interpolate.
     affine : Quantity
         The affine parameter with which to interpolate the width.
+
     """
 
     width: W1
@@ -99,6 +100,7 @@ class InterpolatedWidth(WidthBase, Generic[W1]):
         -------
         |Quantity|
             Path width evaluated at ``affine``.
+
         """
         afn = self.affine if affine is None else Quantity(np.atleast_1d(affine), copy=False)
 
@@ -119,6 +121,7 @@ class InterpolatedWidth(WidthBase, Generic[W1]):
         -------
         `trackstream.track.width.BaseWidth` subclass instance
             This width, transformed to type ``width_type``.
+
         """
         # LOCAL
         from trackstream.track.width.transforms import represent_as

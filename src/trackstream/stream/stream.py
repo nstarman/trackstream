@@ -3,7 +3,6 @@
 Stream arms are descriptors on a `trackstrea.Stream` class.
 """
 
-
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -91,13 +90,14 @@ class StreamFlags(Flags, BoundDescriptor["Stream"]):
 
     store_in: Literal["__dict__"] = field(default="__dict__", repr=False)
 
-    def set(self, **kwargs: Any) -> None:  # noqa: A003
+    def set(self, **kwargs: Any) -> None:
         """Set flags.
 
         Parameters
         ----------
         kwargs
             Flags to set.
+
         """
         super().set(**kwargs)
 
@@ -135,6 +135,7 @@ class Stream(StreamArmsBase, StreamBase):
 
     name : str or None, optional keyword-only
         The name fo the stream.
+
     """
 
     _CACHE_CLS: ClassVar[type] = _StreamCache
@@ -194,6 +195,7 @@ class Stream(StreamArmsBase, StreamBase):
         Returns
         -------
         Stream
+
         """
         # split data by arm
         data = data.group_by("arm")
@@ -296,6 +298,7 @@ class Stream(StreamArmsBase, StreamBase):
         ------
         ValueError
             If track is not fit.
+
         """
         track = self.cache["track"]
         if track is None:
@@ -340,6 +343,7 @@ class Stream(StreamArmsBase, StreamBase):
         ValueError
             If ``onsky`` is False and the stream does not have distance
             information.
+
         """
         # Check if already fit
         if not force and self.cache["track"] is not None:

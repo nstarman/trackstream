@@ -60,6 +60,7 @@ class CollectionBase(Mapping[str, V]):
 
         >>> collection.dtype  # doctest: +SKIP
         mappingproxy({'a': dtype('int64'), 'b': dtype('int64')})
+
     """
 
     __slots__ = ("_data", "name")

@@ -82,6 +82,7 @@ class SOM1DBase:
     .. [MiniSom] Giuseppe Vettigli. MiniSom: minimalistic and NumPy-based
         implementation of the Self Organizing Map.
     .. [frankenz] Josh Speagle. Frankenz: a photometric redshift monstrosity.
+
     """
 
     prototypes: np.ndarray[Any, np.dtype[np.floating[Any]]]
@@ -174,6 +175,7 @@ class SOM1DBase:
         Returns
         -------
         SOM1DBase
+
         """
         msg = "not dispatched"
         raise NotImplementedError(msg)
@@ -298,6 +300,7 @@ class SOM1DBase:
         Returns
         -------
         None
+
         """
         # Number of cycles through the data
         iterations = np.arange(num_iteration) % len(data)
@@ -334,6 +337,7 @@ class SOM1DBase:
         -------
         int
             The index of the best-matching prototype.
+
         """
         activation_map = self._activation_distance(x, self.prototypes)
         return int(activation_map.argmin())
@@ -370,6 +374,7 @@ class SOM1DBase:
         Data points in edge regions are ordered by projection along the edge.
         Data points in intermediate node regions are ordered by the angle between
         the edge regions.
+
         """
         # Prediction of ordering.
         projdata, ordering = project_data_on_som(self.prototypes, data)
@@ -399,6 +404,7 @@ class SOM1DBase:
         --------
         trackstream.SelfOrganizingMap1D.fit
         trackstream.SelfOrganizingMap1D.predict
+
         """
         self.fit(data, num_iteration=num_iteration, random_order=random_order, progress=progress)
         projdata, order = self.predict(data)

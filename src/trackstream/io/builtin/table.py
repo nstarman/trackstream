@@ -93,6 +93,7 @@ def table_identify(origin: str, format: str | None, /, *args: Any, **kwargs: Any
     Returns
     -------
     bool
+
     """
     itis: bool = False
     if origin == "read":

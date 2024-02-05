@@ -1,6 +1,5 @@
 """Coordinates Utilities."""
 
-
 from __future__ import annotations
 
 from collections.abc import (
@@ -74,6 +73,7 @@ def covariance_ellipse(P: ndarray, *, nstd: int | ndarray = 1) -> tuple[Quantity
     Notes
     -----
     Modified from :mod:`filterpy`
+
     """
     U, s, _ = svd_vec(P)  # requires (d1, d2) matrix
 

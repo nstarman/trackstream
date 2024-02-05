@@ -1,6 +1,5 @@
 """Coordinates Utilities."""
 
-
 from __future__ import annotations
 
 import functools
@@ -98,6 +97,7 @@ def parse_framelike(frame: object) -> Any:  # https://github.com/python/mypy/iss
 
         >>> parse_framelike(ICRS(ra=10 * u.deg, dec=10*u.deg))
         <ICRS Frame>
+
     """
     msg = f"frame type {type(frame)} not dispatched"
     raise NotImplementedError(msg)
@@ -152,6 +152,7 @@ def get_frame(frame: object) -> BaseCoordinateFrame:
 
         >>> get_frame(SkyCoord(ICRS(ra=10 * u.deg, dec=10*u.deg)))
         <ICRS Frame>
+
     """
     msg = f"frame type {type(frame)} not dispatched"
     raise NotImplementedError(msg)
@@ -222,6 +223,7 @@ def deep_transform_to(
     -------
     crd : SkyCoord or BaseCoordinateFrame
         Transformed to ``frame`` and ``representation_type``.
+
     """
     msg = "not dispatched"
     raise NotImplementedError(msg)
@@ -285,6 +287,7 @@ def _f2q_helper(crds: BaseCoordinateFrame | SkyCoord, which: str) -> u.Quantity:
     -------
     Quantity
         Structured quantity.
+
     """
     # Get representation components.
     #
@@ -327,6 +330,7 @@ def f2q(crds: BaseCoordinateFrame | SkyCoord, *, flatten: bool = False) -> u.Qua
     >>> c = ICRS(ra=1*u.deg, dec=2*u.deg, pm_ra_cosdec=3*u.mas/u.yr, pm_dec=4*u.mas/u.yr)
     >>> f2q(c)  # doctest: +SKIP
     <Quantity ((1., 2., 1.), (3., 4., 0)) ((deg, deg, ), (mas / yr, mas / yr, mas / (rad yr)))>
+
     """
     q = _f2q_helper(crds, "base")  # positions
 

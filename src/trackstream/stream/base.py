@@ -1,6 +1,5 @@
 """Core Functions."""
 
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -79,7 +78,7 @@ class Flags:
     minPmemb: u.Quantity = u.Quantity(80, unit=u.percent)
     table_repr_max_lines: int = 10
 
-    def set(self, **kwargs: Any) -> None:  # noqa: A003
+    def set(self, **kwargs: Any) -> None:
         """Set the value of a flag."""
         for key, value in kwargs.items():
             if not isinstance(value, type(getattr(self, key))):
@@ -106,6 +105,7 @@ class StreamBase:
         The origin of the stream.
     name : str
         Name of the stream.
+
     """
 
     cache = CacheProperty["StreamBase"]()

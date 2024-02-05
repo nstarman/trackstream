@@ -1,6 +1,5 @@
 """Testing :mod:`~trackstream.utils.coord_utils`."""
 
-
 import numpy as np
 
 from trackstream.track.fit.kalman.utils import intermix_arrays

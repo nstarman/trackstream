@@ -33,6 +33,7 @@ class StreamArmDataNormalizer:
     -------
     __call__(original, original_err)
         Run the normalizer.
+
     """
 
     frame: BaseCoordinateFrame | None
@@ -53,6 +54,7 @@ class StreamArmDataNormalizer:
         Returns
         -------
         data : `~astropy.table.QTable`
+
         """
         data = QTable()  # going to be assigned in-place
         data.meta = {}
@@ -94,6 +96,7 @@ class StreamArmDataNormalizer:
             The original data.
         out : |QTable|, keyword-only
             The normalized data.
+
         """
         out["arm"] = original["arm"]
 
@@ -118,6 +121,7 @@ class StreamArmDataNormalizer:
             The default membership probability.
             If float, then range 0-1 maps to 0-100%.
             If has unit of percent, then unchanged.
+
         """
         colns = [n.lower() for n in original.colnames]  # lower-case columns
 
@@ -160,6 +164,7 @@ class StreamArmDataNormalizer:
             The error in the original data.
         out : |QTable|, keyword-only
             The normalized data.
+
         """
         # ----------
         # 1) the data
@@ -217,6 +222,7 @@ class StreamArmDataNormalizer:
             The original data.
         out : |QTable|, keyword-only
             The normalized data.
+
         """
         # Intra-arm ordering.
         if "order" in original.colnames:  # transfer if available.

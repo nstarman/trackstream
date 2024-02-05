@@ -1,6 +1,5 @@
 """Fit a Rotated reference frame."""
 
-
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
@@ -74,6 +73,7 @@ def reference_to_skyoffset_matrix(
     .. [astropy] Astropy Collaboration (2013).
         Astropy: A community Python package for astronomy.
         Astronomy and Astrophysics, 558, A33.
+
     """
     # Define rotation matrices along the position angle vector, and
     # relative to the origin.
@@ -124,6 +124,7 @@ def residual(
     scalar : bool, optional, keyword-only
         Whether to sum `res` into a float.
         Note that if `res` is also a float, it is unaffected.
+
     """
     # Cartesian model
     rot_matrix = reference_to_skyoffset_matrix(v[1], v[2], v[0])
@@ -174,6 +175,7 @@ def fit_frame(
     -------
     result : |FrameOptimizeResult|
         The result of the fit.
+
     """
     msg = f"data type {type(data)} has no registered dispatch"
     raise NotImplementedError(msg)
@@ -287,6 +289,7 @@ def minimizer_dispatcher(key: str | Callable[..., Any]) -> Callable[[_Dispatched
     decorator : callable[[_Dispatched], _Dispatched]
         The decorator that actually registers wrapper for the minimization function.
         This decorator takes and returns the wrapper.
+
     """
 
     def decorator(method_wrapper: _Dispatched, /) -> _Dispatched:
@@ -303,6 +306,7 @@ def minimizer_dispatcher(key: str | Callable[..., Any]) -> Callable[[_Dispatched
         -------
         method_wrapper : _Dispatched
             The unmodified input argument.
+
         """
         MINIMIZER_DIPATCHER[hash(key)] = method_wrapper
         return method_wrapper
@@ -331,6 +335,7 @@ def scipy_optimize_minimize(
     Returns
     -------
     result : OptimizeResult
+
     """
     return opt.minimize(residual, x0=x0, args=(data, True), **minimizer_kwargs)
 
@@ -356,6 +361,7 @@ def scipy_optimize_leastsquares(
     Returns
     -------
     result : OptimizeResult
+
     """
     return opt.least_squares(residual, x0=x0, args=(data, False), **minimizer_kwargs)
 
@@ -391,6 +397,7 @@ def run_minimizer(
     ------
     NotImplementedError
         If :func:`hash` of ``minimizer`` is not in ``MINIMIZER_DIPATCHER``.
+
     """
     hashed = hash(minimizer)
     if hashed not in MINIMIZER_DIPATCHER:

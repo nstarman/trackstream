@@ -97,6 +97,7 @@ class Widths(PhysicalTypeKeyMutableMapping[W1], NPArrayOverloadMixin, ToFormatOv
         -------
         WidthBase
             The width of the new type, at the point.
+
         """
         # # LOCAL
 
@@ -114,6 +115,7 @@ class Widths(PhysicalTypeKeyMutableMapping[W1], NPArrayOverloadMixin, ToFormatOv
         -------
         InterpolatedWidths
             The interpolated widths.
+
         """
         if len(self) < 2:
             msg = "cannot interpolate; too short."
@@ -156,6 +158,7 @@ class Widths(PhysicalTypeKeyMutableMapping[W1], NPArrayOverloadMixin, ToFormatOv
         Returns
         -------
         Widths
+
         """
         # copy over from `data`
         ws: dict[u.PhysicalType, W1] = {}

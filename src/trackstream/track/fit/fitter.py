@@ -1,6 +1,5 @@
 """Stream track fitter and fit result."""
 
-
 from __future__ import annotations
 
 import copy
@@ -65,6 +64,7 @@ class FitterStreamArmTrack:
 
     kinematics : bool or None, keyword-only
         Should the track be fit with or without kinematic information.
+
     """
 
     # The bad de
@@ -225,6 +225,7 @@ class FitterStreamArmTrack:
         -------
         StreamArmTrack instance
             Also stores as ``.track`` on the Stream
+
         """
         # --------------------------------------
         # Setup and Validation

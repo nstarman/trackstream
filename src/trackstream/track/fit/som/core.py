@@ -48,6 +48,7 @@ class SelfOrganizingMap:
         before the SOM is fit.
     origin : `~astropy.coordinates.SkyCoord` or None
         The origin.
+
     """
 
     som: SOM1DBase
@@ -110,6 +111,7 @@ class SelfOrganizingMap:
         ------
         NotImplementedError
             If there is no dispatched method.
+
         """
         msg = "not dispatched"
         raise NotImplementedError(msg)
@@ -245,6 +247,7 @@ class SelfOrganizingMap:
         Returns
         -------
         None
+
         """
         v = _c2v(self, data)
         return self.som.fit(v, num_iteration=num_iteration, random_order=random_order, progress=progress)
@@ -263,6 +266,7 @@ class SelfOrganizingMap:
             Projection (ordered).
         ndarray[int]
             ordering.
+
         """
         v = _c2v(self, data)
         projv, ordering = self.som.predict(v)
@@ -311,6 +315,7 @@ class SelfOrganizingMap:
         -------
         SkyCoord, ndarray[int]
             Projection (ordered) and ordering.
+
         """
         self.fit(data, num_iteration=num_iteration, random_order=random_order, progress=progress)
         projdata, order = self.predict(data)
@@ -330,6 +335,7 @@ class SelfOrganizingMap:
         -------
         Widths
             With keys ``length`` and ``speed``.
+
         """
         # Prep
         qp = _c2v(self, data)

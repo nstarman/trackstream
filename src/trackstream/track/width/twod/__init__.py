@@ -1,6 +1,5 @@
 """Two-dimensional widths."""
 
-
 from trackstream.track.width.twod.core import (
     Cartesian2DiffWidth,
     Cartesian2DWidth,

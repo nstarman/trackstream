@@ -59,6 +59,7 @@ class CartesianSOM(SOM1DBase):
     .. [MiniSom] Giuseppe Vettigli. MiniSom: minimalistic and NumPy-based
         implementation of the Self Organizing Map.
     .. [frankenz] Josh Speagle. Frankenz: a photometric redshift monstrosity.
+
     """
 
     info = SOMInfo(
@@ -93,6 +94,7 @@ class CartesianSOM(SOM1DBase):
             Whether to bin by the |Longitude|, or by :math:`\phi=atan(lat/lon)`
         maxsep : Quantity or None, optional keyword-only
             Maximum separation (in data space) between prototypes.
+
         """
         # TODO: generalize to also kinematics
         # Get coordinate to bin
@@ -157,6 +159,7 @@ class CartesianSOM(SOM1DBase):
             Iteration index
         max_iteration : int
             Maximum number of training itarations.
+
         """
         eta = _decay_function(self.learning_rate, t, max_iteration)
         # sigma and learning rate decrease with the same rule

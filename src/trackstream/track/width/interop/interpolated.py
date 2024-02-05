@@ -58,5 +58,6 @@ def concatenate(
     -------
     T
         The concatenated width.
+
     """
     raise ValueError

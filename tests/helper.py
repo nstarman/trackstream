@@ -23,6 +23,7 @@ def IbataEtAl2017() -> dict[str, Any]:
     .. [1] Ibata, R., Lewis, G., Thomas, G., Martin, N., & Chapman, S. (2018).
         VizieR Online Data Catalog: Large spectrosc. survey of Palomar 5 stellar
         stream (Ibata+, 2017). VizieR Online Data Catalog, J/ApJ/842/120.
+
     """
     # Read Data
     path = get_pkg_data_path("data", "IbataEtAl2017.ecsv", package="trackstream")

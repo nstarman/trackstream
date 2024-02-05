@@ -54,6 +54,7 @@ def _respace_bins_from_left(bins: NDT, maxsep: NDFloating, eps: float | floating
     -------
     (N,) ndarray
         Better-spaced bins. Bins are modified in-place.
+
     """
     # Initial state
     diffs = arccos(cos(diff(bins[:-1]))) if onsky else diff(bins[:-1])
@@ -92,6 +93,7 @@ def _respace_bins(bins: NDT, maxsep: NDFloating, eps: float | floating[Any], *, 
     -------
     bins : (N,) ndarray
         Better-spaced bins. Bins are modified in-place.
+
     """
     # Check the separations
     diffs = arccos(cos(diff(bins))) if onsky else diff(bins)
@@ -127,6 +129,7 @@ def _decay_function(learning_rate: float, iteration: int, max_iter: float) -> fl
     Returns
     -------
     float
+
     """
     return learning_rate / (1.0 + (2.0 * iteration / max_iter))
 
@@ -148,6 +151,7 @@ def _get_info_for_projection(
     -------
     (N, PSN) ndarray
         Where P is the number of prototypes and connecting segments.
+
     """
     N, nF = data.shape
     nL = len(prototypes)
@@ -222,6 +226,7 @@ def _order_data_along_som_projection(
     -------
     (N,) ndarray[int]
         The ordering of ``data``.
+
     """
     nlattice: int = len(lattice_p2p_distance) + 1
 
@@ -287,6 +292,7 @@ def project_data_on_som(prototypes: NDFloating, data: NDFloating) -> tuple[NDFlo
         The data projected onto the SOM. Not ordered.
     ordering : (N,) ndarray[int]
         The ordering of ``projected`` to ``data``.
+
     """
     lattice_p2p_distance, segment_projection, all_points, distances = _get_info_for_projection(data, prototypes)
 
@@ -316,6 +322,7 @@ def wrap_at(q: NDFloating, /, wrap_angle: float) -> NDFloating:
         Units of radians. Must be subscriptable.
     wrap_angle : float
         Units of radians.
+
     """
     # Convert the wrap angle and 360 degrees to the native unit of
     # this Angle, then do all the math on raw Numpy arrays rather

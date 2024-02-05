@@ -51,6 +51,7 @@ def make_stream_from_vasiliev18(
     Returns
     -------
     `astropy.table.QTable`
+
     """
     # Tead data
     fname = get_pkg_data_filename("Vasiliev18.ecsv", package="trackstream.data")
@@ -128,6 +129,7 @@ def get_example_stream(name: str) -> QTable:
     -------
     `astropy.table.QTable`
         Data table.
+
     """
     try:
         fname = get_pkg_data_filename(f"example_data/{name}_ex.ecsv", package="trackstream")

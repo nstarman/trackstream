@@ -3,7 +3,6 @@
 Stream arms are descriptors on a `trackstrea.Stream` class.
 """
 
-
 from __future__ import annotations
 
 from trackstream.common import CollectionBase
@@ -26,4 +25,5 @@ class StreamArms(StreamArmsBase):
     --------
     `~trackstream.Stream`
         An object that brings together 2 stream arms, but acts like 1 stream.
+
     """

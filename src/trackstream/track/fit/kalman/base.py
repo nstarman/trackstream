@@ -1,6 +1,5 @@
 """Kalman Filter code."""
 
-
 from __future__ import annotations
 
 from copy import deepcopy
@@ -130,6 +129,7 @@ class FONKFBase:
 
     Q0 : ndarray callable or None, optional keyword-only
     R0 : ndarray callable or None, optional keyword-only
+
     """
 
     x0: X0Field = X0Field()
@@ -178,6 +178,7 @@ class FONKFBase:
         -------
         `~trackstream.track.fit.kalman.base.FONKFBase`
             The Kalman Filter.
+
         """
         msg = "not dispatched"
         raise NotImplementedError(msg)
@@ -206,6 +207,7 @@ class FONKFBase:
         Returns
         -------
         `trackstream.fit.kalman.FONKFBase`
+
         """
         # flags
         if kinematics is None:
@@ -320,6 +322,7 @@ class FONKFBase:
             Block diagonal transition matrix. The shape will be (1, nfeature,
             nfeature) or (N, nfeature, nfeature), depending if ``dt`` was scalar or of
             length ``N``.
+
         """
         if len(dt.shape) == 1 or dt.shape[1] == 1:
             dt = np.c_[dt, dt]
@@ -355,6 +358,7 @@ class FONKFBase:
         -------
         (D, D) ndarray
             The ``Q`` term of a Kalman filter.
+
         """
         if len(dt.shape) == 1 or dt.shape[1] == 1:
             dt = np.c_[dt, dt]
@@ -429,6 +433,7 @@ class FONKFBase:
             Prior state vector. The 'predicted' state.
         P : ndarray
             Prior covariance matrix. The 'predicted' covariance.
+
         """
         # -------------------
         # Prior Prediction
@@ -489,6 +494,7 @@ class FONKFBase:
            Smoothed state.
         P : ndarray
            Smoothed state covariances.
+
         """
         # copy
         x = deepcopy(Xs)
@@ -551,6 +557,7 @@ class FONKFBase:
         Returns
         -------
         path : `~trackstream.fit.path.Path`
+
         """
         # ------ setup ------
 

@@ -117,6 +117,7 @@ class BaseWidth(WidthBase, metaclass=ABCMeta):
         -------
         `trackstream.track.width.InterpolatedWidth`
             Same width instance, interpolated by the affine parameter.
+
         """
         if len(self) < 2:
             msg = "cannot interpolate; too short."
@@ -140,6 +141,7 @@ class BaseWidth(WidthBase, metaclass=ABCMeta):
         -------
         `trackstream.track.width.BaseWidth` subclass instance
             This width, transformed to type ``width_type``.
+
         """
         # LOCAL
         from trackstream.track.width.transforms import represent_as

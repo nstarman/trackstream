@@ -25,6 +25,7 @@ class Attribute(Generic[T]):
         The attribute object.
     attrs_loc : {'__dict__', '_attrs_', None}, optional
         Where the attribute is cached, by default on the instance's dict.
+
     """
 
     obj: T
@@ -40,12 +41,10 @@ class Attribute(Generic[T]):
         object.__setattr__(self, "_enclosing_attr", name)
 
     @overload
-    def __get__(self: Attribute[T], instance: None, _: Any) -> Attribute[T]:
-        ...
+    def __get__(self: Attribute[T], instance: None, _: Any) -> Attribute[T]: ...
 
     @overload
-    def __get__(self: Attribute[T], instance: object, _: Any) -> T:
-        ...
+    def __get__(self: Attribute[T], instance: object, _: Any) -> T: ...
 
     def __get__(self: Attribute[T], instance: object | None, _: Any) -> Attribute[T] | T:
         # Get from class:

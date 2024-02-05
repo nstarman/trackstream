@@ -1,6 +1,5 @@
 """Coordinates Utilities."""
 
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
@@ -69,6 +68,7 @@ def intermix_arrays(*arrs: ArrayLike, axis: int = -1) -> NDArray[Any]:
         >>> intermix_arrays(xx, yy)
         array([[ 0, 10,  1, 11,  2, 12,  3, 13,  4, 14],
                [ 5, 15,  6, 16,  7, 17,  8, 18,  9, 19]])
+
     """
     shape = list(asanyarray(arrs[0]).shape[::-1])
     shape[axis] *= len(arrs)
@@ -93,6 +93,7 @@ def make_error(stream: StreamArm, kf: FirstOrderNewtonianKalmanFilter, default: 
     -------
     (N,) Quantity
         A structured quantity with D fields labeled by ``kf.info.units``.
+
     """
     flat_units = merge_units(kf.info.units)
     errors = np.zeros(len(stream), dtype=[(n, float) for n in flat_units.field_names])

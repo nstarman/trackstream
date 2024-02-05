@@ -1,6 +1,5 @@
 """Fit a rotated reference frame to stream data."""
 
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -38,6 +37,7 @@ class FrameOptimizeResult(Generic[R]):
     result : object
         Fit results, e.g. `~scipy.optimize.OptimizeResult` if the frame was fit
         using :mod:`scipy`.
+
     """
 
     frame: coords.SkyOffsetFrame
@@ -84,6 +84,7 @@ class FrameOptimizeResult(Generic[R]):
             If there is no dispatched method.
         ValueError
             If the frame is not `None` and not equal to the frame in ``optimize_result``.
+
         """
         if not isinstance(optimize_result, cls):
             msg = f"optimize_result type {type(optimize_result)} is not known."
@@ -129,6 +130,7 @@ class FrameOptimizeResult(Generic[R]):
         -------
         Quantity
             Scalar if ``scalar``, else length N.
+
         """
         ur = data.transform_to(self.frame).represent_as(coords.UnitSphericalRepresentation)
         res: Quantity = np.abs(ur.lat - 0.0 * u.rad)

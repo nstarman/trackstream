@@ -26,6 +26,7 @@ class classproperty(Generic[T]):
         Getter for the class property.
     doc : str or None, optional
         Docstring of class property. If None, tries to get from ``fget``.
+
     """
 
     fget: Callable[..., T] | None
@@ -56,6 +57,7 @@ class classproperty(Generic[T]):
         -------
         classproperty[T]
             With new getter set.
+
         """
         prop: classproperty[T] = type(self)(fget, self.__doc__)
         prop._name = self._name  # noqa: SLF001

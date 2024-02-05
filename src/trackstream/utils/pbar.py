@@ -1,6 +1,5 @@
 """Progress bar, modified from :mod:`~emcee`."""
 
-
 from __future__ import annotations
 
 import logging
@@ -52,6 +51,7 @@ def get_progress_bar(*, display: bool, total: int) -> _NoOpPBar | tqdm.tqdm:
     Returns
     -------
     `_NoOpPBar` or `tqdm.tqdm`
+
     """
     if display is False:
         return _NoOpPBar()
