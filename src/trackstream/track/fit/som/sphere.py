@@ -8,7 +8,7 @@ from math import pi
 from typing import TYPE_CHECKING, Any, final
 
 import astropy.coordinates as coords
-from astropy.coordinates.angle_utilities import angular_separation
+from astropy.coordinates.angles import angular_separation
 import astropy.units as u
 from erfa import s2pv
 import numpy as np
