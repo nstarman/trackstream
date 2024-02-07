@@ -54,8 +54,8 @@
     "tqdm",
   ]
   all = [
-    "astropy[docs]",
-    "astropy[test]",
+    "trackstream[docs]",
+    "trackstream[test]",
     "tqdm",
   ]
 
