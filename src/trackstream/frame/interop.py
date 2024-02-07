@@ -1,6 +1,5 @@
 """Interface frame fitting with main stream library."""
 
-
 from __future__ import annotations
 
 from dataclasses import asdict, replace
@@ -51,6 +50,7 @@ def _add_method_to_cls(cls: type, attr: str | None) -> Callable[[Callable[..., A
     decorator : callable[[Callable[..., Any]], Callable[..., Any]]
         One argument function that accepts and returns the method.
         The method is added to ``cls`` as ``setattr(cls, name, meth)``
+
     """
 
     def decorator(meth: Callable[..., Any]) -> Callable[..., Any]:
@@ -65,6 +65,7 @@ def _add_method_to_cls(cls: type, attr: str | None) -> Callable[[Callable[..., A
         -------
         metho : callable[..., Any]
             The same method, unmodified.
+
         """
         name = attr if attr is not None else meth.__name__
         setattr(cls, name, meth)
@@ -111,6 +112,7 @@ def fit_stream(
     TypeError
         If a system frame was given at the object's initialization and ``force``
         is not True.
+
     """
     msg = "not dispatched"
     raise NotImplementedError(msg)

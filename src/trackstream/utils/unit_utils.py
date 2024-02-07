@@ -42,6 +42,7 @@ def merge_units(*units: u.UnitBase | u.StructuredUnit | None) -> u.StructuredUni
     -------
     `astropy.units.StructuredUnit`
         Structured unit of constituent unit.
+
     """
     # filter units, excluding None
     actual_units = tuple(unit for unit in units if isinstance(unit, u.UnitBase | u.StructuredUnit))
@@ -89,6 +90,7 @@ def merge_arrays(
     ValueError
         If ``asrecarray`` is `True`.
         If ``usemask`` is `True`.
+
     """
     if asrecarray:
         msg = "asrecarray=True is not supported."

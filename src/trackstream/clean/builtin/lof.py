@@ -1,6 +1,5 @@
 """Local Outlier Factor (LOF) method of detecting stream outliears."""
 
-
 from __future__ import annotations
 
 from abc import abstractmethod
@@ -44,6 +43,7 @@ class KDTreeLOFBase(OutlierDetectorBase, Generic[KDT], register=False):
         Returns
         -------
         None
+
         """
         super().fit(data)
 
@@ -74,6 +74,7 @@ class KDTreeLOFBase(OutlierDetectorBase, Generic[KDT], register=False):
         Raises
         ------
         NotFittedError
+
         """
         return super().predict(data, threshold=threshold, k=k, **query_kw)
 
@@ -93,6 +94,7 @@ class ScipyKDTreeLOF(KDTreeLOFBase["KDTree"]):
         Returns
         -------
         None
+
         """
         super().fit(data)
         object.__setattr__(self, "tree", KDTree(data, **self.kdtree_kw))
@@ -124,6 +126,7 @@ class ScipyKDTreeLOF(KDTreeLOFBase["KDTree"]):
         ------
         ValueError
             If `k` <= 1.
+
         """
         if k == 1:
             msg = "k must be > 1"

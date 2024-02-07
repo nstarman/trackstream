@@ -1,6 +1,5 @@
 """Trackstream IO module."""
 
-
 from trackstream.io.core import (
     StreamArmFromFormat,
     StreamArmRead,

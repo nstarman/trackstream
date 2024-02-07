@@ -50,6 +50,7 @@ def pytest_configure(config: pytest.Config) -> None:
     ----------
     config : `pytest.Config`
         Pytest configuration object.
+
     """
     if not ASTROPY_HEADER:
         return
@@ -79,6 +80,7 @@ def _add_numpy(doctest_namespace: dict[str, Any]) -> None:
     ----------
     doctest_namespace : namespace
         dictionary to add to.
+
     """
     import numpy as np
 
@@ -94,6 +96,7 @@ def _add_astropy(doctest_namespace: dict[str, Any]) -> None:
     ----------
     doctest_namespace : namespace
         dictionary to add to.
+
     """
     import astropy.coordinates as coords
 

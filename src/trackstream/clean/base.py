@@ -1,6 +1,5 @@
 """Detect outliers from stream data."""
 
-
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
@@ -59,6 +58,7 @@ class OutlierDetectorBase(metaclass=ABCMeta):
         ------
         TypeError
             If a class with the same ``__qualname__`` is already registered.
+
         """
         super().__init_subclass__()
 
@@ -86,6 +86,7 @@ class OutlierDetectorBase(metaclass=ABCMeta):
         data : (N, D) ndarray[float], positional-only
             The training data. Rows are distinct objects, e.g stars, columns are
             features, e.g. ``D``-dimensional coordinates of the stars.
+
         """
         self._isfit = True
 
@@ -110,6 +111,7 @@ class OutlierDetectorBase(metaclass=ABCMeta):
         Raises
         ------
         NotFittedError
+
         """
         if not self._isfit:
             raise NotFittedError
@@ -140,6 +142,7 @@ class OutlierDetectorBase(metaclass=ABCMeta):
         ndarray[bool]
             The predicted labels for each row index in ``X`` whether the data
             point is an outlier (`True`) or not (`False`).
+
         """
         # Fit
         self.fit(fit_data)

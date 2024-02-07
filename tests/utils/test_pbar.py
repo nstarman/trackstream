@@ -1,6 +1,5 @@
 """Testing :mod:`~trackstream.utils.pbar`."""
 
-
 import pytest
 
 from trackstream.setup_package import HAS_TQDM

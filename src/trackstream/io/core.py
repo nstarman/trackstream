@@ -73,6 +73,7 @@ class StreamArmRead(UnifiedReadWrite):
 
     Notes
     -----
+
     """
 
     def __init__(self, stream: StreamArm, stream_cls: type[StreamArm]) -> None:
@@ -134,6 +135,7 @@ class StreamArmWrite(UnifiedReadWrite):
 
     Notes
     -----
+
     """
 
     def __init__(self, stream: StreamArm, stream_cls: type[StreamArm]) -> None:

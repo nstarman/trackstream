@@ -1,6 +1,5 @@
 """Stream arm track fit result."""
 
-
 from __future__ import annotations
 
 from abc import abstractmethod
@@ -58,6 +57,7 @@ class StreamArmTrack(StreamArmTrackBase[StreamLikeT]):
     meta : dict[Any, Any]
         Metadata. Can include the meta-attributes
         ``visit_order``, ``som``, and ``kalman``.
+
     """
 
     meta = MetaData()
@@ -167,6 +167,7 @@ class StreamArmTrack(StreamArmTrackBase[StreamLikeT]):
         -------
         `trackstream.utils.path.path_moments`
             Realized from the ``.path`` attribute.
+
         """
         # TODO: add amplitude (density)
         return self.path(affine=affine, angular=angular)

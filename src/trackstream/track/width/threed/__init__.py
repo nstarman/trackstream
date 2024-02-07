@@ -1,6 +1,5 @@
 """Three-dimensional width."""
 
-
 from trackstream.track.width.threed.core import (
     Cartesian3DiffWidth,
     Cartesian3DWidth,

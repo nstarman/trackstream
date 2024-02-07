@@ -1,6 +1,5 @@
 """Kalman Filter code."""
 
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, cast
@@ -51,6 +50,7 @@ def _make_timesteps(
     Returns
     -------
     Quantity
+
     """
     # Rolling window
     Ds = np.convolve(ds, np.ones((width,)) / width, mode="same")
@@ -99,6 +99,7 @@ def make_timesteps(  # noqa: PLR0913
     -------
     timesteps : (N+1,) ndarray
         Smoothed distances, starting with 0.
+
     """
     # Get units. This assumes a representation has only one unit -- like
     # Cartesian or UnitSpherical.

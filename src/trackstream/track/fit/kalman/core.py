@@ -1,6 +1,5 @@
 """Kalman Filter code."""
 
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -55,6 +54,7 @@ class FirstOrderNewtonianKalmanFilter:
         Low-level kalman filter implementation.
     frame : BaseCoordinateFrame
         The frame of the data.
+
     """
 
     kf: FONKFBase
@@ -134,6 +134,7 @@ class FirstOrderNewtonianKalmanFilter:
         -------
         FirstOrderNewtonianKalmanFilter | Any
             The Kalman filter or similar object, depending on the input, over which this method is dispatched.
+
         """
         msg = "not dispatched"
         raise NotImplementedError(msg)
@@ -166,6 +167,7 @@ class FirstOrderNewtonianKalmanFilter:
         Returns
         -------
         `trackstream.fit.kalman.FONKFBase`
+
         """
         # flags
         if onsky is None:
@@ -238,6 +240,7 @@ class FirstOrderNewtonianKalmanFilter:
         Returns
         -------
         `~trackstream.fit.path.Path`
+
         """
         # Measurements (in correct units).
         zs = _c2v(self, data)[:, : self.nfeature]

@@ -1,6 +1,5 @@
 """Path are an affine-parameterized path."""
 
-
 from __future__ import annotations
 
 from dataclasses import InitVar, dataclass
@@ -93,6 +92,7 @@ class Path(NPArrayOverloadMixin):
     ------
     Exception
         if `path` is not already interpolated and affine is None
+
     """
 
     NP_OVERLOADS: ClassVar[NumPyOverloader] = PATH_FUNCS
@@ -166,6 +166,7 @@ class Path(NPArrayOverloadMixin):
         Returns
         -------
         path : `Path`
+
         """
         msg = "not dispatched"
         raise NotImplementedError(msg)
@@ -267,6 +268,7 @@ class Path(NPArrayOverloadMixin):
             For the 1st element of the `trackstream.utils.path.path_moments`.
         trackstream.utils.path.Path.width
             For the 2nd element of the `trackstream.utils.path.path_moments`.
+
         """
         mean = self.position(affine)
         width = (self.width(affine) if not angular else self.width_angular(affine)) if self.width is not None else None
@@ -296,6 +298,7 @@ class Path(NPArrayOverloadMixin):
         --------
         trackstream.utils.path.Path.data
             This is the same as ``.data(affine)``.
+
         """
         return self.data(affine)
 
@@ -314,6 +317,7 @@ class Path(NPArrayOverloadMixin):
         -------
         `~astropy.unitss.Quantity`
             Path angular width evaluated at ``affine``.
+
         """
         if self.width is None:
             raise ValueError
@@ -337,8 +341,7 @@ class Path(NPArrayOverloadMixin):
         *,
         interpolate: Literal[True] = True,
         affine: u.Quantity | None = None,
-    ) -> IUSU:
-        ...
+    ) -> IUSU: ...
 
     @overload
     def separation(
@@ -347,8 +350,7 @@ class Path(NPArrayOverloadMixin):
         *,
         interpolate: Literal[False] = False,
         affine: u.Quantity | None = None,
-    ) -> coords.Angle:
-        ...
+    ) -> coords.Angle: ...
 
     def separation(
         self,
@@ -368,6 +370,7 @@ class Path(NPArrayOverloadMixin):
             an `~scipy.interpolate.InterpolatedUnivariateSpline` object.
         affine : `~astropy.units.Quantity` array-like or None, optional
             The affine interpolation parameter.
+
         """
         return self.data.separation(point, interpolate=interpolate, affine=affine)
 
@@ -380,8 +383,7 @@ class Path(NPArrayOverloadMixin):
         *,
         interpolate: Literal[True] = True,
         affine: u.Quantity | None = None,
-    ) -> IUSU:
-        ...
+    ) -> IUSU: ...
 
     @overload
     def separation_3d(
@@ -390,8 +392,7 @@ class Path(NPArrayOverloadMixin):
         *,
         interpolate: Literal[False] = False,
         affine: u.Quantity | None = None,
-    ) -> coords.Distance:
-        ...
+    ) -> coords.Distance: ...
 
     @format_doc(icoords.InterpolatedSkyCoord.separation_3d.__doc__)
     def separation_3d(

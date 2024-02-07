@@ -8,7 +8,7 @@ from math import pi
 from typing import TYPE_CHECKING, Any, final
 
 import astropy.coordinates as coords
-from astropy.coordinates.angle_utilities import angular_separation
+from astropy.coordinates.angles import angular_separation
 import astropy.units as u
 from erfa import s2pv
 import numpy as np
@@ -71,6 +71,7 @@ class USphereSOM(SOM1DBase):
     .. [MiniSom] Giuseppe Vettigli. MiniSom: minimalistic and NumPy-based
         implementation of the Self Organizing Map.
     .. [frankenz] Josh Speagle. Frankenz: a photometric redshift monstrosity.
+
     """
 
     info = SOMInfo(
@@ -105,6 +106,7 @@ class USphereSOM(SOM1DBase):
             Whether to bin by the |Longitude|, or by :math:`\phi=atan(lat/lon)`
         maxsep : ndarray or None, optional keyword-only
             Maximum separation (in data space) between prototypes.
+
         """
         # Get coordinate to bin
         # This is most easily done as a NON-structured array
@@ -186,6 +188,7 @@ class USphereSOM(SOM1DBase):
         Returns
         -------
         ndarray
+
         """
         # for the positions (lon, lat)
         pd: NDFloating = angular_separation(*x[:2], *w.T[:2, :])
@@ -212,6 +215,7 @@ class USphereSOM(SOM1DBase):
             Iteration index
         max_iteration : int
             Maximum number of training itarations.
+
         """
         eta = _decay_function(self.learning_rate, t, max_iteration)
         # sigma and learning rate decrease with the same rule
@@ -268,6 +272,7 @@ class USphereSOM(SOM1DBase):
         Data points in edge regions are ordered by projection along the edge.
         Data points in intermediate node regions are ordered by the angle between
         the edge regions.
+
         """
         projdata, ordering = super().predict(crd)
 

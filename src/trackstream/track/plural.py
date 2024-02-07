@@ -1,6 +1,5 @@
 """Stream track fit result."""
 
-
 from __future__ import annotations
 
 from types import MappingProxyType

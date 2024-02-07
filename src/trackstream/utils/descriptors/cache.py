@@ -12,8 +12,7 @@ if TYPE_CHECKING:
 
 
 class _HasInitCache(Protocol):
-    def _init_cache(self: Any, instance: Any) -> dict[str, Any]:
-        ...
+    def _init_cache(self: Any, instance: Any) -> dict[str, Any]: ...
 
 
 Self = TypeVar("Self", bound=_HasInitCache)  # from typing_extensions import Self
@@ -30,12 +29,10 @@ class CacheProperty(Generic[EnclT]):
     """Add an attribute ``cache`` to a class."""
 
     @overload
-    def __get__(self: Any, instance: EnclT, _: None | type) -> MappingProxyType[str, Any]:
-        ...
+    def __get__(self: Any, instance: EnclT, _: None | type) -> MappingProxyType[str, Any]: ...
 
     @overload
-    def __get__(self: Self, instance: None, _: None | type) -> Self:
-        ...
+    def __get__(self: Self, instance: None, _: None | type) -> Self: ...
 
     def __get__(self: Self, instance: EnclT | None, _: None | type) -> MappingProxyType[str, Any] | Self:
         if instance is None:

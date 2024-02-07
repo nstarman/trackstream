@@ -4,7 +4,6 @@ This project extensively uses :mod:`~typing` hints.
 Note that this is not (necessarily) static typing.
 """
 
-
 from __future__ import annotations
 
 from typing import Any, Protocol, TypeAlias, TypeVar
@@ -45,11 +44,9 @@ FrameLikeType: TypeAlias = BaseCoordinateFrame | str
 
 class HasFrame(Protocol):
     @property
-    def frame(self) -> BaseCoordinateFrame:
-        ...
+    def frame(self) -> BaseCoordinateFrame: ...
 
 
 class SupportsFrame(HasFrame, Protocol):
     @property
-    def frame(self) -> BaseCoordinateFrame | None:
-        ...
+    def frame(self) -> BaseCoordinateFrame | None: ...

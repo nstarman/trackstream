@@ -67,7 +67,6 @@ class Transformer(Protocol[W1, W2]):
 
     def __call__(self, cw: W1, point: BaseRepresentation) -> W2:
         """Transform a width."""
-        ...
 
 
 def register_transformation(w1type: type[W1], w2type: type[W2]) -> Callable[[Transformer[W1, W2]], Transformer[W1, W2]]:
@@ -85,6 +84,7 @@ def register_transformation(w1type: type[W1], w2type: type[W2]) -> Callable[[Tra
         -------
         `Transformer`
             The transformation function.
+
         """
         WIDTH_TRANSFORMATIONS[(w1type, w2type)] = func
         return func

@@ -4,7 +4,6 @@ Stream arms are descriptors on a `trackstrea.Stream` class.
 
 """
 
-
 from __future__ import annotations
 
 import copy
@@ -210,6 +209,7 @@ class StreamArm(StreamBase):
         ------
         ValueError
             If track is not fit.
+
         """
         track = self.cache["track"]
         if track is None:
@@ -249,6 +249,7 @@ class StreamArm(StreamBase):
         ------
         ValueError
             If a track has already been fit and ``force`` is not `True`.
+
         """
         # Check if already fit
         if not force and self.cache["track"] is not None:
