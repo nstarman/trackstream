@@ -15,13 +15,11 @@ sphinx:
 # Install regular dependencies.
 # Then, install special pinning for RTD.
 python:
-  system_packages: false
   install:
     - method: pip
       path: .
       extra_requirements:
-        - docs
-        - test
+        - all
 
 # Don't build any extra formats
 formats: []
