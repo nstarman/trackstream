@@ -61,7 +61,6 @@ def concatenate(
             msg = "axis must be 0 for 1 width"
             raise ValueError(msg)
         return seqwb[0]
-    # else:  N == 2
 
     # build concatenation of each field
     fs = {f.name: np.concatenate(tuple(getattr(wb, f.name) for wb in seqwb)) for f in fields(cls)}
