@@ -394,7 +394,7 @@ class Stream(StreamArmsBase, StreamBase):
         datarepr = (
             f"{name}:\n\t\t"
             + "\n\t\t".join(
-                arm.data._base_repr_(html=False, max_width=None, max_lines=10).split("\n")[1:],  # noqa: SLF001
+                arm.data._base_repr_(html=False, max_width=None, max_lines=10).split("\n")[1:],
             )
             for name, arm in self.items()
         )
