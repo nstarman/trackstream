@@ -301,7 +301,7 @@ class StreamArm(StreamBase):
         rs = super()._base_repr_(max_lines=max_lines)
 
         # 5) data table
-        datarep: str = self.data._base_repr_(html=False, max_width=None, max_lines=max_lines)  # noqa: SLF001
+        datarep: str = self.data._base_repr_(html=False, max_width=None, max_lines=max_lines)
         table: str = "\n\t".join(datarep.split("\n")[1:])
         rs.append("  Data:\n\t" + table)
 
