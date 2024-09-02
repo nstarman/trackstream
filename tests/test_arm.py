@@ -27,7 +27,7 @@ class StreamArmTestMixin:
     def arm(self, stream: Stream, request) -> StreamArm:
         return getattr(stream, request.param)
 
-    @pytest.fixture()
+    @pytest.fixture
     def arm_attr_name(self, arm: StreamArm) -> str:
         return arm._enclosing_attr
 

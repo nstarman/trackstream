@@ -207,7 +207,7 @@ class FirstOrderNewtonianKalmanFilter:
 
     # ===============================================================
 
-    def fit(  # noqa: PLR0913
+    def fit(
         self,
         data: SkyCoord,
         /,

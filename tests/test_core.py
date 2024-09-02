@@ -73,7 +73,7 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
         """Stream instance."""
         return stream_cls(data_table, origin, data_err=data_error_table, frame=frame, name=name)
 
-    @pytest.fixture()
+    @pytest.fixture
     def tempstream(self, stream: S) -> S:
         """function-scoped stream"""
         return evolve(stream)
@@ -87,7 +87,7 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
         strm.fit_frame(fitter=None)
         return strm
 
-    @pytest.fixture()
+    @pytest.fixture
     def tempstream_f(self, stream_f: S) -> S:
         """function-scoped stream"""
         return evolve(stream_f)
@@ -105,7 +105,7 @@ class Test_Stream(StreamBaseTest, StreamArmTestMixin):
         strm.fit_track(force=False)  # TODO: test kwargs
         return strm
 
-    @pytest.fixture()
+    @pytest.fixture
     def tempstream_t(self, stream_t: S):
         return evolve(stream_t)
 

@@ -52,7 +52,7 @@ class StreamTrack(StreamArmTrack[Stream], StreamArmsTrackBase[Stream]):
     Currently only works for 2 arms.
     """
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         stream: Stream,
         tracks: Mapping[str, StreamArmTrack[StreamLikeT]],
