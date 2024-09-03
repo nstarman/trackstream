@@ -107,7 +107,7 @@ class FitterStreamArmTrack:
 
     @singledispatchmethod
     @classmethod
-    def from_format(  # noqa: PLR0913
+    def from_format(
         cls,
         arm: object,  # noqa: ARG003
         onsky: bool | None = None,  # noqa: ARG003
@@ -122,7 +122,7 @@ class FitterStreamArmTrack:
 
     @from_format.register(StreamArm)
     @classmethod
-    def _from_format_streamarm(  # noqa: PLR0913  # type: ignore[misc]
+    def _from_format_streamarm(  # type: ignore[misc]
         cls: type[Self],
         arm: StreamArm,
         onsky: bool | None = None,
@@ -156,7 +156,7 @@ class FitterStreamArmTrack:
 
     @from_format.register(StreamArmsBase)
     @classmethod
-    def _from_format_streamarmsbase(  # noqa: PLR0913  # type: ignore[misc]
+    def _from_format_streamarmsbase(  # type: ignore[misc]
         cls: type[Self],
         arms: StreamArmsBase,
         onsky: bool | None = None,
