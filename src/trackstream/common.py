@@ -34,6 +34,7 @@ class CollectionBase(Mapping[str, V]):
     --------
     Let's do a pretty trivial example: a collection of `~numpy.ndarray`.
 
+        >>> import numpy as np
         >>> a = np.arange(5)
         >>> b = np.arange(5, 10)
 
